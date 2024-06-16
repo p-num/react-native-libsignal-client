@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "react-native-libsignal-client": ["../src/index"],
+      "react-native-libsignal-client/*": ["../src/*"]
+    }
+  }
+}
