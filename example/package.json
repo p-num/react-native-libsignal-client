@@ -9,12 +9,19 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "chance": "^1.1.11",
+    "deep-eql": "^5.0.2",
     "expo": "~51.0.14",
+    "expo-build-properties": "^0.12.3",
     "react": "18.2.0",
-    "react-native": "0.74.2"
+    "react-native": "0.74.2",
+    "react-native-logs": "^5.1.0",
+    "typed-assert": "^1.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@types/chance": "^1.1.6",
+    "@types/deep-eql": "^4.0.2",
     "@types/react": "~18.2.45",
     "typescript": "^5.1.3"
   },

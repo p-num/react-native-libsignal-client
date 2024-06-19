@@ -1,20 +1,41 @@
-import { StyleSheet, Text, View } from 'react-native';
-
-import * as ReactNativeLibsignalClient from 'react-native-libsignal-client';
+import { useEffect, useState } from 'react';
+import { log } from './logger';
+import { TestFeedback } from './TestFeedback';
+import { testKyberPreKeyRecord } from './tests/api-test';
+import { runTests, sleep } from './tests/utils';
+export type TestStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'ERROR';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>{ReactNativeLibsignalClient.hello()}</Text>
-    </View>
-  );
-}
+	const [testStatus, setTestStatus] = useState<TestStatus>('IDLE');
+	const [msg, setMsg] = useState<string>('');
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+	useEffect(() => {
+		(async () => {
+			try {
+				setTestStatus('RUNNING');
+				await sleep(500);
+
+				const { failedTests, passedTests, ranTests } = await runTests([
+					testKyberPreKeyRecord,
+				]);
+
+				if (failedTests === 0 && passedTests === ranTests) {
+					setTestStatus('SUCCESS');
+					setMsg('All tests passed!');
+				} else {
+					setTestStatus('ERROR');
+					setMsg(
+						`${failedTests}/${ranTests} tests failed! Check the logs for details.`
+					);
+				}
+			} catch (error) {
+				setTestStatus('ERROR');
+				setMsg('An error occurred');
+				log.error(error);
+			}
+		})();
+	}, []);
+
+	return <TestFeedback testStatus={testStatus} errorMessage={msg} />;
+
+}
