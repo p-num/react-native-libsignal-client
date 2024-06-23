@@ -33,7 +33,8 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "minSdkVersion": 26
           }
         }
       ]

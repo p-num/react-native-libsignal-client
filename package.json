@@ -28,9 +28,15 @@
   "author": "ehsun <ehsun.ahmadi@gmail.com> (https://github.com/ehsunahmadi)",
   "license": "MIT",
   "homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
-  "dependencies": {},
+  "dependencies": {
+    "@craftzdog/react-native-buffer": "^6.0.5",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-quick-base64": "^2.1.2",
+    "uuid": "^10.0.0"
+  },
   "devDependencies": {
     "@types/react": "^18.0.25",
+    "@types/uuid": "^10.0.0",
     "expo-module-scripts": "^3.5.2",
     "expo-modules-core": "^1.12.14"
   },
