@@ -110,12 +110,12 @@ export async function getIdentityStoreObject(
 
 export async function getIdentityStoreInitializer(
 	identityStore: IdentityKeyStore
-): Promise<[ownerKeyPair: Uint8Array, regId: number]> {
+): Promise<[ownerKeyPair: string, regId: number]> {
 	const privateKey = await identityStore.getIdentityKey();
 	const publicKey = privateKey.getPublicKey();
 	const pair = new IdentityKeyPair(publicKey, privateKey);
 	const regId = await identityStore.getLocalRegistrationId();
-	return [pair.serialize(), regId];
+	return [fromByteArray(pair.serialize()), regId];
 }
 
 export async function getSignedPrekeyStoreState(

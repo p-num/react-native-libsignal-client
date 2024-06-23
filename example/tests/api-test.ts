@@ -1,7 +1,10 @@
+import { Buffer } from '@craftzdog/react-native-buffer';
 import deepEql from 'deep-eql';
 import * as ReactNativeLibsignalClient from 'react-native-libsignal-client';
-import { assert, isInstanceOf } from 'typed-assert';
-
+import { ProtocolAddress } from 'react-native-libsignal-client/Address';
+import { assert, isInstanceOf, isNotNull } from 'typed-assert';
+import { sessionVersionTestCases } from './api-utils';
+import { TestStores } from './mockStores';
 import { test } from './utils';
 
 export const testPreKeyRecord = () =>
@@ -48,3 +51,123 @@ export const testKyberPreKeyRecord = () =>
 		isInstanceOf(record.secretKey().serialized, Uint8Array, 'secret key does not exist')
 		isInstanceOf(record.signature(), Uint8Array, 'signature does not exist')
 	});
+
+
+
+const testMessaging = (index: 0 | 1) => {
+	const testCase = sessionVersionTestCases[index];
+	test(`test Messaging Session ${testCase.suffix}`, async () => {
+		const aliceStores = new TestStores();
+		const bobStores = new TestStores();
+
+		const aAddress = new ProtocolAddress('+14151111111', 1);
+		const bAddress = new ProtocolAddress('+19192222222', 1);
+
+		const bPreKeyBundle = await testCase.makeAndProcessBundle(bAddress, bobStores);
+
+		const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
+
+		// const aCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
+		// 	aMessage,
+		// 	bAddress,
+		// 	aliceStores.session,
+		// 	aliceStores.identity
+		// );
+		// assert(
+		// 	deepEql(
+		// 		aCiphertext.type(),
+		// 		ReactNativeLibsignalClient.CiphertextMessageType.PreKey
+		// 	),
+		// 	'CiphertextMessageType of aCiphertext is not the same as the the one it was created with'
+		// );
+
+		// const aCiphertextR = ReactNativeLibsignalClient.PreKeySignalMessage.deserialize(
+		// 	aCiphertext.serialize()
+		// );
+
+		// const kyberKeys: number[] = [];
+		// const usefulKey = bPreKeyBundle.kyberPreKeyId();
+		// if (usefulKey) {
+		// 	kyberKeys.push(usefulKey);
+		// }
+		// const bDPlaintext = await ReactNativeLibsignalClient.signalDecryptPreKey(
+		// 	aCiphertextR,
+		// 	aAddress,
+		// 	bobStores.session,
+		// 	bobStores.identity,
+		// 	bobStores.prekey,
+		// 	bobStores.signed,
+		// 	bobStores.kyber,
+		// 	kyberKeys
+		// );
+		// assert(deepEql(bDPlaintext, aMessage));
+
+		// const bMessage = new Uint8Array(
+		// 	Buffer.from(
+		// 		'Sometimes the only thing more dangerous than a question is an answer.',
+		// 		'utf8'
+		// 	)
+		// );
+		// const bCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
+		// 	bMessage,
+		// 	aAddress,
+		// 	bobStores.session,
+		// 	bobStores.identity
+		// );
+		// assert(
+		// 	deepEql(
+		// 		bCiphertext.type(),
+		// 		ReactNativeLibsignalClient.CiphertextMessageType.Whisper
+		// 	),
+		// 	'CiphertextMessageType of bCiphertext is not the same as the the one it was created with'
+		// );
+
+		// const bCiphertextR = ReactNativeLibsignalClient.SignalMessage.deserialize(
+		// 	bCiphertext.serialize()
+		// );
+
+		// const aDPlaintext = await ReactNativeLibsignalClient.signalDecrypt(
+		// 	bCiphertextR,
+		// 	bAddress,
+		// 	aliceStores.session,
+		// 	aliceStores.identity
+		// );
+		// assert(deepEql(aDPlaintext, bMessage), 'aDPlaintext !== bMessage');
+
+		const session = await bobStores.session.getSession(aAddress);
+		
+		isNotNull(session, 'session is null');
+
+		assert(session.serialized.length > 0, 'session.serialize().length <= 0');
+		assert(
+			deepEql(session.localRegistrationId(), 5),
+			'localRegistrationId is not the same as the the one it was created with'
+		);
+		assert(
+			deepEql(session.remoteRegistrationId(), 5),
+			'remoteRegistrationId is not the same as the the one it was created with'
+		);
+		assert(session.hasCurrentState(), 'session has no current state');
+		assert(
+			!session.currentRatchetKeyMatches(
+				ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
+			),
+			'currentRatchetKeyMatches is true'
+		);
+		session.archiveCurrentState();
+		assert(
+			!session.hasCurrentState(),
+			'session has current state after archiveCurrentState'
+		);
+		assert(
+			!session.currentRatchetKeyMatches(
+				ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
+			),
+			'currentRatchetKeyMatches is true'
+		);
+	});
+};
+
+export const testMessagingWithoutKyber = () => testMessaging(0);
+
+export const testMessagingWithKyber = () => testMessaging(1);

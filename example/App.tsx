@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { log } from './logger';
 import { TestFeedback } from './TestFeedback';
-import { testKyberPreKeyRecord, testPreKeyRecord } from './tests/api-test';
+import { testKyberPreKeyRecord, testMessagingWithKyber, testMessagingWithoutKyber, testPreKeyRecord } from './tests/api-test';
 import { runTests, sleep } from './tests/utils';
 export type TestStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'ERROR';
 
@@ -17,7 +17,9 @@ export default function App() {
 
 				const { failedTests, passedTests, ranTests } = await runTests([
 					testKyberPreKeyRecord,
-					testPreKeyRecord
+					testPreKeyRecord,
+					testMessagingWithoutKyber,
+					testMessagingWithKyber
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {

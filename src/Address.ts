@@ -172,8 +172,8 @@ export class Pni extends ServiceId {
 }
 
 export class ProtocolAddress {
-	private readonly name: string
-	private readonly deviceId: number
+	public readonly name: string
+	public readonly deviceId: number
 
 	constructor(name: string, deviceId: number) {
 		this.name = name;

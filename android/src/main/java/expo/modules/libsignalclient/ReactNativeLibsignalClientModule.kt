@@ -27,8 +27,7 @@ import java.time.Instant
 typealias StringifiedProtocolAddress = String
 typealias SerializedAddressedKeys = Map<StringifiedProtocolAddress, String>
 typealias RegistrationId = Int
-typealias OwnerData = Pair<ByteArray, RegistrationId>
-typealias IdentityStoreInitializer = Pair<ByteArray, OwnerData>
+typealias OwnerData = Pair<String, RegistrationId>
 
 fun updateSessionStoreStateFromInMemorySessionStore(store: InMemorySignalProtocolStore, address: SignalProtocolAddress ): SerializedAddressedKeys {
   val sessionRecords = store.loadExistingSessions(listOf(address))
@@ -166,33 +165,37 @@ class ReactNativeLibsignalClientModule : Module() {
    // we are passing some arguments in array and receiving them as pairs for reducing the number of parameters to >= 8. we can clean it up further by putting it in a Record class whih is expo's max limit due to the limitations of generics in both Swift and Kotlin because this component must be implemented separately for each.
   private fun createAndProcessPreKeyBundle(
     registrationData: Pair<String, Int>,
-    preKeyData: Pair<Int, ByteArray>,
-    signedPreKeyDataAndSignature: Pair<Pair<Int, ByteArray>, ByteArray>,
-    identityKey: ByteArray,
-    ownerIdentityData: IdentityStoreInitializer,
-    kyberPreKeyDataAndSignature: Pair<Pair<Int, ByteArray>, ByteArray>?,
+    preKeyData: Pair<Int, String>,
+    signedPreKeyData: Pair<Int, String>,
+    base64SignedPreKeySignature: String,
+    base64IdentityKey: String,
+    ownerIdentityData: OwnerData,
+    kyberPreKeyData: Pair<Int, String>?,
+    base64KyberPreKeySignature: String?
   ) : Pair<SerializedAddressedKeys, SerializedAddressedKeys> {
-     val (serializedOwnerIdentityKey, ownerData) = ownerIdentityData;
-     val (ownerKeypair, ownerRegistrationId) = ownerData;
-     val ownerIdentityKey =
-       IdentityKeyPair(IdentityKey(serializedOwnerIdentityKey), Curve.decodePrivatePoint(ownerKeypair))
+     val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData;
+       val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
+       val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
      val (address, registrationId) = registrationData
-     val (preKeyId, preKeyPublic) = preKeyData;
+     val (preKeyId, base64PreKeyPublic) = preKeyData;
      val (serviceId, deviceId) = address.split(".")
-     val (signedPreKeyData, signedPreKeySignature) = signedPreKeyDataAndSignature;
-     val (signedPreKeyId, signedPreKeyPublic) = signedPreKeyData
+     val (signedPreKeyId, base64SignedPreKeyPublic) = signedPreKeyData
+     val signedPreKeyPublic = Base64.decode(base64SignedPreKeyPublic, Base64.NO_WRAP)
      val signedPublicPreKey = ECPublicKey(signedPreKeyPublic)
+     val identityKey = Base64.decode(base64IdentityKey, Base64.NO_WRAP)
      val idKey = IdentityKey(identityKey)
+       val preKeyPublic = Base64.decode(base64PreKeyPublic, Base64.NO_WRAP)
      val publicPreKey = ECPublicKey(preKeyPublic)
      val remoteProtoAddress = SignalProtocolAddress(serviceId, deviceId.toInt())
 
      val store = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
      val sessionBuilder = SessionBuilder(store, remoteProtoAddress)
 
-     if (kyberPreKeyDataAndSignature !== null) {
-       val (kyberPreKeyData, kyberPreKeySignature) = kyberPreKeyDataAndSignature;
-       val (keyId, publicKyberKey) = kyberPreKeyData;
-       val pubKey = KEMPublicKey(publicKyberKey)
+     if (kyberPreKeyData !== null && base64KyberPreKeySignature !== null) {
+       val (keyId, base64KyberPreKeyPublic) = kyberPreKeyData;
+         val kyberPreKeyPublic = Base64.decode(base64KyberPreKeyPublic, Base64.NO_WRAP)
+       val pubKey = KEMPublicKey(kyberPreKeyPublic)
+       val kyberPreKeySignature = Base64.decode(base64KyberPreKeySignature, Base64.NO_WRAP)
        val bundle = PreKeyBundle(
          registrationId,
          deviceId.toInt(),
@@ -200,7 +203,7 @@ class ReactNativeLibsignalClientModule : Module() {
          publicPreKey,
          signedPreKeyId,
          signedPublicPreKey,
-         signedPreKeySignature,
+           kyberPreKeySignature,
          idKey,
          keyId,
          pubKey,
@@ -208,6 +211,7 @@ class ReactNativeLibsignalClientModule : Module() {
        )
        sessionBuilder.process(bundle)
      } else {
+         val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
        val noKyberBundle = PreKeyBundle(
          registrationId,
          deviceId.toInt(),

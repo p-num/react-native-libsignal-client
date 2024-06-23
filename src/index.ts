@@ -1,10 +1,11 @@
 import 'react-native-get-random-values';
+import { fromByteArray } from 'react-native-quick-base64';
 import * as uuid from 'uuid';
 import { ProtocolAddress } from './Address';
 import * as Native from './Native.d';
 import { Direction } from './ReactNativeLibsignalClient.types';
 import ReactNativeLibsignalClientModule from './ReactNativeLibsignalClientModule';
-import { getIdentityStoreInitializer, getSessionStoreObject, updateIdentityStoreFromObject, updateSessionStoreFromObject } from './stores';
+import { getIdentityStoreInitializer, updateIdentityStoreFromObject, updateSessionStoreFromObject } from './stores';
 
 export class PrivateKey {
 	readonly serialized: Uint8Array
@@ -538,11 +539,10 @@ export abstract class SenderKeyStore implements Native.SenderKeyStore {
 }
 
 export async function createAndProcessPreKeyBundle(
-	serviceId: string,
 	registration_id: number,
-	device_id: number,
+	address: ProtocolAddress,
 	prekey_id: number,
-	prekey: Uint8Array,
+	prekey: PublicKey,
 	signed_prekey_id: number,
 	signed_prekey: PublicKey,
 	signed_prekey_signature: Uint8Array,
@@ -556,27 +556,31 @@ export async function createAndProcessPreKeyBundle(
 	} | null,
 
 ) {
-	const protoAddress = new ProtocolAddress(serviceId, device_id)
 	const identityStoreInitializer =
 	await getIdentityStoreInitializer(identityStore);
-	const sessionStoreData = await getSessionStoreObject(sessionStore, protoAddress)
 	const [updatedSessionStoreState, updatedIdentityStoreState] = ReactNativeLibsignalClientModule.createAndProcessPreKeyBundle(
-		[protoAddress.toString(),
+		[address.toString(),
 		registration_id],
 		[prekey_id,
-		prekey],
-		[[signed_prekey_id,
-		signed_prekey],
-		signed_prekey_signature],
-		identity_key,
+		fromByteArray(prekey.serialized)],
+		[signed_prekey_id,
+		fromByteArray(signed_prekey.serialized)],
+		fromByteArray(signed_prekey_signature),
+		fromByteArray(identity_key.serialized),
 		identityStoreInitializer,
-		sessionStoreData,
 		kyberData
-		? [[
+		? [
 				kyberData.kyber_prekey_id,
-				kyberData.kyber_prekey.serialized
-			], kyberData.kyber_prekey_signature]
-		: null);
+				fromByteArray(kyberData.kyber_prekey.serialized)
+			]
+		: null,
+		kyberData ? fromByteArray(kyberData.kyber_prekey_signature) : null
+	);
+		console.log("RRRRRRRRRR",{updatedSessionStoreState,
+			updatedIdentityStoreState})
 	await updateSessionStoreFromObject(sessionStore, updatedSessionStoreState);
 	await updateIdentityStoreFromObject(identityStore, updatedIdentityStoreState);
 }
+
+
+export { Direction };
