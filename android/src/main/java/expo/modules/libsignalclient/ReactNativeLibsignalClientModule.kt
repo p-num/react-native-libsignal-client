@@ -190,7 +190,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
      val store = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
      val sessionBuilder = SessionBuilder(store, remoteProtoAddress)
-val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
+    val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
      if (kyberPreKeyData !== null && base64KyberPreKeySignature !== null) {
        val (keyId, base64KyberPreKeyPublic) = kyberPreKeyData;
          val kyberPreKeyPublic = Base64.decode(base64KyberPreKeyPublic, Base64.NO_WRAP)
@@ -330,24 +330,24 @@ val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO
   //   return Native.SessionRecord_CurrentRatchetKeyMatches(sessionRecord, publicKey)
   // }
     private fun sessionRecordArchiveCurrentState(record: ByteArray) {
-        val rec = SessionRecord(record)
+      val rec = SessionRecord(record)
       return rec.archiveCurrentState()
     }
     private fun sessionRecordGetLocalRegistrationId(record: ByteArray) : Int {
-        val rec = SessionRecord(record)
-        return rec.localRegistrationId
+      val rec = SessionRecord(record)
+      return rec.localRegistrationId
     }
     private fun sessionRecordGetRemoteRegistrationId(record: ByteArray) : Int {
-        val rec = SessionRecord(record)
-        return rec.remoteRegistrationId
+      val rec = SessionRecord(record)
+      return rec.remoteRegistrationId
     }
-    private fun sessionRecordHasUsableSenderChain(record: ByteArray) : Boolean {
-        val rec = SessionRecord(record)
-        return rec.hasSenderChain(Instant.now())
+    private fun sessionRecordHasUsableSenderChain(record: ByteArray, now: Long) : Boolean {
+      val rec = SessionRecord(record)
+      return rec.hasSenderChain(Instant.ofEpochMilli(now))
     }
     private fun sessionRecordCurrentRatchetKeyMatches(record: ByteArray, pubKey : ByteArray) : Boolean {
-        val ecPublicKey = ECPublicKey(pubKey)
-        val rec = SessionRecord(record)
-        return rec.currentRatchetKeyMatches(ecPublicKey)
+      val ecPublicKey = ECPublicKey(pubKey)
+      val rec = SessionRecord(record)
+      return rec.currentRatchetKeyMatches(ecPublicKey)
     }
 }
