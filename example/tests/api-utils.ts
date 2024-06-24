@@ -5,9 +5,11 @@ import { chance } from './utils';
 
 async function makePQXDHBundleAndProcess(
 	address: ProtocolAddress,
-	stores: TestStores
+	remoteStores: TestStores,
+	senderSessionStore: ReactNativeLibsignalClient.SessionStore,
+	senderIdentityStore: ReactNativeLibsignalClient.IdentityKeyStore,
 ) {
-	const identityKey = await stores.identity.getIdentityKey();
+	const identityKey = await remoteStores.identity.getIdentityKey();
 	const prekeyId = chance.natural({ max: 10000 });
 	const prekey = ReactNativeLibsignalClient.PrivateKey.generate();
 	const signedPrekeyId = chance.natural({ max: 10000 });
@@ -17,7 +19,7 @@ async function makePQXDHBundleAndProcess(
 	);
 	const kyberPrekeyId = chance.natural({ max: 10000 });
 
-	await stores.prekey.savePreKey(
+	await remoteStores.prekey.savePreKey(
 		prekeyId,
 		ReactNativeLibsignalClient.PreKeyRecord.new(
 			prekeyId,
@@ -25,7 +27,7 @@ async function makePQXDHBundleAndProcess(
 			prekey
 		)
 	);
-	await stores.signed.saveSignedPreKey(
+	await remoteStores.signed.saveSignedPreKey(
 		signedPrekeyId,
 		ReactNativeLibsignalClient.SignedPreKeyRecord.new(
 			signedPrekeyId,
@@ -42,10 +44,10 @@ async function makePQXDHBundleAndProcess(
 		identityKey.serialized
 	);
 
-	await stores.kyber.saveKyberPreKey(kyberPrekeyId, rec);
+	await remoteStores.kyber.saveKyberPreKey(kyberPrekeyId, rec);
 
 	 await ReactNativeLibsignalClient.createAndProcessPreKeyBundle(
-		await stores.identity.getLocalRegistrationId(),
+		await remoteStores.identity.getLocalRegistrationId(),
 		address,
 		prekeyId,
 		prekey.getPublicKey(),
@@ -53,8 +55,8 @@ async function makePQXDHBundleAndProcess(
 		signedPrekey.getPublicKey(),
 		signedPrekeySignature,
 		identityKey.getPublicKey(),
-		stores.session,
-		stores.identity,
+		senderSessionStore,
+		senderIdentityStore,
 		{
 			kyber_prekey_id: kyberPrekeyId,
 			kyber_prekey: rec.publicKey(),
@@ -71,9 +73,11 @@ export const sessionVersionTestCases = [
 //TODo: uncomment after making the kyber args optional
 async function makeX3DHBundleAndProcess(
 	address: ProtocolAddress,
-	stores: TestStores
+	remoteStores: TestStores,
+	senderSessionStore: ReactNativeLibsignalClient.SessionStore,
+	senderIdentityStore: ReactNativeLibsignalClient.IdentityKeyStore,
 ) {
-	const identityKey = await stores.identity.getIdentityKey();
+	const identityKey = await remoteStores.identity.getIdentityKey();
 	const prekeyId = chance.natural({ max: 10000 });
 	const prekey = ReactNativeLibsignalClient.PrivateKey.generate();
 	const signedPrekeyId = chance.natural({ max: 10000 });
@@ -82,7 +86,7 @@ async function makeX3DHBundleAndProcess(
 		signedPrekey.getPublicKey().serialized
 	);
 
-	await stores.prekey.savePreKey(
+	await remoteStores.prekey.savePreKey(
 		prekeyId,
 		ReactNativeLibsignalClient.PreKeyRecord.new(
 			prekeyId,
@@ -91,7 +95,7 @@ async function makeX3DHBundleAndProcess(
 		)
 	);
 
-	await stores.signed.saveSignedPreKey(
+	await remoteStores.signed.saveSignedPreKey(
 		signedPrekeyId,
 		ReactNativeLibsignalClient.SignedPreKeyRecord.new(
 			signedPrekeyId,
@@ -103,7 +107,7 @@ async function makeX3DHBundleAndProcess(
 	);
 
 	await ReactNativeLibsignalClient.createAndProcessPreKeyBundle(
-		await stores.identity.getLocalRegistrationId(),
+		await remoteStores.identity.getLocalRegistrationId(),
 		address,
 		prekeyId,
 		prekey.getPublicKey(),
@@ -111,8 +115,8 @@ async function makeX3DHBundleAndProcess(
 		signedPrekey.getPublicKey(),
 		signedPrekeySignature,
 		identityKey.getPublicKey(),
-		stores.session,
-		stores.identity,
+		senderSessionStore,
+		senderIdentityStore,
 		null
 	);
 }

@@ -576,8 +576,6 @@ export async function createAndProcessPreKeyBundle(
 		: null,
 		kyberData ? fromByteArray(kyberData.kyber_prekey_signature) : null
 	);
-		console.log("RRRRRRRRRR",{updatedSessionStoreState,
-			updatedIdentityStoreState})
 	await updateSessionStoreFromObject(sessionStore, updatedSessionStoreState);
 	await updateIdentityStoreFromObject(identityStore, updatedIdentityStoreState);
 }

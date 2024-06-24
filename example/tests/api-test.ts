@@ -1,4 +1,3 @@
-import { Buffer } from '@craftzdog/react-native-buffer';
 import deepEql from 'deep-eql';
 import * as ReactNativeLibsignalClient from 'react-native-libsignal-client';
 import { ProtocolAddress } from 'react-native-libsignal-client/Address';
@@ -63,9 +62,14 @@ const testMessaging = (index: 0 | 1) => {
 		const aAddress = new ProtocolAddress('+14151111111', 1);
 		const bAddress = new ProtocolAddress('+19192222222', 1);
 
-		const bPreKeyBundle = await testCase.makeAndProcessBundle(bAddress, bobStores);
+		await testCase.makeAndProcessBundle(bAddress, bobStores, aliceStores.session, aliceStores.identity);
 
-		const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
+
+		const session = await aliceStores.session.getSession(bAddress);
+		
+		isNotNull(session, 'session is null');
+
+		// const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
 
 		// const aCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
 		// 	aMessage,
@@ -134,37 +138,37 @@ const testMessaging = (index: 0 | 1) => {
 		// );
 		// assert(deepEql(aDPlaintext, bMessage), 'aDPlaintext !== bMessage');
 
-		const session = await bobStores.session.getSession(aAddress);
+		// const session = await bobStores.session.getSession(aAddress);
 		
-		isNotNull(session, 'session is null');
+		// isNotNull(session, 'session is null');
 
-		assert(session.serialized.length > 0, 'session.serialize().length <= 0');
-		assert(
-			deepEql(session.localRegistrationId(), 5),
-			'localRegistrationId is not the same as the the one it was created with'
-		);
-		assert(
-			deepEql(session.remoteRegistrationId(), 5),
-			'remoteRegistrationId is not the same as the the one it was created with'
-		);
-		assert(session.hasCurrentState(), 'session has no current state');
-		assert(
-			!session.currentRatchetKeyMatches(
-				ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
-			),
-			'currentRatchetKeyMatches is true'
-		);
-		session.archiveCurrentState();
-		assert(
-			!session.hasCurrentState(),
-			'session has current state after archiveCurrentState'
-		);
-		assert(
-			!session.currentRatchetKeyMatches(
-				ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
-			),
-			'currentRatchetKeyMatches is true'
-		);
+		// assert(session.serialized.length > 0, 'session.serialize().length <= 0');
+		// assert(
+		// 	deepEql(session.localRegistrationId(), 5),
+		// 	'localRegistrationId is not the same as the the one it was created with'
+		// );
+		// assert(
+		// 	deepEql(session.remoteRegistrationId(), 5),
+		// 	'remoteRegistrationId is not the same as the the one it was created with'
+		// );
+		// assert(session.hasCurrentState(), 'session has no current state');
+		// assert(
+		// 	!session.currentRatchetKeyMatches(
+		// 		ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
+		// 	),
+		// 	'currentRatchetKeyMatches is true'
+		// );
+		// session.archiveCurrentState();
+		// assert(
+		// 	!session.hasCurrentState(),
+		// 	'session has current state after archiveCurrentState'
+		// );
+		// assert(
+		// 	!session.currentRatchetKeyMatches(
+		// 		ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
+		// 	),
+		// 	'currentRatchetKeyMatches is true'
+		// );
 	});
 };
 

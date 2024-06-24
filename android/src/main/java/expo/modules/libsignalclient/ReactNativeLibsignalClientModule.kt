@@ -190,7 +190,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
      val store = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
      val sessionBuilder = SessionBuilder(store, remoteProtoAddress)
-
+val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
      if (kyberPreKeyData !== null && base64KyberPreKeySignature !== null) {
        val (keyId, base64KyberPreKeyPublic) = kyberPreKeyData;
          val kyberPreKeyPublic = Base64.decode(base64KyberPreKeyPublic, Base64.NO_WRAP)
@@ -203,7 +203,7 @@ class ReactNativeLibsignalClientModule : Module() {
          publicPreKey,
          signedPreKeyId,
          signedPublicPreKey,
-           kyberPreKeySignature,
+         signedPreKeySignature,
          idKey,
          keyId,
          pubKey,
@@ -211,7 +211,7 @@ class ReactNativeLibsignalClientModule : Module() {
        )
        sessionBuilder.process(bundle)
      } else {
-         val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
+         
        val noKyberBundle = PreKeyBundle(
          registrationId,
          deviceId.toInt(),
