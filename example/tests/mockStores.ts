@@ -16,7 +16,7 @@ class InMemorySessionStore extends SessionStore {
 		const idx = `${name.name}::${name.deviceId}`;
 		const serialized = this.state.get(idx);
 		if (serialized) {
-			return new SessionRecord(serialized)
+			return SessionRecord._fromSerialized(serialized)
 		}
 		return null;
 	}
@@ -30,7 +30,7 @@ class InMemorySessionStore extends SessionStore {
 			if (!serialized) {
 				throw `no session for ${idx}`;
 			}
-			return new SessionRecord(serialized);
+			return SessionRecord._fromSerialized(serialized);
 		});
 	}
 }
@@ -102,7 +102,7 @@ class InMemoryPreKeyStore extends PreKeyStore {
 		if (!record) {
 			throw new Error(`pre-key ${id} not found`);
 		}
-		return new PreKeyRecord(record);
+		return PreKeyRecord._fromSerialized(record);
 	}
 	async removePreKey(id: number): Promise<void> {
 		this.state.delete(id);
@@ -124,7 +124,7 @@ class InMemorySignedPreKeyStore extends SignedPreKeyStore {
 		if (!record) {
 			throw new Error(`pre-key ${id} not found`);
 		}
-		return new SignedPreKeyRecord(record);
+		return SignedPreKeyRecord._fromSerialized(record);
 	}
 }
 
@@ -144,7 +144,7 @@ class InMemoryKyberPreKeyStore extends KyberPreKeyStore {
 		if (!record) {
 			throw new Error(`kyber pre-key ${id} not found`);
 		}
-		return new KyberPreKeyRecord(record);
+		return KyberPreKeyRecord._fromSerialized(record);
 	}
 	async markKyberPreKeyUsed(id: number): Promise<void> {
 		this.used.add(id);

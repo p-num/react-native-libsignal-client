@@ -26,7 +26,7 @@ export async function updateSessionStoreFromObject(
 		const protoAddress = ProtocolAddress.new(key);
 		await sessionStore.saveSession(
 			protoAddress,
-			new SessionRecord(toByteArray(updatedSessionStoreState[key]))
+			SessionRecord._fromSerialized(toByteArray(updatedSessionStoreState[key]))
 		);
 	}
 }
@@ -38,7 +38,7 @@ export async function updatedPrekeyStoreFromObject(
 	for (const key in preKeyStoreState) {
 		await preKeyStore.savePreKey(
 			Number(key),
-			new PreKeyRecord(toByteArray(preKeyStoreState[key]))
+			PreKeyRecord._fromSerialized(toByteArray(preKeyStoreState[key]))
 		);
 	}
 }
@@ -50,7 +50,7 @@ export async function updateSignedPrekeyStoreFromObject(
 	for (const key in signedPreKeyStoreState) {
 		await signedPreKeyStore.saveSignedPreKey(
 			Number(key),
-			new SignedPreKeyRecord(toByteArray(signedPreKeyStoreState[key]))
+			SignedPreKeyRecord._fromSerialized(toByteArray(signedPreKeyStoreState[key]))
 		);
 	}
 }
@@ -62,7 +62,7 @@ export async function updateKyberPrekeyStoreFromObject(
 	for (const key in kyberPreKeyStoreState) {
 		await kyberPreKeyStore.saveKyberPreKey(
 			Number(key),
-			new KyberPreKeyRecord(toByteArray(kyberPreKeyStoreState[key]))
+			KyberPreKeyRecord._fromSerialized(toByteArray(kyberPreKeyStoreState[key]))
 		);
 	}
 }
@@ -73,7 +73,7 @@ export async function updateIdentityStoreFromObject(
 ) {
 	for (const key in identityStoreState) {
 		const protoAddress = ProtocolAddress.new(key);
-		const d = new PublicKey(toByteArray(identityStoreState[key]));
+		const d = PublicKey._fromSerialized(toByteArray(identityStoreState[key]));
 		await identityStore.saveIdentity(protoAddress, d);
 	}
 }

@@ -10,7 +10,7 @@ import { getIdentityStoreInitializer, updateIdentityStoreFromObject, updateSessi
 export class PrivateKey {
 	readonly serialized: Uint8Array
 
-	public constructor(serialized: Uint8Array) {
+	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
@@ -30,14 +30,20 @@ export class PrivateKey {
 	}
 
 	getPublicKey(): PublicKey {
-		return new PublicKey(ReactNativeLibsignalClientModule.privateKeyGetPublicKey(this.serialized))
+		return PublicKey._fromSerialized(ReactNativeLibsignalClientModule.privateKeyGetPublicKey(this.serialized))
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): PrivateKey {
+		return new PrivateKey(serialized);
 	}
 }
 
 export class PublicKey {
 	readonly serialized: Uint8Array;
 
-	public constructor(serialized: Uint8Array) {
+	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
@@ -70,6 +76,12 @@ export class PublicKey {
 			signature
 		);
 	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): PublicKey {
+		return new PublicKey(serialized);
+	}
 }
 
 
@@ -84,7 +96,7 @@ export class IdentityKeyPair {
 
 	static generate(): IdentityKeyPair {
 		const [privateKey, publicKey] = ReactNativeLibsignalClientModule.generateIdentityKeyPair();
-		return new IdentityKeyPair(new PublicKey(publicKey), new PrivateKey(privateKey));
+		return new IdentityKeyPair(PublicKey._fromSerialized(publicKey), PrivateKey._fromSerialized(privateKey));
 	}
 
 	signAlternateIdentity(other: PublicKey): Uint8Array {
@@ -108,15 +120,14 @@ export class KEMKeyPair {
 	readonly secretKey: KEMSecretKey;
 
 	private constructor(publicKey :KEMPublicKey, secretKey: KEMSecretKey) {
-    this.secretKey = publicKey;
-    this.publicKey = secretKey;
+    this.secretKey = secretKey;
+    this.publicKey = publicKey;
   }
 
 	static generate(): KEMKeyPair {
     const [prv, pub] = ReactNativeLibsignalClientModule.generateKyberKeyPair()
 		return new KEMKeyPair(prv, pub);
-	}secret
-	public
+	}
 
 	getPublicKey(): KEMPublicKey {
 		return this.publicKey;
@@ -130,16 +141,24 @@ export class KEMKeyPair {
 export class KEMPublicKey {
 	readonly serialized: Uint8Array;
 
-	public constructor(handle: Uint8Array) {
+	private constructor(handle: Uint8Array) {
 		this.serialized = handle;
+	}
+
+	static _fromSerialized(serialized: Uint8Array): KEMPublicKey {
+		return new KEMPublicKey(serialized);
 	}
 }
 
 export class KEMSecretKey {
 	readonly serialized: Uint8Array;
 
-	public constructor(handle: Uint8Array) {
+	private constructor(handle: Uint8Array) {
 		this.serialized = handle;
+	}
+
+	static _fromSerialized(serialized: Uint8Array): KEMSecretKey {
+		return new KEMSecretKey(serialized);
 	}
 }
 
@@ -147,7 +166,7 @@ export class KEMSecretKey {
 export class KyberPreKeyRecord {
 	readonly serialized: Uint8Array
 
-	constructor(handle: Uint8Array) {
+	private constructor(handle: Uint8Array) {
 		this.serialized = handle;
 	}
 
@@ -170,7 +189,7 @@ export class KyberPreKeyRecord {
 	}
 
 	publicKey(): KEMPublicKey {
-		return new KEMPublicKey(
+		return KEMPublicKey._fromSerialized(
 			ReactNativeLibsignalClientModule.kyberPreKeyRecordGetPublicKey(
 				this.serialized
 			)
@@ -178,7 +197,7 @@ export class KyberPreKeyRecord {
 	}
 
 	secretKey(): KEMSecretKey {
-		return new KEMSecretKey(
+		return KEMSecretKey._fromSerialized(
 			ReactNativeLibsignalClientModule.kyberPreKeyRecordGetSecretKey(
 				this.serialized
 			)
@@ -196,13 +215,17 @@ export class KyberPreKeyRecord {
 			this.serialized
 		);
 	}
+
+	static _fromSerialized(serialized: Uint8Array): KyberPreKeyRecord {
+		return new KyberPreKeyRecord(serialized);
+	}
 }
 
 
 export class SignedPreKeyRecord {
 	readonly serialized: Uint8Array;
 
-	constructor(handle: Uint8Array) {
+	private constructor(handle: Uint8Array) {
 		this.serialized = handle;
 	}
 
@@ -231,7 +254,7 @@ export class SignedPreKeyRecord {
 	}
 
 	privateKey(): PrivateKey {
-		return new PrivateKey(
+		return PrivateKey._fromSerialized(
 			ReactNativeLibsignalClientModule.signedPreKeyRecordGetPrivateKey(
 				this.serialized
 			)
@@ -239,7 +262,7 @@ export class SignedPreKeyRecord {
 	}
 
 	publicKey(): PublicKey {
-		return new PublicKey(
+		return PublicKey._fromSerialized(
 			ReactNativeLibsignalClientModule.signedPreKeyRecordGetPublicKey(
 				this.serialized
 			)
@@ -257,12 +280,16 @@ export class SignedPreKeyRecord {
 			this.serialized
 		);
 	}
+
+	static _fromSerialized(serialized: Uint8Array): SignedPreKeyRecord {
+		return new SignedPreKeyRecord(serialized);
+	}
 }
 
 export class PreKeyRecord {
 	readonly serialized: Uint8Array;
 
-	constructor(serialized: Uint8Array) {
+	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
@@ -281,23 +308,31 @@ export class PreKeyRecord {
 	}
 
 	privateKey(): PrivateKey {
-		return new PrivateKey(
+		return PrivateKey._fromSerialized(
 			ReactNativeLibsignalClientModule.preKeyRecordGetPrivateKey(this.serialized)
 		);
 	}
 
 	publicKey(): PublicKey {
-		return new PublicKey(
+		return PublicKey._fromSerialized(
 			ReactNativeLibsignalClientModule.preKeyRecordGetPublicKey(this.serialized)
 		);
+	}
+	
+	static _fromSerialized(serialized: Uint8Array): PreKeyRecord {
+		return new PreKeyRecord(serialized);
 	}
 }
 
 export class SenderKeyRecord {
 	readonly serialized: Uint8Array;
 
-	constructor(serialized: Uint8Array) {
+	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
+	}
+
+	static _fromSerialized(serialized: Uint8Array): SenderKeyRecord {
+		return new SenderKeyRecord(serialized);
 	}
 }
 
@@ -305,7 +340,7 @@ export class SenderKeyRecord {
 export class SessionRecord {
 	readonly serialized: Uint8Array;
 
-	constructor(serialized: Uint8Array) {
+	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
@@ -345,6 +380,10 @@ export class SessionRecord {
 			key.serialized
 		);
 	}
+
+	static _fromSerialized(serialized: Uint8Array): SessionRecord {
+		return new SessionRecord(serialized);
+	}
 }
 
 
@@ -355,7 +394,7 @@ export abstract class SessionStore implements Native.SessionStore {
 	): Promise<void> {
 		return this.saveSession(
 			ProtocolAddress.new(address),
-			new SessionRecord(record)
+			SessionRecord._fromSerialized(record)
 		);
 	}
 	async _getSession(
@@ -393,7 +432,7 @@ export abstract class IdentityKeyStore implements Native.IdentityKeyStore {
 	): Promise<boolean> {
 		return this.saveIdentity(
 			ProtocolAddress.new(address),
-			new PublicKey(key)
+			PublicKey._fromSerialized(key)
 		);
 	}
 	async _isTrustedIdentity(
@@ -405,7 +444,7 @@ export abstract class IdentityKeyStore implements Native.IdentityKeyStore {
 
 		return this.isTrustedIdentity(
 			ProtocolAddress.new(address),
-			new PublicKey(key),
+			PublicKey._fromSerialized(key),
 			direction
 		);
 	}
@@ -435,7 +474,7 @@ export abstract class IdentityKeyStore implements Native.IdentityKeyStore {
 
 export abstract class PreKeyStore implements Native.PreKeyStore {
 	async _savePreKey(id: number, record: Uint8Array): Promise<void> {
-		return this.savePreKey(id, new PreKeyRecord(record));
+		return this.savePreKey(id, PreKeyRecord._fromSerialized(record));
 	}
 	async _getPreKey(id: number): Promise<Uint8Array> {
 		const pk = await this.getPreKey(id);
@@ -457,7 +496,7 @@ export abstract class SignedPreKeyStore implements Native.SignedPreKeyStore {
 	): Promise<void> {
 		return this.saveSignedPreKey(
 			id,
-			new SignedPreKeyRecord(record)
+			SignedPreKeyRecord._fromSerialized(record)
 		);
 	}
 	async _getSignedPreKey(id: number): Promise<Uint8Array> {
@@ -479,7 +518,7 @@ export abstract class KyberPreKeyStore implements Native.KyberPreKeyStore {
 	): Promise<void> {
 		return this.saveKyberPreKey(
 			kyberPreKeyId,
-			new KyberPreKeyRecord(record)
+			KyberPreKeyRecord._fromSerialized(record)
 		);
 	}
 	async _getKyberPreKey(
@@ -510,7 +549,7 @@ export abstract class SenderKeyStore implements Native.SenderKeyStore {
 		return this.saveSenderKey(
 			ProtocolAddress.new(sender),
 			uuid.stringify(distributionId),
-			new SenderKeyRecord(record)
+			SenderKeyRecord._fromSerialized(record)
 		);
 	}
 	async _getSenderKey(
