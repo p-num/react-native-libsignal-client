@@ -3,9 +3,9 @@ import { fromByteArray } from 'react-native-quick-base64';
 import * as uuid from 'uuid';
 import { ProtocolAddress } from './Address';
 import * as Native from './Native.d';
-import { Direction } from './ReactNativeLibsignalClient.types';
+import { CiphertextMessageType, Direction } from './ReactNativeLibsignalClient.types';
 import ReactNativeLibsignalClientModule from './ReactNativeLibsignalClientModule';
-import { getIdentityStoreInitializer, updateIdentityStoreFromObject, updateSessionStoreFromObject } from './stores';
+import { getIdentityStoreInitializer, getIdentityStoreObject, getKyberPrekeyStoreState, getPrekeyStoreState, getSessionStoreObject, getSignedPrekeyStoreState, KeyObject, updatedPrekeyStoreFromObject, updateIdentityStoreFromObject, updateSessionStoreFromObject, updateSignedPrekeyStoreFromObject } from './stores';
 
 export class PrivateKey {
 	readonly serialized: Uint8Array
@@ -141,8 +141,8 @@ export class KEMKeyPair {
 export class KEMPublicKey {
 	readonly serialized: Uint8Array;
 
-	private constructor(handle: Uint8Array) {
-		this.serialized = handle;
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
 	}
 
 	static _fromSerialized(serialized: Uint8Array): KEMPublicKey {
@@ -153,8 +153,8 @@ export class KEMPublicKey {
 export class KEMSecretKey {
 	readonly serialized: Uint8Array;
 
-	private constructor(handle: Uint8Array) {
-		this.serialized = handle;
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
 	}
 
 	static _fromSerialized(serialized: Uint8Array): KEMSecretKey {
@@ -166,8 +166,8 @@ export class KEMSecretKey {
 export class KyberPreKeyRecord {
 	readonly serialized: Uint8Array
 
-	private constructor(handle: Uint8Array) {
-		this.serialized = handle;
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
 	}
 
 	static new(
@@ -225,8 +225,8 @@ export class KyberPreKeyRecord {
 export class SignedPreKeyRecord {
 	readonly serialized: Uint8Array;
 
-	private constructor(handle: Uint8Array) {
-		this.serialized = handle;
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
 	}
 
 	static new(
@@ -338,16 +338,17 @@ export class SenderKeyRecord {
 
 
 export class SessionRecord {
-	readonly serialized: Uint8Array;
+	serialized: Uint8Array;
 
 	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
 	archiveCurrentState(): void {
-		ReactNativeLibsignalClientModule.sessionRecordArchiveCurrentState(
-			this.serialized
+		const serialized = ReactNativeLibsignalClientModule.sessionRecordArchiveCurrentState(
+			this.serialized,
 		);
+		this.serialized = serialized;
 	}
 
 	localRegistrationId(): number {
@@ -577,6 +578,328 @@ export abstract class SenderKeyStore implements Native.SenderKeyStore {
 	): Promise<SenderKeyRecord | null>;
 }
 
+export interface CipherTextMessage {
+	serialized: Uint8Array;
+	type(): CiphertextMessageType;
+}
+
+export class PlaintextContent implements CipherTextMessage {
+	// removed this because it is not implemented in java
+	// implements CiphertextMessageConvertible
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static from(message: DecryptionErrorMessage): PlaintextContent {
+		return new PlaintextContent(
+			ReactNativeLibsignalClientModule.plaintextContentFromDecryptionErrorMessage(
+				message.serialized
+			)
+		);
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): PlaintextContent {
+		return new PlaintextContent(serialized);
+	}
+
+	type(): CiphertextMessageType {
+		return CiphertextMessageType.Plaintext;
+	}
+
+	body(): Uint8Array {
+		return ReactNativeLibsignalClientModule.plaintextContentGetBody(
+			this.serialized
+		);
+	}
+
+	// asCiphertextMessage(): CiphertextMessage {
+	// 	return CiphertextMessage._fromNativeserialized(
+	// 		ReactNativeLibsignalClientModule.CiphertextMessage_FromPlaintextContent(
+	// 			this.serialize()
+	// 		)
+	// 	);
+	// }
+}
+
+export class DecryptionErrorMessage {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): DecryptionErrorMessage {
+		return new DecryptionErrorMessage(serialized);
+	}
+
+	static forOriginal(
+		bytes: Uint8Array,
+		type: CiphertextMessageType,
+		timestamp: number,
+		originalSenderDeviceId: number
+	): DecryptionErrorMessage {
+		return new DecryptionErrorMessage(
+			ReactNativeLibsignalClientModule.decryptionErrorMessageForOriginalMessage(
+				bytes,
+				type,
+				timestamp,
+				originalSenderDeviceId
+			)
+		);
+	}
+
+	static extractFromSerializedBody(buffer: Uint8Array): DecryptionErrorMessage {
+		return new DecryptionErrorMessage(
+			ReactNativeLibsignalClientModule.decryptionErrorMessageExtractFromSerializedContent(
+				buffer
+			)
+		);
+	}
+
+	timestamp(): number {
+		return ReactNativeLibsignalClientModule.decryptionErrorMessageGetTimestamp(
+			this.serialized
+		);
+	}
+
+	deviceId(): number {
+		return ReactNativeLibsignalClientModule.decryptionErrorMessageGetDeviceId(
+			this.serialized
+		);
+	}
+
+	ratchetKey(): PublicKey | undefined {
+		const serializedPublicKey =
+			ReactNativeLibsignalClientModule.decryptionErrorMessageGetRatchetKey(
+				this.serialized
+			);
+		if (serializedPublicKey) {
+			return PublicKey._fromSerialized(serializedPublicKey);
+		}
+		return undefined;
+	}
+}
+
+export class SignalMessage implements CipherTextMessage {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	// static _new(
+	// 	messageVersion: number,
+	// 	macKey: Uint8Array,
+	// 	senderRatchetKey: PublicKey,
+	// 	counter: number,
+	// 	previousCounter: number,
+	// 	ciphertext: Uint8Array,
+	// 	senderIdentityKey: PublicKey,
+	// 	receiverIdentityKey: PublicKey
+	// ): SignalMessage {
+	// 	return new SignalMessage(
+	// 		ReactNativeLibsignalClientModule.SignalMessageNew(
+	// 			messageVersion,
+	// 			macKey,
+	// 			senderRatchetKey.serialized,
+	// 			counter,
+	// 			previousCounter,
+	// 			ciphertext,
+	// 			senderIdentityKey.serialized,
+	// 			receiverIdentityKey.serialized
+	// 		)
+	// 	);
+	// }
+
+	static _fromSerialized(serialized: Uint8Array): SignalMessage {
+		return new SignalMessage(serialized);
+	}
+
+	body(): Uint8Array {
+		return ReactNativeLibsignalClientModule.SignalMessageGetBody(this.serialized);
+	}
+
+	counter(): number {
+		return ReactNativeLibsignalClientModule.SignalMessageGetCounter(
+			this.serialized
+		);
+	}
+
+	messageVersion(): number {
+		return ReactNativeLibsignalClientModule.SignalMessageGetMessageVersion(
+			this.serialized
+		);
+	}
+
+	type(): CiphertextMessageType {
+		return CiphertextMessageType.Whisper;
+	}
+
+	verifyMac(
+		senderIdentityKey: PublicKey,
+		recevierIdentityKey: PublicKey,
+		macKey: Uint8Array
+	): boolean {
+		return ReactNativeLibsignalClientModule.SignalMessageVerifyMac(
+			this.serialized,
+			senderIdentityKey.serialized,
+			recevierIdentityKey.serialized,
+			macKey
+		);
+	}
+}
+
+export class PreKeySignalMessage implements CipherTextMessage {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+  // this is not used anywhere in app but is useful for testing things separately, currently commented out because it's not implemented in java wrapper and needs to be used using Native. methods. there is a commented-out (so we don't import Native for no reason) example of it for SignalMessage_New in kotlin file
+	// static _new(
+	// 	messageVersion: number,
+	// 	registrationId: number,
+	// 	preKeyId: number | null,
+	// 	signedPreKeyId: number,
+	// 	baseKey: PublicKey,
+	// 	identityKey: PublicKey,
+	// 	signalMessage: SignalMessage
+	// ): PreKeySignalMessage {
+	// 	return new PreKeySignalMessage(
+	// 		ReactNativeLibsignalClientModule.PreKeySignalMessage_New(
+	// 			messageVersion,
+	// 			registrationId,
+	// 			preKeyId,
+	// 			signedPreKeyId,
+	// 			baseKey.serialized,
+	// 			identityKey.serialized,
+	// 			signalMessage.serialized
+	// 		)
+	// 	);
+	// }
+
+	preKeyId(): number | null {
+		return ReactNativeLibsignalClientModule.preKeySignalMessageGetPreKeyId(
+			this.serialized
+		);
+	}
+
+	registrationId(): number {
+		return ReactNativeLibsignalClientModule.preKeySignalMessageGetRegistrationId(
+			this.serialized
+		);
+	}
+
+	signedPreKeyId(): number {
+		return ReactNativeLibsignalClientModule.preKeySignalMessageGetSignedPreKeyId(
+			this.serialized
+		);
+	}
+
+	version(): number {
+		return ReactNativeLibsignalClientModule.preKeySignalMessageGetVersion(
+			this.serialized
+		);
+	}
+
+	type(): CiphertextMessageType {
+		return CiphertextMessageType.PreKey;
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): PreKeySignalMessage {
+		return new PreKeySignalMessage(serialized);
+	}
+
+
+	// asCiphertextMessage(): CiphertextMessage {
+	// 	return CiphertextMessage._fromNativeserialized(
+	// 		ReactNativeLibsignalClientModule.CiphertextMessage_FromPlaintextContent(
+	// 			this.serialize()
+	// 		)
+	// 	);
+	// }
+}
+
+export class SenderKeyMessage implements CipherTextMessage {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	// this is not used anywhere in app but is useful for testing things separately, currently commented out because it's not implemented in java wrapper and needs to be used using Native. methods. there is a commented-out (so we don't import Native for no reason) example of it for SignalMessage_New in kotlin file
+	// static _new(
+	// 	messageVersion: number,
+	// 	distributionId: string,
+	// 	chainId: number,
+	// 	iteration: number,
+	// 	ciphertext: Uint8Array,
+	// 	pk: PrivateKey
+	// ): SenderKeyMessage {
+	// 	return new SenderKeyMessage(
+	// 		ReactNativeLibsignalClientModule.SenderKeyMessage_New(
+	// 			messageVersion,
+	// 			Uint8Array.from(uuid.parse(distributionId) as Uint8Array),
+	// 			chainId,
+	// 			iteration,
+	// 			ciphertext,
+	// 			pk.serialized
+	// 		)
+	// 	);
+	// }
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): SenderKeyMessage {
+		return new SenderKeyMessage(serialized);
+	}
+
+	type(): CiphertextMessageType {
+		return CiphertextMessageType.SenderKey;
+	}
+
+	ciphertext(): Uint8Array {
+		return ReactNativeLibsignalClientModule.senderKeyMessageGetCipherText(
+			this.serialized
+		);
+	}
+
+	iteration(): number {
+		return ReactNativeLibsignalClientModule.senderKeyMessageGetIteration(
+			this.serialized
+		);
+	}
+
+	chainId(): number {
+		return ReactNativeLibsignalClientModule.senderKeyMessageGetChainId(
+			this.serialized
+		);
+	}
+
+	distributionId(): string {
+		//it's already stringified in the native side
+		return ReactNativeLibsignalClientModule.senderKeyMessageGetDistributionId(
+			this.serialized
+		);
+	}
+
+	verifySignature(key: PublicKey): boolean {
+		return ReactNativeLibsignalClientModule.senderKeyMessageVerifySignature(
+			this.serialized,
+			key.serialized
+		);
+	}
+}
+
 export async function createAndProcessPreKeyBundle(
 	registration_id: number,
 	address: ProtocolAddress,
@@ -620,4 +943,149 @@ export async function createAndProcessPreKeyBundle(
 }
 
 
-export { Direction };
+export async function signalEncrypt(
+	message: Uint8Array,
+	address: ProtocolAddress,
+	sessionStore: SessionStore,
+	identityStore: IdentityKeyStore,
+): Promise<CipherTextMessage> {
+	const sessionStoreState = await getSessionStoreObject(sessionStore, address);
+	const identityStoreState = await getIdentityStoreObject(
+		identityStore,
+		address
+	);
+	const [
+		[cipher_serialized, cipherType],
+		[updatedSessionStoreState, updatedIdentityStoreState],
+	] = ReactNativeLibsignalClientModule.sessionCipherEncryptMessage(
+		fromByteArray(message),
+		address.toString(),
+		sessionStoreState,
+		identityStoreState,
+	);
+	await updateSessionStoreFromObject(sessionStore, updatedSessionStoreState);
+	await updateIdentityStoreFromObject(identityStore, updatedIdentityStoreState);
+	console.log("ZZZZZZZZZZ", cipher_serialized)
+	return bufferToCipherText(cipher_serialized, cipherType);
+}
+
+export async function signalDecrypt(
+	message: SignalMessage,
+	address: ProtocolAddress,
+	sessionStore: SessionStore,
+	identityStore: IdentityKeyStore
+): Promise<Uint8Array> {
+	const currentSessionStoreState = await getSessionStoreObject(
+		sessionStore,
+		address
+	);
+	const identityStoreState = await getIdentityStoreObject(
+		identityStore,
+		address
+	);
+	const [cipher, [updatedSessionStore, updatedIdentityStore]] =
+		ReactNativeLibsignalClientModule.sessionCipherDecryptSignalMessage(
+			message.serialized,
+			address.toString(),
+			currentSessionStoreState,
+			identityStoreState
+		);
+	await updateSessionStoreFromObject(sessionStore, updatedSessionStore);
+	await updateIdentityStoreFromObject(identityStore, updatedIdentityStore);
+	return cipher;
+}
+
+export async function signalDecryptPreKey(
+	message: PreKeySignalMessage,
+	address: ProtocolAddress,
+	sessionStore: SessionStore,
+	identityStore: IdentityKeyStore,
+	prekeyStore: PreKeyStore,
+	signedPrekeyStore: SignedPreKeyStore,
+	kyberPrekeyStore: KyberPreKeyStore,
+	kyberPrekeyIds: number[]
+): Promise<Uint8Array> {
+	const identityStoreInitializer =
+		await getIdentityStoreInitializer(identityStore);
+	const signedPrekeyId = message.signedPreKeyId();
+	if (signedPrekeyId === null) {
+		throw new Error('PreKeySignalMessage does not have a preKeyId');
+	}
+	const signedPrekeyStoreState = await getSignedPrekeyStoreState(
+		signedPrekeyStore,
+		signedPrekeyId
+	);
+
+	const preKeyId = message.preKeyId();
+	if (preKeyId === null) {
+		throw new Error('PreKeySignalMessage does not have a preKeyId');
+	}
+	const prekeyStoreState = await getPrekeyStoreState(prekeyStore, preKeyId);
+	let kyberPrekeyStoreState: KeyObject = {};
+	if (!kyberPrekeyIds.includes(-1)) {
+		kyberPrekeyStoreState = await getKyberPrekeyStoreState(
+			kyberPrekeyStore,
+			kyberPrekeyIds
+		);
+	}
+	const [
+		msg,
+		[
+			updatedSessionStore,
+			updatedIdentityStore,
+			updatedPrekeyStore,
+			updatedSignedPrekeyStore,
+		],
+	] = ReactNativeLibsignalClientModule.sessionCipherDecryptPreKeySignalMessage(
+		message.serialized,
+		address.toString(),
+		identityStoreInitializer,
+		prekeyStoreState,
+		signedPrekeyStoreState,
+		kyberPrekeyStoreState
+	);
+
+	await updateSessionStoreFromObject(sessionStore, updatedSessionStore);
+	await updateIdentityStoreFromObject(identityStore, updatedIdentityStore);
+	await updateSignedPrekeyStoreFromObject(
+		signedPrekeyStore,
+		updatedSignedPrekeyStore
+	);
+	//TODO: probably need to comment this line too because the function only marks them as used, no need to update the store
+	await updatedPrekeyStoreFromObject(prekeyStore, updatedPrekeyStore);
+	// it only marks them as used, no need to update the store
+	// await updateKyberPrekeyStoreFromObject(
+	// 	kyberPrekeyStore,
+	// 	updatedKyberPrekeyStore
+	// );
+	return msg;
+}
+
+function bufferToCipherText(
+	cipher_serialized: Uint8Array,
+	type: number
+): CipherTextMessage {
+	switch (type) {
+		case CiphertextMessageType.Plaintext:
+			return PlaintextContent._fromSerialized(
+				cipher_serialized
+			);
+		case CiphertextMessageType.PreKey:
+			return PreKeySignalMessage._fromSerialized(
+				cipher_serialized
+			);
+		case CiphertextMessageType.SenderKey:
+			return SenderKeyMessage._fromSerialized(
+				cipher_serialized
+			);
+		case CiphertextMessageType.Whisper:
+			return SignalMessage._fromSerialized(
+				cipher_serialized
+			);
+	}
+
+	throw new Error('invalid cipher text type');
+}
+
+export { CiphertextMessageType, Direction };
+

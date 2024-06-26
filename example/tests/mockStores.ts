@@ -152,6 +152,10 @@ class InMemoryKyberPreKeyStore extends KyberPreKeyStore {
 	async hasKyberPreKeyBeenUsed(id: number): Promise<boolean> {
 		return this.used.has(id);
 	}
+	//added so we can pass them into signalDecryptPreKey in test
+		_getAllKyberKeyIds(): number[] {
+			return Array.from(this.state.keys())
+	}
 }
 
 class InMemorySenderKeyStore extends SenderKeyStore {

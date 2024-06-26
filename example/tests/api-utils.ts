@@ -46,7 +46,7 @@ async function makePQXDHBundleAndProcess(
 
 	await remoteStores.kyber.saveKyberPreKey(kyberPrekeyId, rec);
 
-	 await ReactNativeLibsignalClient.createAndProcessPreKeyBundle(
+	await ReactNativeLibsignalClient.createAndProcessPreKeyBundle(
 		await remoteStores.identity.getLocalRegistrationId(),
 		address,
 		prekeyId,
