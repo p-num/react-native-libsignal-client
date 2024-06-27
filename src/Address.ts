@@ -42,7 +42,7 @@ export abstract class ServiceId extends Object {
 	}
 
 	getServiceIdBinary(): Uint8Array {
-		return ReactNativeLibsignalClientModule.ServiceId_ServiceIdBinary(
+		return ReactNativeLibsignalClientModule.serviceIdServiceIdBinary(
 			new Uint8Array(this.serviceIdFixedWidthBinary)
 		);
 	}
@@ -52,13 +52,13 @@ export abstract class ServiceId extends Object {
 	}
 
 	getServiceIdString(): string {
-		return ReactNativeLibsignalClientModule.ServiceId_ServiceIdString(
+		return ReactNativeLibsignalClientModule.serviceIdServiceIdString(
 			new Uint8Array(this.serviceIdFixedWidthBinary)
 		);
 	}
 
 	override toString(): string {
-		return ReactNativeLibsignalClientModule.ServiceId_ServiceIdLog(
+		return ReactNativeLibsignalClientModule.serviceIdServiceIdLog(
 			new Uint8Array(this.serviceIdFixedWidthBinary)
 		);
 	}
@@ -97,7 +97,7 @@ export abstract class ServiceId extends Object {
 		serviceIdBinary: Uint8Array
 	): InstanceType<T> {
 		const result = ServiceId.parseFromServiceIdFixedWidthBinary(
-			ReactNativeLibsignalClientModule.ServiceId_ParseFromServiceIdBinary(
+			ReactNativeLibsignalClientModule.serviceIdParseFromServiceIdBinary(
 				new Uint8Array(serviceIdBinary)
 			)
 		);
@@ -110,7 +110,7 @@ export abstract class ServiceId extends Object {
 		serviceIdString: string
 	): InstanceType<T> {
 		const result = ServiceId.parseFromServiceIdFixedWidthBinary(
-			ReactNativeLibsignalClientModule.ServiceId_ParseFromServiceIdString(
+			ReactNativeLibsignalClientModule.serviceIdParseFromServiceIdString(
 				serviceIdString
 			)
 		);

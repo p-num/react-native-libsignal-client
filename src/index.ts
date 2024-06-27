@@ -1,11 +1,46 @@
 import 'react-native-get-random-values';
 import { fromByteArray } from 'react-native-quick-base64';
 import * as uuid from 'uuid';
-import { ProtocolAddress } from './Address';
+import { Aci, ProtocolAddress, ServiceId } from './Address';
 import * as Native from './Native.d';
 import { CiphertextMessageType, Direction } from './ReactNativeLibsignalClient.types';
 import ReactNativeLibsignalClientModule from './ReactNativeLibsignalClientModule';
 import { getIdentityStoreInitializer, getIdentityStoreObject, getKyberPrekeyStoreState, getPrekeyStoreState, getSessionStoreObject, getSignedPrekeyStoreState, KeyObject, updatedPrekeyStoreFromObject, updateIdentityStoreFromObject, updateSessionStoreFromObject, updateSignedPrekeyStoreFromObject } from './stores';
+
+export class HKDF {
+	/**
+	 * @deprecated Use the top-level 'hkdf' function for standard HKDF behavior
+	 */
+	static new(version: number): HKDF {
+		if (version !== 3) {
+			throw new Error('HKDF versions other than 3 are no longer supported');
+		}
+		return new HKDF();
+	}
+
+	deriveSecrets(
+		outputLength: number,
+		keyMaterial: Uint8Array,
+		label: Uint8Array,
+		salt: Uint8Array | null
+	): Uint8Array {
+		return hkdf(outputLength, keyMaterial, label, salt);
+	}
+}
+
+export function hkdf(
+	outputLength: number,
+	keyMaterial: Uint8Array,
+	label: Uint8Array,
+	salt: Uint8Array | null
+): Uint8Array {
+	return ReactNativeLibsignalClientModule.hkdfDeriveSecrets(
+		outputLength,
+		keyMaterial,
+		label,
+		salt
+	);
+}
 
 export class PrivateKey {
 	readonly serialized: Uint8Array
@@ -336,6 +371,161 @@ export class SenderKeyRecord {
 	}
 }
 
+export class SenderCertificate {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): SenderCertificate {
+		return new SenderCertificate(serialized);
+	}
+
+  // this is not used anywhere and needs use of native method so is ignored
+	// static new(
+	// 	senderUuid: string | Aci,
+	// 	senderE164: string | null,
+	// 	senderDeviceId: number,
+	// 	senderKey: PublicKey,
+	// 	expiration: number,
+	// 	signerCert: ServerCertificate,
+	// 	signerKey: PrivateKey
+	// ): SenderCertificate {
+	// 	let localSenderUuid = senderUuid;
+	// 	if (typeof senderUuid !== 'string') {
+	// 		localSenderUuid = senderUuid.getServiceIdString();
+	// 	}
+	// 	return new SenderCertificate(
+	// 		ReactNativeLibsignalClientModule.senderCertificateNew(
+	// 			localSenderUuid,
+	// 			senderE164,
+	// 			senderDeviceId,
+	// 			senderKey.serialized,
+	// 			expiration,
+	// 			signerCert.serialized,
+	// 			signerKey.serialized
+	// 		)
+	// 	);
+	// }
+
+	certificate(): Uint8Array {
+		return ReactNativeLibsignalClientModule.senderCertificateGetCertificate(
+			this.serialized
+		);
+	}
+	expiration(): number {
+		return ReactNativeLibsignalClientModule.senderCertificateGetExpiration(
+			this.serialized
+		);
+	}
+	key(): PublicKey {
+		return PublicKey._fromSerialized(
+			ReactNativeLibsignalClientModule.senderCertificateGetKey(this.serialized)
+		);
+	}
+	senderE164(): string | null {
+		return ReactNativeLibsignalClientModule.senderCertificateGetSenderE164(
+			this.serialized
+		);
+	}
+	senderUuid(): string {
+		return ReactNativeLibsignalClientModule.senderCertificateGetSenderUuid(
+			this.serialized
+		);
+	}
+	/**
+	 * Returns an ACI if the sender is a valid UUID, `null` otherwise.
+	 *
+	 * In a future release SenderCertificate will *only* support ACIs.
+	 */
+	senderAci(): Aci | null {
+		try {
+			return Aci.parseFromServiceIdString(this.senderUuid());
+		} catch {
+			return null;
+		}
+	}
+	senderDeviceId(): number {
+		return ReactNativeLibsignalClientModule.senderCertificateGetDeviceId(
+			this.serialized
+		);
+	}
+	serverCertificate(): ServerCertificate {
+		return ServerCertificate._fromSerialized(
+			ReactNativeLibsignalClientModule.senderCertificateGetServerCertificate(
+				this.serialized
+			)
+		);
+	}
+	signature(): Uint8Array {
+		return ReactNativeLibsignalClientModule.senderCertificateGetSignature(
+			this.serialized
+		);
+	}
+	validate(trustRoot: PublicKey, time: number): boolean {
+		return ReactNativeLibsignalClientModule.senderCertificateValidate(
+			this.serialized,
+			trustRoot.serialized,
+			time
+		);
+	}
+}
+
+export class ServerCertificate {
+	readonly serialized: Uint8Array;
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): ServerCertificate {
+		return new ServerCertificate(serialized);
+	}
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+  // this is not used anywhere and needs use of native method so is ignored
+	// static new(
+	// 	keyId: number,
+	// 	serverKey: PublicKey,
+	// 	trustRoot: PrivateKey
+	// ): ServerCertificate {
+	// 	return new ServerCertificate(
+	// 		ReactNativeLibsignalClientModule.serverCertificateNew(
+	// 			keyId,
+	// 			serverKey.serialized,
+	// 			trustRoot.serialized
+	// 		)
+	// 	);
+	// }
+
+	certificateData(): Uint8Array {
+		return ReactNativeLibsignalClientModule.serverCertificateGetCertificate(
+			this.serialized
+		);
+	}
+
+	key(): PublicKey {
+		return PublicKey._fromSerialized(
+			ReactNativeLibsignalClientModule.serverCertificateGetKey(this.serialized)
+		);
+	}
+
+	keyId(): number {
+		return ReactNativeLibsignalClientModule.serverCertificateGetKeyId(
+			this.serialized
+		);
+	}
+
+	signature(): Uint8Array {
+		return ReactNativeLibsignalClientModule.serverCertificateGetSignature(
+			this.serialized
+		);
+	}
+}
 
 export class SessionRecord {
 	serialized: Uint8Array;
@@ -387,6 +577,173 @@ export class SessionRecord {
 	}
 }
 
+
+export class SenderKeyDistributionMessage {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static async create(
+		sender: ProtocolAddress,
+		distributionId: string,
+		store: SenderKeyStore
+	): Promise<SenderKeyDistributionMessage> {
+		const handle =
+			await ReactNativeLibsignalClientModule.senderKeyDistributionMessageCreate(
+				sender.toString(),
+				Uint8Array.from(uuid.parse(distributionId) as Uint8Array),
+				getCurrentKeyHandle(sender, distributionId, store)
+			);
+		return new SenderKeyDistributionMessage(handle);
+	}
+
+	// static _new(
+	// 	messageVersion: number,
+	// 	distributionId: string,
+	// 	chainId: number,
+	// 	iteration: number,
+	// 	chainKey: Uint8Array,
+	// 	pk: PublicKey
+	// ): SenderKeyDistributionMessage {
+	// 	return new SenderKeyDistributionMessage(
+	// 		ReactNativeLibsignalClientModule.senderKeyDistributionMessageNew(
+	// 			messageVersion,
+	// 			Uint8Array.from(uuid.parse(distributionId) as Uint8Array),
+	// 			chainId,
+	// 			iteration,
+	// 			chainKey,
+	// 			pk.serialized
+	// 		)
+	// 	);
+	// }
+
+	chainKey(): Uint8Array {
+		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetChainKey(
+			this.serialized
+		);
+	}
+
+	iteration(): number {
+		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetIteration(
+			this.serialized
+		);
+	}
+
+	chainId(): number {
+		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetChainId(
+			this.serialized
+		);
+	}
+
+	distributionId(): string {
+		// the distributionId is already stringified in the native side
+		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetDistributionId(
+			this.serialized
+		);
+	}
+}
+
+async function getCurrentKeyHandle(
+	sender: ProtocolAddress,
+	distributionId: string,
+	store: SenderKeyStore
+) {
+	const key = await store.getSenderKey(sender, distributionId);
+	if (!key) {
+		throw new Error('No key found for sender');
+	}
+	return key.serialized;
+}
+
+export async function processSenderKeyDistributionMessage(
+	sender: ProtocolAddress,
+	message: SenderKeyDistributionMessage,
+	store: SenderKeyStore
+): Promise<void> {
+	const distributionId = message.distributionId();
+	const newSenderKeyRecord =
+		await ReactNativeLibsignalClientModule.senderKeyDistributionMessageProcess(
+			sender.toString(),
+			message.serialized,
+			await getCurrentKeyHandle(sender, distributionId, store)
+		);
+	store.saveSenderKey(sender, distributionId, newSenderKeyRecord);
+}
+
+
+export class UnidentifiedSenderMessageContent {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): UnidentifiedSenderMessageContent {
+		return new UnidentifiedSenderMessageContent(serialized);
+	}
+
+	static new(
+		// message: CiphertextMessage,
+		// sender: SenderCertificate,
+		// contentHint: number,
+		// groupId: Uint8Array | null
+	): UnidentifiedSenderMessageContent {
+		// TODO: find a solution for this!
+		throw new Error(
+			"Not implemented because we can't initialize a new CiphertextMessage on java side"
+		);
+	}
+
+	static deserialize(buffer: Uint8Array): UnidentifiedSenderMessageContent {
+		return new UnidentifiedSenderMessageContent(
+			ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentDeserialize(
+				buffer
+			)
+		);
+	}
+
+	serialize(): Uint8Array {
+		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentSerialize(
+			this.serialized
+		);
+	}
+
+	contents(): Uint8Array {
+		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetContents(
+			this.serialized
+		);
+	}
+
+	msgType(): number {
+		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetMsgType(
+			this.serialized
+		);
+	}
+
+	senderCertificate(): SenderCertificate {
+		return SenderCertificate._fromSerialized(
+			ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetSenderCert(
+				this.serialized
+			)
+		);
+	}
+
+	contentHint(): number {
+		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetContentHint(
+			this.serialized
+		);
+	}
+
+	groupId(): Uint8Array | null {
+		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetGroupId(
+			this.serialized
+		);
+	}
+}
 
 export abstract class SessionStore implements Native.SessionStore {
 	async _saveSession(
@@ -948,6 +1305,7 @@ export async function signalEncrypt(
 	address: ProtocolAddress,
 	sessionStore: SessionStore,
 	identityStore: IdentityKeyStore,
+	now: Date = new Date()
 ): Promise<CipherTextMessage> {
 	const sessionStoreState = await getSessionStoreObject(sessionStore, address);
 	const identityStoreState = await getIdentityStoreObject(
@@ -962,6 +1320,7 @@ export async function signalEncrypt(
 		address.toString(),
 		sessionStoreState,
 		identityStoreState,
+		now.getTime()
 	);
 	await updateSessionStoreFromObject(sessionStore, updatedSessionStoreState);
 	await updateIdentityStoreFromObject(identityStore, updatedIdentityStoreState);
@@ -1085,6 +1444,106 @@ function bufferToCipherText(
 	}
 
 	throw new Error('invalid cipher text type');
+}
+
+export function sealedSenderEncrypt(
+	content: UnidentifiedSenderMessageContent,
+	address: ProtocolAddress,
+	identityStore: IdentityKeyStore
+): Promise<Uint8Array> {
+	const identityStoreState = getIdentityStoreObject(identityStore, address);
+	return ReactNativeLibsignalClientModule.sealedSenderEncrypt(
+		address.toString(),
+		content.serialized,
+		identityStoreState
+	);
+}
+
+type SealedSenderMultiRecipientEncryptOptions = {
+	content: UnidentifiedSenderMessageContent;
+	recipients: ProtocolAddress[];
+	excludedRecipients?: ServiceId[];
+	identityStore: IdentityKeyStore;
+	sessionStore: SessionStore;
+};
+
+export async function sealedSenderMultiRecipientEncrypt(
+	options: SealedSenderMultiRecipientEncryptOptions
+): Promise<Uint8Array>;
+export async function sealedSenderMultiRecipientEncrypt(
+	content: UnidentifiedSenderMessageContent,
+	recipients: ProtocolAddress[],
+	identityStore: IdentityKeyStore,
+	sessionStore: SessionStore
+): Promise<Uint8Array>;
+
+export async function sealedSenderMultiRecipientEncrypt(
+	contentOrOptions:
+		| UnidentifiedSenderMessageContent
+		| SealedSenderMultiRecipientEncryptOptions,
+	recipients?: ProtocolAddress[],
+	identityStore?: IdentityKeyStore,
+	sessionStore?: SessionStore
+): Promise<Uint8Array> {
+	let excludedRecipients: ServiceId[] | undefined = undefined;
+	if (contentOrOptions instanceof UnidentifiedSenderMessageContent) {
+		if (!recipients || !identityStore || !sessionStore) {
+			throw Error('missing arguments for sealedSenderMultiRecipientEncrypt');
+		}
+	} else {
+		({
+			// biome-ignore lint/style/noParameterAssign: <explanation>
+			content: contentOrOptions,
+			// biome-ignore lint/style/noParameterAssign: <explanation>
+			recipients,
+			excludedRecipients,
+			// biome-ignore lint/style/noParameterAssign: <explanation>
+			identityStore,
+			// biome-ignore lint/style/noParameterAssign: <explanation>
+			sessionStore,
+		} = contentOrOptions);
+	}
+
+	const recipientSessions = await sessionStore.getExistingSessions(recipients);
+	return await ReactNativeLibsignalClientModule.sealedSenderMultiRecipientEncrypt(
+		recipients.map((r) => r.toString()),
+		recipientSessions.map((r) => r.serialized),
+		ServiceId.toConcatenatedFixedWidthBinary(excludedRecipients ?? []),
+		contentOrOptions.serialized,
+		identityStore
+	);
+}
+
+// For testing only
+export function sealedSenderMultiRecipientMessageForSingleRecipient(
+	message: Uint8Array
+): Uint8Array {
+	return ReactNativeLibsignalClientModule.sealedSenderMultiRecipientMessageForSingleRecipient(
+		message
+	);
+}
+
+export async function sealedSenderDecryptToUsmc(
+	message: Uint8Array,
+	identityStore: IdentityKeyStore,
+	sender: ProtocolAddress
+): Promise<UnidentifiedSenderMessageContent> {
+	const identityStoreState = await getIdentityStoreObject(
+		identityStore,
+		sender
+	);
+	const [usmc, updatedIdState] =
+		await ReactNativeLibsignalClientModule.sealedSenderDecryptToUsmc(
+			fromByteArray(message),
+			identityStoreState,
+			sender.toString()
+		);
+	await updateIdentityStoreFromObject(identityStore, updatedIdState);
+	return UnidentifiedSenderMessageContent._fromSerialized(usmc);
+}
+
+export function generateRegistrationID(): number {
+	return ReactNativeLibsignalClientModule.GenerateRegistrationID();
 }
 
 export { CiphertextMessageType, Direction };

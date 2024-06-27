@@ -5,21 +5,40 @@ import android.util.Base64
 import androidx.annotation.RequiresApi
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import org.signal.libsignal.metadata.SealedSessionCipher
+import org.signal.libsignal.metadata.certificate.CertificateValidator
+import org.signal.libsignal.metadata.certificate.InvalidCertificateException
+import org.signal.libsignal.metadata.certificate.SenderCertificate
+import org.signal.libsignal.metadata.certificate.ServerCertificate
+import org.signal.libsignal.metadata.protocol.UnidentifiedSenderMessageContent
 import org.signal.libsignal.protocol.*
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
 import org.signal.libsignal.protocol.ecc.ECPublicKey
+import org.signal.libsignal.protocol.groups.GroupSessionBuilder
+import org.signal.libsignal.protocol.groups.state.InMemorySenderKeyStore
+import org.signal.libsignal.protocol.groups.state.SenderKeyRecord
+import org.signal.libsignal.protocol.kdf.HKDF
 import org.signal.libsignal.protocol.kem.KEMKeyPair
 import org.signal.libsignal.protocol.kem.KEMKeyType
 import org.signal.libsignal.protocol.kem.KEMPublicKey
 import org.signal.libsignal.protocol.message.DecryptionErrorMessage
 import org.signal.libsignal.protocol.message.PlaintextContent
 import org.signal.libsignal.protocol.message.PreKeySignalMessage
+import org.signal.libsignal.protocol.message.SenderKeyDistributionMessage
 import org.signal.libsignal.protocol.message.SenderKeyMessage
 import org.signal.libsignal.protocol.message.SignalMessage
-import org.signal.libsignal.protocol.state.*
+import org.signal.libsignal.protocol.state.KyberPreKeyRecord
+import org.signal.libsignal.protocol.state.PreKeyBundle
+import org.signal.libsignal.protocol.state.PreKeyRecord
+import org.signal.libsignal.protocol.state.SessionRecord
+import org.signal.libsignal.protocol.state.SignedPreKeyRecord
 import org.signal.libsignal.protocol.state.impl.InMemorySessionStore
+import org.signal.libsignal.protocol.util.KeyHelper
+import java.security.cert.X509Certificate
 import java.time.Instant
+import java.util.UUID
+import javax.crypto.SealedObject
 import javax.crypto.spec.SecretKeySpec
 
 typealias StringifiedProtocolAddress = String
@@ -72,21 +91,33 @@ fun updateKyberPreKeyStoreStateFromInMemoryProtocolStore(store: InMemorySignalPr
     }
     return updatedStore
 }
-fun updateSessionStoreStateFromInMemorySessionStore(updatedInMemoryStore: InMemorySessionStore, address: SignalProtocolAddress ): SerializedAddressedKeys {
-    val sessionRecords = updatedInMemoryStore.loadExistingSessions(listOf(address))
-    val updatedStore = mutableMapOf<String, String>() ;
-    for (sessionRecord in sessionRecords) {
-        updatedStore[address.toString()]  =  Base64.encodeToString(sessionRecord.serialize(), Base64.NO_WRAP)
-    }
-    return updatedStore
-}
 
-@RequiresApi(Build.VERSION_CODES.O)
 class ReactNativeLibsignalClientModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ReactNativeLibsignalClient")
 
-    Function("generatePrivateKey", this@ReactNativeLibsignalClientModule::generatePrivateKey)
+      // Function("serviceIdServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdServiceIdBinary)
+      // Function("serviceIdServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdServiceIdString)
+      // Function("serviceIdServiceIdLog", this@ReactNativeLibsignalClientModule::serviceIdServiceIdLog)
+      // Function("serviceIdParseFromServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdBinary)
+      // Function("serviceIdParseFromServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdString)
+
+      Function("serverCertificateGetCertificate", this@ReactNativeLibsignalClientModule::serverCertificateGetCertificate)
+      Function("serverCertificateGetKey", this@ReactNativeLibsignalClientModule::serverCertificateGetKey)
+      Function("serverCertificateGetKeyId", this@ReactNativeLibsignalClientModule::serverCertificateGetKeyId)
+      Function("serverCertificateGetSignature", this@ReactNativeLibsignalClientModule::serverCertificateGetSignature)
+
+      Function("senderCertificateGetCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetCertificate)
+      Function("senderCertificateGetExpiration", this@ReactNativeLibsignalClientModule::senderCertificateGetExpiration)
+      Function("senderCertificateGetKey", this@ReactNativeLibsignalClientModule::senderCertificateGetKey)
+      Function("senderCertificateGetSenderE164", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderE164)
+      Function("senderCertificateGetSenderUuid", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderUuid)
+      Function("senderCertificateGetDeviceId", this@ReactNativeLibsignalClientModule::senderCertificateGetDeviceId)
+      Function("senderCertificateGetServerCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetServerCertificate)
+      Function("senderCertificateGetSignature", this@ReactNativeLibsignalClientModule::senderCertificateGetSignature)
+      Function("senderCertificateValidate", this@ReactNativeLibsignalClientModule::senderCertificateValidate)
+
+      Function("generatePrivateKey", this@ReactNativeLibsignalClientModule::generatePrivateKey)
     Function("privateKeySign", this@ReactNativeLibsignalClientModule::privateKeySign)
     Function("privateKeyAgree", this@ReactNativeLibsignalClientModule::privateKeyAgree)
     Function("privateKeyGetPublicKey", this@ReactNativeLibsignalClientModule::privateKeyGetPublicKey)
@@ -165,8 +196,33 @@ class ReactNativeLibsignalClientModule : Module() {
         Function("senderKeyMessageVerifySignature", this@ReactNativeLibsignalClientModule::senderKeyMessageVerifySignature)
 //      sessionCipherDecryptSignalMessage
 //      sessionCipherDecryptPreKeySignalMessage
-      Function("sessionCipherDecryptSignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptSignalMessage)
+        Function("sessionCipherDecryptSignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptSignalMessage)
         Function("sessionCipherDecryptPreKeySignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptPreKeySignalMessage)
+        Function("hkdfDeriveSecrets", this@ReactNativeLibsignalClientModule::hkdfDeriveSecrets)
+        // senderKeyDistributionMessageGetChainKey
+        // senderKeyDistributionMessageGetIteration
+        // senderKeyDistributionMessageGetChainId
+        // senderKeyDistributionMessageGetDistributionId
+        Function("senderKeyDistributionMessageGetChainKey", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainKey)
+        Function("senderKeyDistributionMessageGetIteration", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetIteration)
+        Function("senderKeyDistributionMessageGetChainId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainId)
+        Function("senderKeyDistributionMessageGetDistributionId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetDistributionId)
+
+//      senderKeyDistributionMessageProcess
+      Function("senderKeyDistributionMessageProcess", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageProcess)
+
+//      unidentifiedSenderMessageContentGetContents
+//      unidentifiedSenderMessageContentGetMsgType
+//      unidentifiedSenderMessageContentGetSenderCert
+//      unidentifiedSenderMessageContentGetContentHint
+//      unidentifiedSenderMessageContentGetGroupId
+      Function("unidentifiedSenderMessageContentGetContents", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContents)
+      Function("unidentifiedSenderMessageContentGetMsgType", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetMsgType)
+      Function("unidentifiedSenderMessageContentGetSenderCert", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetSenderCert)
+      Function("unidentifiedSenderMessageContentGetContentHint", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContentHint)
+      Function("unidentifiedSenderMessageContentGetGroupId", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetGroupId)
+
+      Function("generateRegistrationId", this@ReactNativeLibsignalClientModule::generateRegistrationId)
   }
 
   private fun generatePrivateKey() : ByteArray {
@@ -440,6 +496,7 @@ class ReactNativeLibsignalClientModule : Module() {
         address: String,
         sessionStoreState: SerializedAddressedKeys,
         identityKeyState: IdentityStoreData,
+        now: Long
     )
     : Pair<Pair<ByteArray, Int>, Pair<SerializedAddressedKeys, SerializedAddressedKeys>>
     {
@@ -459,7 +516,7 @@ class ReactNativeLibsignalClientModule : Module() {
         }
         val sessionCipher = SessionCipher(store, remoteProtoAddress)
         val msg = Base64.decode(base64Message, Base64.NO_WRAP)
-        val cipher = sessionCipher.encrypt(msg)
+        val cipher = sessionCipher.encrypt(msg, Instant.ofEpochMilli(now))
         val updatedInMemorySessionStore = updateSessionStoreStateFromInMemoryProtocolStore(store, remoteProtoAddress)
         val updatedInMemoryIdentityStore = updateIdentityStoreStateFromInMemoryProtocolStore(store, remoteProtoAddress)
         return Pair(Pair(cipher.serialize(), cipher.type), Pair(updatedInMemorySessionStore, updatedInMemoryIdentityStore))
@@ -516,7 +573,7 @@ class ReactNativeLibsignalClientModule : Module() {
 //    updatedPrekeyStore,
 //    updatedSignedPrekeyStore,
 //    ],
-//    ] = ExpoLibsignalClientModule.SessionCipher_DecryptPreKeySignalMessage(
+//    ] = ReactNativeLibsignalClientModule.SessionCipher_DecryptPreKeySignalMessage(
 //    message._nativeHandle,
 //    String(address._nativeHandle),
 //    identityStoreInitializer,
@@ -725,4 +782,151 @@ class ReactNativeLibsignalClientModule : Module() {
         }
     }
 
+    private fun hkdfDeriveSecrets(
+        outputLength: Int,
+        keyMaterial: ByteArray,
+        label: ByteArray,
+        salt: ByteArray?
+    ) : ByteArray {
+        return HKDF.deriveSecrets( keyMaterial, salt, label, outputLength)
+    }
+
+    private fun senderCertificateGetCertificate(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.certificate
+    }
+    private fun senderCertificateGetSignature(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.signature
+    }
+    private fun senderCertificateGetExpiration(serializedCertificate: ByteArray) : Long {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.expiration
+    }
+    private fun senderCertificateGetKey(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.key.serialize()
+    }
+    private fun senderCertificateGetSenderE164(serializedCertificate: ByteArray) : String? {
+        val certificate = SenderCertificate(serializedCertificate)
+        var senderE164 : String? = null
+        if (certificate.senderE164.isPresent) {
+            senderE164 = certificate.senderE164.get()
+        }
+        return senderE164
+    }
+    private fun senderCertificateGetSenderUuid(serializedCertificate: ByteArray) : String {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.senderUuid.toString()
+    }
+    private fun senderCertificateGetDeviceId(serializedCertificate: ByteArray) : Int {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.senderDeviceId
+    }
+    private fun senderCertificateGetServerCertificate(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = SenderCertificate(serializedCertificate)
+        return certificate.certificate
+    }
+    private fun senderCertificateValidate(trustRoot: ByteArray, serializedCertificate: ByteArray, timestamp: Long) : Boolean {
+        val certificate = SenderCertificate(serializedCertificate)
+        val publicKey = ECPublicKey(trustRoot)
+        val certificateValidator = CertificateValidator(publicKey)
+        try {
+            certificateValidator.validate(certificate, timestamp)
+            return true
+        } catch (e: InvalidCertificateException) {
+            return false
+        }
+    }
+
+    private fun serverCertificateGetCertificate(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = ServerCertificate(serializedCertificate)
+        return certificate.certificate
+    }
+    private fun serverCertificateGetKey(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = ServerCertificate(serializedCertificate)
+        return certificate.key.serialize()
+    }
+    private fun serverCertificateGetKeyId(serializedCertificate: ByteArray) : Int {
+        val certificate = ServerCertificate(serializedCertificate)
+        return certificate.keyId
+    }
+    private fun serverCertificateGetSignature(serializedCertificate: ByteArray) : ByteArray {
+        val certificate = ServerCertificate(serializedCertificate)
+        return certificate.signature
+    }
+
+    private fun senderKeyDistributionMessageGetChainKey(serializedMessage: ByteArray) : ByteArray {
+        val message = SenderKeyDistributionMessage(serializedMessage)
+        return message.chainKey
+    }
+    private fun senderKeyDistributionMessageGetIteration(serializedMessage: ByteArray) : Int {
+        val message = SenderKeyDistributionMessage(serializedMessage)
+        return message.iteration
+    }
+    private fun senderKeyDistributionMessageGetChainId(serializedMessage: ByteArray) : Int {
+        val message = SenderKeyDistributionMessage(serializedMessage)
+        return message.chainId
+    }
+    private fun senderKeyDistributionMessageGetDistributionId(serializedMessage: ByteArray) : String {
+        val message = SenderKeyDistributionMessage(serializedMessage)
+        return message.distributionId.toString()
+    }
+
+//    export async function processSenderKeyDistributionMessage(
+//    sender: ProtocolAddress,
+//    message: SenderKeyDistributionMessage,
+//    store: SenderKeyStore
+//    ): Promise<void> {
+//        const distributionId = message.distributionId();
+//        const newSenderKeyRecord =
+//        await ReactNativeLibsignalClientModule.senderKeyDistributionMessageProcess(
+//                sender.toString(),
+//        message.serialized,
+//        await getCurrentKeyHandle(sender, distributionId, store)
+//        );
+//        store.saveSenderKey(sender, distributionId, newSenderKeyRecord);
+//    }
+    private fun senderKeyDistributionMessageProcess(
+        senderAddress: String,
+        serializedMessage: ByteArray,
+        currentSerializedKey: ByteArray
+    ) : ByteArray {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+    val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val message = SenderKeyDistributionMessage(serializedMessage)
+        val senderKey = SenderKeyRecord(currentSerializedKey)
+    val senderKeyStore = InMemorySenderKeyStore()
+    senderKeyStore.storeSenderKey(protoAddress, message.distributionId,  senderKey)
+
+    val groupSessionBuilder = GroupSessionBuilder(senderKeyStore)
+         groupSessionBuilder.process(protoAddress,message)
+         val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, message.distributionId)
+    return newSenderKeyRecord.serialize()
+    }
+
+    private fun unidentifiedSenderMessageContentGetContents(serializedContent: ByteArray) : ByteArray {
+        val content = UnidentifiedSenderMessageContent(serializedContent)
+        return content.content
+    }
+    private fun unidentifiedSenderMessageContentGetMsgType(serializedContent: ByteArray) : Int {
+        val content = UnidentifiedSenderMessageContent(serializedContent)
+        return content.type
+    }
+    private fun unidentifiedSenderMessageContentGetSenderCert(serializedContent: ByteArray) : ByteArray {
+        val content = UnidentifiedSenderMessageContent(serializedContent)
+        return content.senderCertificate.serialized
+    }
+    private fun unidentifiedSenderMessageContentGetContentHint(serializedContent: ByteArray) : Int {
+        val content = UnidentifiedSenderMessageContent(serializedContent)
+        return content.contentHint
+    }
+    private fun unidentifiedSenderMessageContentGetGroupId(serializedContent: ByteArray) : String {
+        val content = UnidentifiedSenderMessageContent(serializedContent)
+        return content.groupId.toString()
+    }
+
+    private fun generateRegistrationId(): Int {
+        return KeyHelper.generateRegistrationId(false)
+    }
 }
