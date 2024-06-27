@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { log } from './logger';
 import { TestFeedback } from './TestFeedback';
-import { testHKDF, testKyberPreKeyRecord, testMessagingDuplicateWithKyber, testMessagingDuplicateWithoutKyber, testMessagingWithKyber, testMessagingWithoutKyber, testPreKeyRecord, testSignedPreKeyRecord } from './tests/api-test';
+import { testHKDF, testKyberPreKeyRecord, testMessagingDuplicateWithKyber, testMessagingDuplicateWithoutKyber, testMessagingUnacknowledgedSessionsExpiryWithKyber, testMessagingUnacknowledgedSessionsExpiryWithoutKyber, testMessagingWithKyber, testMessagingWithoutKyber, testPreKeyRecord, testSignedPreKeyRecord } from './tests/api-test';
 import { runTests, sleep } from './tests/utils';
 export type TestStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'ERROR';
 
@@ -24,8 +24,8 @@ export default function App() {
 					testMessagingWithKyber,
 					testMessagingDuplicateWithoutKyber,
 					testMessagingDuplicateWithKyber,
-					// testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
-					// testMessagingUnacknowledgedSessionsExpiryWithKyber
+					testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
+					testMessagingUnacknowledgedSessionsExpiryWithKyber
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {
