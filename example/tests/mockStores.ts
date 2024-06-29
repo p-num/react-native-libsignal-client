@@ -25,7 +25,6 @@ class InMemorySessionStore extends SessionStore {
 	): Promise<SessionRecord[]> {
 		return addresses.map((address) => {
 			const idx = `${address.name}::${address.deviceId}`;
-			console.log({s: this.state})
 			const serialized = this.state.get(idx);
 			if (!serialized) {
 				throw `no session for ${idx}`;

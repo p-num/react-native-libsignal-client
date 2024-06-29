@@ -277,7 +277,7 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
 
 		assert(deepEql(bDPlaintext, aMessage));
 
-		await throwsAsync(() =>
+		assert(!await throwsAsync(() =>
 			ReactNativeLibsignalClient.signalDecryptPreKey(
 				aCiphertextR,
 				aAddress,
@@ -288,7 +288,7 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
 				bobStores.kyber,
 				kyberKeyIds
 			)
-		);
+		))
 		const bMessage = new Uint8Array(
 			Buffer.from(
 				'Sometimes the only thing more dangerous than a question is an answer.',
@@ -350,7 +350,6 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
 		await testCase.makeAndProcessBundle(bAddress, bobStores, aliceStores.session, aliceStores.identity);
 
 		const initialSession = await aliceStores.session.getSession(bAddress);
-		console.log("OOOOOOOOOO", {initialSession})
 		assert(initialSession ? initialSession.hasCurrentState(new Date('2020-01-01')) : false);
 		assert(initialSession? initialSession.hasCurrentState(new Date('2023-01-01')) : true);
 
@@ -375,7 +374,7 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
 		assert(updatedSession ? updatedSession.hasCurrentState(new Date('2020-01-01')) : false);
 		assert(updatedSession ? updatedSession.hasCurrentState(new Date('2023-01-01')) : true);
 
-		throwsSync(() =>
+		await throwsAsync(() =>
 			ReactNativeLibsignalClient.signalEncrypt(
 				aMessage,
 				bAddress,

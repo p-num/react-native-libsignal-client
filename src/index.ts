@@ -1324,7 +1324,6 @@ export async function signalEncrypt(
 	);
 	await updateSessionStoreFromObject(sessionStore, updatedSessionStoreState);
 	await updateIdentityStoreFromObject(identityStore, updatedIdentityStoreState);
-	console.log("ZZZZZZZZZZ", cipher_serialized)
 	return bufferToCipherText(cipher_serialized, cipherType);
 }
 
