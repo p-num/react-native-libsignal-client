@@ -3,7 +3,7 @@ import { fromByteArray } from 'react-native-quick-base64';
 import * as uuid from 'uuid';
 import { Aci, ProtocolAddress, ServiceId } from './Address';
 import * as Native from './Native.d';
-import { CiphertextMessageType, Direction } from './ReactNativeLibsignalClient.types';
+import { CiphertextMessageType, ContentHint, Direction } from './ReactNativeLibsignalClient.types';
 import ReactNativeLibsignalClientModule from './ReactNativeLibsignalClientModule';
 import { getIdentityStoreInitializer, getIdentityStoreObject, getKyberPrekeyStoreState, getPrekeyStoreState, getSessionStoreObject, getSignedPrekeyStoreState, KeyObject, updatedPrekeyStoreFromObject, updateIdentityStoreFromObject, updateSessionStoreFromObject, updateSignedPrekeyStoreFromObject } from './stores';
 export * from './Address';
@@ -1552,5 +1552,5 @@ export function generateRegistrationID(): number {
 	return ReactNativeLibsignalClientModule.GenerateRegistrationID();
 }
 
-export { CiphertextMessageType, Direction };
+export { CiphertextMessageType, ContentHint, Direction };
 
