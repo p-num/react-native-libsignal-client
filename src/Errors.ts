@@ -1,4 +1,4 @@
-import { ProtocolAddress } from './Address';
+import { ProtocolAddress } from '.';
 
 export enum ErrorCode {
 	Generic = 0,

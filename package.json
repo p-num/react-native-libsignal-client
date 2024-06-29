@@ -1,6 +1,6 @@
 {
   "name": "react-native-libsignal-client",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "My new module",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -35,10 +35,10 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.0.25",
+    "@types/react": "~18.2.79",
     "@types/uuid": "^10.0.0",
     "expo-module-scripts": "^3.5.2",
-    "expo-modules-core": "^1.12.14"
+    "expo-modules-core": "~1.12.18"
   },
   "peerDependencies": {
     "expo": "*",

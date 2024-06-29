@@ -13,8 +13,6 @@ import {
 } from '.';
 import { ProtocolAddress } from './Address';
 import { PreKeyRecord } from './index';
-export * from './Address';
-export * from './Errors';
 
 export type KeyObject = { [protocolAddress: string]: string };
 

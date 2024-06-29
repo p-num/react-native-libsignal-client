@@ -6,6 +6,8 @@ import * as Native from './Native.d';
 import { CiphertextMessageType, Direction } from './ReactNativeLibsignalClient.types';
 import ReactNativeLibsignalClientModule from './ReactNativeLibsignalClientModule';
 import { getIdentityStoreInitializer, getIdentityStoreObject, getKyberPrekeyStoreState, getPrekeyStoreState, getSessionStoreObject, getSignedPrekeyStoreState, KeyObject, updatedPrekeyStoreFromObject, updateIdentityStoreFromObject, updateSessionStoreFromObject, updateSignedPrekeyStoreFromObject } from './stores';
+export * from './Address';
+export * from './Errors';
 
 export class HKDF {
 	/**
@@ -597,6 +599,12 @@ export class SenderKeyDistributionMessage {
 				getCurrentKeyHandle(sender, distributionId, store)
 			);
 		return new SenderKeyDistributionMessage(handle);
+	}
+
+	static _fromSerialized(
+		serialized: Uint8Array
+	): SenderKeyDistributionMessage {
+		return new SenderKeyDistributionMessage(serialized);
 	}
 
 	// static _new(
@@ -1273,7 +1281,6 @@ export async function createAndProcessPreKeyBundle(
 		kyber_prekey: KEMPublicKey;
 		kyber_prekey_signature: Uint8Array;
 	} | null,
-
 ) {
 	const identityStoreInitializer =
 	await getIdentityStoreInitializer(identityStore);
