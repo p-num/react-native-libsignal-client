@@ -1549,7 +1549,7 @@ export async function sealedSenderDecryptToUsmc(
 }
 
 export function generateRegistrationID(): number {
-	return ReactNativeLibsignalClientModule.GenerateRegistrationID();
+	return ReactNativeLibsignalClientModule.generateRegistrationId();
 }
 
 export { CiphertextMessageType, ContentHint, Direction };
