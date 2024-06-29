@@ -1,14 +1,218 @@
 import { Buffer } from '@craftzdog/react-native-buffer';
 import deepEql from 'deep-eql';
+import 'react-native-get-random-values';
 import * as ReactNativeLibsignalClient from 'react-native-libsignal-client';
-import { ProtocolAddress } from 'react-native-libsignal-client/Address';
+import { Aci, Pni, ProtocolAddress, ServiceId } from 'react-native-libsignal-client/Address';
 import { assert, isInstanceOf, isNotNull } from 'typed-assert';
+import * as uuid from 'uuid';
 import { sessionVersionTestCases } from './api-utils';
-import { throwsAsync, throwsSync } from './extentions';
+import { noThrowSync, throwsAsync, throwsSync } from './extentions';
 import { TestStores } from './mockStores';
 import { test } from './utils';
 
+export const testServiceId = () =>
+	test('aci for valid/invalid args', async () => {
+		const testingUuid = '8c78cd2a-16ff-427d-83dc-1a5e36ce713d';
+		const aci = Aci.fromUuid(testingUuid);
+		isInstanceOf(aci, Aci);
+		assert(
+			aci.isEqual(
+				Aci.fromUuidBytes(uuid.parse(testingUuid))
+			),
+			'aci from Aci.fromUuid is not equal to aci from parsed uuid bytes'
+		);
+		assert(
+			!aci.isEqual(Pni.fromUuid(testingUuid)),
+			'aci is equal to pni'
+		);
 
+		assert(
+			deepEql(testingUuid, aci.getRawUuid()),
+			'rawUuid is not equal to uuid'
+		);
+		assert(
+			deepEql(uuid.parse(testingUuid), aci.getRawUuidBytes()),
+			'rawUuidBytes is not equal to uuid'
+		);
+		assert(
+			deepEql(testingUuid, aci.getServiceIdString()),
+			`serviceIdString ${aci.getServiceIdString()} is not equal to uuid ${testingUuid}`
+		);
+		assert(
+			deepEql(uuid.parse(testingUuid), aci.getServiceIdBinary()),
+			'serviceIdBinary is not equal to uuid'
+		);
+		assert(
+			deepEql(`<ACI:${testingUuid}>`, `${aci}`),
+			'toString is not correct'
+		);
+
+		{
+			const aciServiceId =
+				ServiceId.parseFromServiceIdString(
+					aci.getServiceIdString()
+				);
+			isInstanceOf(
+				aciServiceId,
+				Aci,
+				'aciServiceId is not an instance of Aci'
+			);
+			assert(deepEql(aci, aciServiceId), 'aci is not equal to aciServiceId');
+
+			const _: Aci =
+				Aci.parseFromServiceIdString(
+					aci.getServiceIdString()
+				);
+		}
+
+		{
+			const aciServiceId =
+				ServiceId.parseFromServiceIdBinary(
+					aci.getServiceIdBinary()
+				);
+			isInstanceOf(
+				aciServiceId,
+				Aci,
+				'aciServiceId generated as ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary()) is not an instance of Aci'
+			);
+			assert(
+				deepEql(aci, aciServiceId),
+				'Aci.fromUuid(testingUuid) is not equal to ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary())'
+			);
+
+			const _: Aci =
+				Aci.parseFromServiceIdBinary(
+					aci.getServiceIdBinary()
+				);
+		}
+		await (async () => {
+			const testingUuid = '8c78cd2a-16ff-427d-83dc-1a5e36ce713d';
+			const pni = Pni.fromUuid(testingUuid);
+			isInstanceOf(
+				pni,
+				Pni,
+				'Pni.fromUuid is not an instance of Pni'
+			);
+			assert(
+				pni.isEqual(
+					Pni.fromUuidBytes(uuid.parse(testingUuid))
+				),
+				'pni from Pni.fromUuid is not equal to pni from parsed uuid bytes'
+			);
+			assert(
+				!pni.isEqual(Aci.fromUuid(testingUuid)),
+				'pni is equal to aci'
+			);
+
+			assert(
+				deepEql(testingUuid, pni.getRawUuid()),
+				'rawUuid is not equal to pni.getRawUuid()'
+			);
+			assert(
+				deepEql(uuid.parse(testingUuid), pni.getRawUuidBytes()),
+				'rawUuidBytes is not equal to pni.getRawUuidBytes()'
+			);
+			assert(
+				deepEql(`PNI:${testingUuid}`, pni.getServiceIdString()),
+				'serviceIdString is not equal to `PNI:${testingUuid}`'
+			);
+			assert(
+				deepEql(
+					Buffer.concat([Buffer.of(0x01), pni.getRawUuidBytes()]),
+					Buffer.from(pni.getServiceIdBinary())
+				),
+				'serviceIdBinary is not equal to Buffer.concat([Buffer.of(0x01), pni.getRawUuidBytes()])'
+			);
+			assert(
+				deepEql(`<PNI:${testingUuid}>`, `${pni}`),
+				'PNI toString is not correct'
+			);
+
+			{
+				const pniServiceId =
+					ServiceId.parseFromServiceIdString(
+						pni.getServiceIdString()
+					);
+				isInstanceOf(
+					pniServiceId,
+					Pni,
+					'ServiceId.parseFromServiceIdString(pni.getServiceIdString()) is not an instance of Pni'
+				);
+				assert(deepEql(pni, pniServiceId));
+
+				const _: Pni =
+					Pni.parseFromServiceIdString(
+						pni.getServiceIdString()
+					);
+			}
+
+			{
+				const pniServiceId =
+					ServiceId.parseFromServiceIdBinary(
+						pni.getServiceIdBinary()
+					);
+				isInstanceOf(
+					pniServiceId,
+					Pni,
+					'ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not an instance of Pni'
+				);
+				assert(
+					deepEql(pni, pniServiceId),
+					'ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not equal to pniServiceId'
+				);
+
+				const _: Pni =
+					Pni.parseFromServiceIdBinary(
+						pni.getServiceIdBinary()
+					);
+			}
+		})();
+		assert(
+			noThrowSync(() =>
+				ServiceId.parseFromServiceIdString(uuid.NIL)
+			),
+			'ServiceId.parseFromServiceIdString threw an error when given a nil uuid'
+		);
+		assert(
+			throwsSync(() =>
+				ServiceId.parseFromServiceIdBinary(Buffer.of())
+			),
+			'ServiceId.parseFromServiceIdBinary did not throw an error when given an empty buffer'
+		);
+		assert(
+			throwsSync(() =>
+				ServiceId.parseFromServiceIdString('')
+			),
+			'ServiceId.parseFromServiceIdString did not throw an error when given an empty string'
+		);
+	});
+
+export const testProtocolAddress = () =>
+	test('Protocol Address', () => {
+		assert(
+			noThrowSync(() => {
+				const addr = new ProtocolAddress('name', 42);
+				assert(deepEql(addr.name, 'name'));
+				assert(deepEql(addr.deviceId, 42));
+			}),
+			"Protocol Address can't hold arbitrary data"
+		);
+		assert(
+			noThrowSync(() => {
+				const newUuid = uuid.v4();
+				const aci = Aci.fromUuid(newUuid);
+				const pni = Pni.fromUuid(newUuid);
+
+				const aciAddr = new ProtocolAddress(aci, 1);
+				const pniAddr = new ProtocolAddress(pni, 1);
+
+				assert(!deepEql(aciAddr.toString(), pniAddr.toString()));
+				assert(Boolean(aciAddr.serviceId()?.isEqual(aci)));
+				assert(Boolean(pniAddr.serviceId()?.isEqual(pni)));
+			}),
+			"Protocol Address can't round-trip ServiceIds"
+		);
+	});
 
 export const testHKDF = () =>
 	test('HKDF', async () => {

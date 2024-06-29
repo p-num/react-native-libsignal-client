@@ -175,11 +175,17 @@ export class ProtocolAddress {
 	public readonly name: string
 	public readonly deviceId: number
 
-	constructor(name: string, deviceId: number) {
-		this.name = name;
+	constructor(name: string | ServiceId, deviceId: number) {
+		let serviceName: string;
+		if (typeof name !== 'string') {
+			serviceName = name.getServiceIdString();
+		} else {
+			serviceName = name;
+		}
+		this.name = serviceName;
 		this.deviceId = Number(deviceId);
 	}
-	
+
 	static new(address: string): ProtocolAddress {
 		const[name, deviceId] = address.split('.');
 		return new ProtocolAddress(

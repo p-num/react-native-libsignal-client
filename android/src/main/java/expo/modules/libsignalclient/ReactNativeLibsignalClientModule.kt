@@ -1,10 +1,9 @@
 package expo.modules.libsignalclient
 
-import android.os.Build
 import android.util.Base64
-import androidx.annotation.RequiresApi
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import org.signal.libsignal.internal.NativeHandleGuard
 import org.signal.libsignal.metadata.SealedSessionCipher
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.signal.libsignal.metadata.certificate.InvalidCertificateException
@@ -12,6 +11,7 @@ import org.signal.libsignal.metadata.certificate.SenderCertificate
 import org.signal.libsignal.metadata.certificate.ServerCertificate
 import org.signal.libsignal.metadata.protocol.UnidentifiedSenderMessageContent
 import org.signal.libsignal.protocol.*
+import org.signal.libsignal.protocol.UntrustedIdentityException
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
 import org.signal.libsignal.protocol.ecc.ECPublicKey
@@ -22,24 +22,13 @@ import org.signal.libsignal.protocol.kdf.HKDF
 import org.signal.libsignal.protocol.kem.KEMKeyPair
 import org.signal.libsignal.protocol.kem.KEMKeyType
 import org.signal.libsignal.protocol.kem.KEMPublicKey
-import org.signal.libsignal.protocol.message.DecryptionErrorMessage
-import org.signal.libsignal.protocol.message.PlaintextContent
-import org.signal.libsignal.protocol.message.PreKeySignalMessage
-import org.signal.libsignal.protocol.message.SenderKeyDistributionMessage
-import org.signal.libsignal.protocol.message.SenderKeyMessage
-import org.signal.libsignal.protocol.message.SignalMessage
-import org.signal.libsignal.protocol.state.KyberPreKeyRecord
-import org.signal.libsignal.protocol.state.PreKeyBundle
-import org.signal.libsignal.protocol.state.PreKeyRecord
-import org.signal.libsignal.protocol.state.SessionRecord
-import org.signal.libsignal.protocol.state.SignedPreKeyRecord
-import org.signal.libsignal.protocol.state.impl.InMemorySessionStore
+import org.signal.libsignal.protocol.message.*
+import org.signal.libsignal.protocol.state.*
 import org.signal.libsignal.protocol.util.KeyHelper
-import java.security.cert.X509Certificate
 import java.time.Instant
-import java.util.UUID
-import javax.crypto.SealedObject
+import java.util.*
 import javax.crypto.spec.SecretKeySpec
+
 
 typealias StringifiedProtocolAddress = String
 typealias SerializedAddressedKeys = Map<StringifiedProtocolAddress, String>
@@ -96,28 +85,28 @@ class ReactNativeLibsignalClientModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ReactNativeLibsignalClient")
 
-      // Function("serviceIdServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdServiceIdBinary)
-      // Function("serviceIdServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdServiceIdString)
-      // Function("serviceIdServiceIdLog", this@ReactNativeLibsignalClientModule::serviceIdServiceIdLog)
-      // Function("serviceIdParseFromServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdBinary)
-      // Function("serviceIdParseFromServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdString)
+    Function("serviceIdServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdServiceIdBinary)
+    Function("serviceIdServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdServiceIdString)
+    Function("serviceIdServiceIdLog", this@ReactNativeLibsignalClientModule::serviceIdServiceIdLog)
+    Function("serviceIdParseFromServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdBinary)
+    Function("serviceIdParseFromServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdParseFromServiceIdString)
 
-      Function("serverCertificateGetCertificate", this@ReactNativeLibsignalClientModule::serverCertificateGetCertificate)
-      Function("serverCertificateGetKey", this@ReactNativeLibsignalClientModule::serverCertificateGetKey)
-      Function("serverCertificateGetKeyId", this@ReactNativeLibsignalClientModule::serverCertificateGetKeyId)
-      Function("serverCertificateGetSignature", this@ReactNativeLibsignalClientModule::serverCertificateGetSignature)
+    Function("serverCertificateGetCertificate", this@ReactNativeLibsignalClientModule::serverCertificateGetCertificate)
+    Function("serverCertificateGetKey", this@ReactNativeLibsignalClientModule::serverCertificateGetKey)
+    Function("serverCertificateGetKeyId", this@ReactNativeLibsignalClientModule::serverCertificateGetKeyId)
+    Function("serverCertificateGetSignature", this@ReactNativeLibsignalClientModule::serverCertificateGetSignature)
 
-      Function("senderCertificateGetCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetCertificate)
-      Function("senderCertificateGetExpiration", this@ReactNativeLibsignalClientModule::senderCertificateGetExpiration)
-      Function("senderCertificateGetKey", this@ReactNativeLibsignalClientModule::senderCertificateGetKey)
-      Function("senderCertificateGetSenderE164", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderE164)
-      Function("senderCertificateGetSenderUuid", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderUuid)
-      Function("senderCertificateGetDeviceId", this@ReactNativeLibsignalClientModule::senderCertificateGetDeviceId)
-      Function("senderCertificateGetServerCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetServerCertificate)
-      Function("senderCertificateGetSignature", this@ReactNativeLibsignalClientModule::senderCertificateGetSignature)
-      Function("senderCertificateValidate", this@ReactNativeLibsignalClientModule::senderCertificateValidate)
+    Function("senderCertificateGetCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetCertificate)
+    Function("senderCertificateGetExpiration", this@ReactNativeLibsignalClientModule::senderCertificateGetExpiration)
+    Function("senderCertificateGetKey", this@ReactNativeLibsignalClientModule::senderCertificateGetKey)
+    Function("senderCertificateGetSenderE164", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderE164)
+    Function("senderCertificateGetSenderUuid", this@ReactNativeLibsignalClientModule::senderCertificateGetSenderUuid)
+    Function("senderCertificateGetDeviceId", this@ReactNativeLibsignalClientModule::senderCertificateGetDeviceId)
+    Function("senderCertificateGetServerCertificate", this@ReactNativeLibsignalClientModule::senderCertificateGetServerCertificate)
+    Function("senderCertificateGetSignature", this@ReactNativeLibsignalClientModule::senderCertificateGetSignature)
+    Function("senderCertificateValidate", this@ReactNativeLibsignalClientModule::senderCertificateValidate)
 
-      Function("generatePrivateKey", this@ReactNativeLibsignalClientModule::generatePrivateKey)
+    Function("generatePrivateKey", this@ReactNativeLibsignalClientModule::generatePrivateKey)
     Function("privateKeySign", this@ReactNativeLibsignalClientModule::privateKeySign)
     Function("privateKeyAgree", this@ReactNativeLibsignalClientModule::privateKeyAgree)
     Function("privateKeyGetPublicKey", this@ReactNativeLibsignalClientModule::privateKeyGetPublicKey)
@@ -153,77 +142,66 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("sessionCipherEncryptMessage", this@ReactNativeLibsignalClientModule::sessionCipherEncryptMessage)
     Function("plaintextContentFromDecryptionErrorMessage", this@ReactNativeLibsignalClientModule::plaintextContentFromDecryptionErrorMessage)
     Function("plaintextContentGetBody", this@ReactNativeLibsignalClientModule::plaintextContentGetBody)
-//      DecryptionErrorMessageForOriginalMessage
-//      DecryptionErrorMessageExtractFromSerializedContent
-//      DecryptionErrorMessageGetTimestamp
-//      DecryptionErrorMessageGetDeviceId
-//      DecryptionErrorMessageGetRatchetKey
     Function("decryptionErrorMessageForOriginalMessage", this@ReactNativeLibsignalClientModule::decryptionErrorMessageForOriginalMessage)
     Function("decryptionErrorMessageExtractFromSerializedContent", this@ReactNativeLibsignalClientModule::decryptionErrorMessageExtractFromSerializedContent)
     Function("decryptionErrorMessageGetTimestamp", this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetTimestamp)
     Function("decryptionErrorMessageGetDeviceId", this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetDeviceId)
     Function("decryptionErrorMessageGetRatchetKey", 
     this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetRatchetKey)
-    // signalMessageGetBody
-    // signalMessageGetCounter
-    // SignalMessageGetMessageVersion
-    // SignalMessageVerifyMac
-    // this is not used anywhere in app but is useful for testing things separately
-    // Function("signalMessageNew", this@ReactNativeLibsignalClientModule::signalMessageNew)
     Function("signalMessageGetBody", this@ReactNativeLibsignalClientModule::signalMessageGetBody)
     Function("signalMessageGetCounter", this@ReactNativeLibsignalClientModule::signalMessageGetCounter)
     Function("signalMessageGetMessageVersion", this@ReactNativeLibsignalClientModule::signalMessageGetMessageVersion)
     Function("signalMessageVerifyMac", this@ReactNativeLibsignalClientModule::signalMessageVerifyMac)
-//      PreKeySignalMessage_GetPreKeyId
-//      PreKeySignalMessage_GetRegistrationId
-//      PreKeySignalMessage_GetSignedPreKeyId
-//      PreKeySignalMessage_GetVersion
-      Function("preKeySignalMessageGetPreKeyId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetPreKeyId)
-        Function("preKeySignalMessageGetRegistrationId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetRegistrationId)
-        Function("preKeySignalMessageGetSignedPreKeyId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetSignedPreKeyId)
-        Function("preKeySignalMessageGetVersion", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetVersion)
 
+    Function("preKeySignalMessageGetPreKeyId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetPreKeyId)
+    Function("preKeySignalMessageGetRegistrationId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetRegistrationId)
+    Function("preKeySignalMessageGetSignedPreKeyId", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetSignedPreKeyId)
+    Function("preKeySignalMessageGetVersion", this@ReactNativeLibsignalClientModule::preKeySignalMessageGetVersion)
 
-//      SenderKeyMessage_GetCipherText
-//      SenderKeyMessage_GetIteration
-//      SenderKeyMessage_GetChainId
-//      SenderKeyMessage_GetDistributionId
-//      SenderKeyMessage_VerifySignature
-        Function("senderKeyMessageGetCipherText", this@ReactNativeLibsignalClientModule::senderKeyMessageGetCipherText)
-        Function("senderKeyMessageGetIteration", this@ReactNativeLibsignalClientModule::senderKeyMessageGetIteration)
-        Function("senderKeyMessageGetChainId", this@ReactNativeLibsignalClientModule::senderKeyMessageGetChainId)
-        Function("senderKeyMessageGetDistributionId", this@ReactNativeLibsignalClientModule::senderKeyMessageGetDistributionId)
-        Function("senderKeyMessageVerifySignature", this@ReactNativeLibsignalClientModule::senderKeyMessageVerifySignature)
-//      sessionCipherDecryptSignalMessage
-//      sessionCipherDecryptPreKeySignalMessage
-        Function("sessionCipherDecryptSignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptSignalMessage)
-        Function("sessionCipherDecryptPreKeySignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptPreKeySignalMessage)
-        Function("hkdfDeriveSecrets", this@ReactNativeLibsignalClientModule::hkdfDeriveSecrets)
-        // senderKeyDistributionMessageGetChainKey
-        // senderKeyDistributionMessageGetIteration
-        // senderKeyDistributionMessageGetChainId
-        // senderKeyDistributionMessageGetDistributionId
-        Function("senderKeyDistributionMessageGetChainKey", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainKey)
-        Function("senderKeyDistributionMessageGetIteration", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetIteration)
-        Function("senderKeyDistributionMessageGetChainId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainId)
-        Function("senderKeyDistributionMessageGetDistributionId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetDistributionId)
+    Function("senderKeyMessageGetCipherText", this@ReactNativeLibsignalClientModule::senderKeyMessageGetCipherText)
+    Function("senderKeyMessageGetIteration", this@ReactNativeLibsignalClientModule::senderKeyMessageGetIteration)
+    Function("senderKeyMessageGetChainId", this@ReactNativeLibsignalClientModule::senderKeyMessageGetChainId)
+    Function("senderKeyMessageGetDistributionId", this@ReactNativeLibsignalClientModule::senderKeyMessageGetDistributionId)
+    Function("senderKeyMessageVerifySignature", this@ReactNativeLibsignalClientModule::senderKeyMessageVerifySignature)
 
-//      senderKeyDistributionMessageProcess
-      Function("senderKeyDistributionMessageProcess", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageProcess)
+    Function("sessionCipherDecryptSignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptSignalMessage)
+    Function("sessionCipherDecryptPreKeySignalMessage", this@ReactNativeLibsignalClientModule::sessionCipherDecryptPreKeySignalMessage)
+    Function("hkdfDeriveSecrets", this@ReactNativeLibsignalClientModule::hkdfDeriveSecrets)
 
-//      unidentifiedSenderMessageContentGetContents
-//      unidentifiedSenderMessageContentGetMsgType
-//      unidentifiedSenderMessageContentGetSenderCert
-//      unidentifiedSenderMessageContentGetContentHint
-//      unidentifiedSenderMessageContentGetGroupId
-      Function("unidentifiedSenderMessageContentGetContents", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContents)
-      Function("unidentifiedSenderMessageContentGetMsgType", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetMsgType)
-      Function("unidentifiedSenderMessageContentGetSenderCert", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetSenderCert)
-      Function("unidentifiedSenderMessageContentGetContentHint", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContentHint)
-      Function("unidentifiedSenderMessageContentGetGroupId", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetGroupId)
+    Function("senderKeyDistributionMessageGetChainKey", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainKey)
+    Function("senderKeyDistributionMessageGetIteration", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetIteration)
+    Function("senderKeyDistributionMessageGetChainId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetChainId)
+    Function("senderKeyDistributionMessageGetDistributionId", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageGetDistributionId)
 
-      Function("generateRegistrationId", this@ReactNativeLibsignalClientModule::generateRegistrationId)
+    Function("senderKeyDistributionMessageProcess", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageProcess)
+
+    Function("unidentifiedSenderMessageContentGetContents", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContents)
+    Function("unidentifiedSenderMessageContentGetMsgType", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetMsgType)
+    Function("unidentifiedSenderMessageContentGetSenderCert", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetSenderCert)
+    Function("unidentifiedSenderMessageContentGetContentHint", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetContentHint)
+    Function("unidentifiedSenderMessageContentGetGroupId", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentGetGroupId)
+
+    Function("sealedSenderDecryptToUsmc", this@ReactNativeLibsignalClientModule::sealedSenderDecryptToUsmc)
+
+    Function("generateRegistrationId", this@ReactNativeLibsignalClientModule::generateRegistrationId)
   }
+
+    private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
+        return ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId).toServiceIdBinary()
+    }
+    private fun serviceIdServiceIdString(fixedWidthServiceId: ByteArray) : String {
+        return ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId).toServiceIdString()
+    }
+    private fun serviceIdServiceIdLog(fixedWidthServiceId: ByteArray) : String {
+        return ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId).toLogString()
+    }
+    private fun serviceIdParseFromServiceIdBinary(serviceIdBinary: ByteArray) : ByteArray {
+        return ServiceId.parseFromBinary(serviceIdBinary).toServiceIdFixedWidthBinary()
+    }
+    private fun serviceIdParseFromServiceIdString(serviceIdString: String) : ByteArray {
+        return ServiceId.parseFromString(serviceIdString).toServiceIdFixedWidthBinary()
+    }
+
 
   private fun generatePrivateKey() : ByteArray {
     val keypair = Curve.generateKeyPair()
@@ -369,26 +347,6 @@ class ReactNativeLibsignalClientModule : Module() {
      return Pair(updatedInMemorySessionStore, updatedInMemoryIdentityStore)
    }
 
-
-  // private fun SignedPreKeyRecord_New(id: Int, timestamp: Long, pubKey: Long, privKey: Long, signature: ByteArray) : Long {
-  //   return Native.SignedPreKeyRecord_New(id, timestamp, pubKey, privKey, signature)
-  // }
-  // private fun SignedPreKeyRecord_GetId(signedPreKeyRecord: Long) : Int {
-  //   return Native.SignedPreKeyRecord_GetId(signedPreKeyRecord)
-  // }
-  // private fun SignedPreKeyRecord_GetPrivateKey(signedPreKeyRecord: Long) : Long {
-  //   return Native.SignedPreKeyRecord_GetPrivateKey(signedPreKeyRecord)
-  // }
-  // private fun SignedPreKeyRecord_GetPublicKey(signedPreKeyRecord: Long) : Long {
-  //   return Native.SignedPreKeyRecord_GetPublicKey(signedPreKeyRecord)
-  // }
-  // private fun SignedPreKeyRecord_GetSignature(signedPreKeyRecord: Long) : ByteArray {
-  //   return Native.SignedPreKeyRecord_GetSignature(signedPreKeyRecord)
-  // }
-  // private fun SignedPreKeyRecord_GetTimestamp(signedPreKeyRecord: Long) : Long {
-  //   return Native.SignedPreKeyRecord_GetTimestamp(signedPreKeyRecord)
-  // }
-
    private fun signedPreKeyRecordNew(id: Int, timestamp: Long, serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray, signature: ByteArray) : ByteArray {
      val publicKey = ECPublicKey(serializedPublicKey)
      val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
@@ -416,25 +374,6 @@ class ReactNativeLibsignalClientModule : Module() {
       return rec.timestamp
     }
 
-//  private fun PreKeyRecord_New(id: Int, pubKey: Long, privKey: Long) : Long {
-//    return Native.PreKeyRecord_New(id, pubKey, privKey)
-//  }
-//  private fun PreKeyRecord_Deserialize(serialized: ByteArray) : Long {
-//    return Native.PreKeyRecord_Deserialize(serialized)
-//  }
-//  private fun PreKeyRecord_GetId(preKeyRecord: Long) : Int {
-//    return Native.PreKeyRecord_GetId(preKeyRecord)
-//  }
-//  private fun PreKeyRecord_GetPrivateKey(preKeyRecord: Long) : Long {
-//    return Native.PreKeyRecord_GetPrivateKey(preKeyRecord)
-//  }
-//  private fun PreKeyRecord_GetPublicKey(preKeyRecord: Long) : Long {
-//    return Native.PreKeyRecord_GetPublicKey(preKeyRecord)
-//  }
-//  private fun PreKeyRecord_Serialize(preKeyRecord: Long) : ByteArray {
-//    return Native.PreKeyRecord_GetSerialized(preKeyRecord)
-//  }
-
     private fun preKeyRecordNew(id: Int, serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray) : ByteArray {
         val publicKey = ECPublicKey(serializedPublicKey)
         val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
@@ -454,21 +393,6 @@ class ReactNativeLibsignalClientModule : Module() {
         return rec.keyPair.publicKey.serialize()
     }
 
-  //      private fun SessionRecord_ArchiveCurrentState(sessionRecord: Long) {
-  //    return Native.SessionRecord_ArchiveCurrentState(sessionRecord)
-  //  }
-  // private fun SessionRecord_GetLocalRegistrationId(sessionRecord: Long) : Int {
-  //   return Native.SessionRecord_GetLocalRegistrationId(sessionRecord)
-  // }
-  // private fun SessionRecord_GetRemoteRegistrationId(sessionRecord: Long) : Int {
-  //   return Native.SessionRecord_GetRemoteRegistrationId(sessionRecord)
-  // }
-  // private fun SessionRecord_HasUsableSenderChain(sessionRecord: Long, now: Long) : Boolean {
-  //   return Native.SessionRecord_HasUsableSenderChain(sessionRecord, now)
-  // }
-  // private fun SessionRecord_CurrentRatchetKeyMatches(sessionRecord: Long, publicKey: Long) : Boolean {
-  //   return Native.SessionRecord_CurrentRatchetKeyMatches(sessionRecord, publicKey)
-  // }
     private fun sessionRecordArchiveCurrentState(record: ByteArray) : ByteArray {
       val rec = SessionRecord(record)
       rec.archiveCurrentState()
@@ -893,16 +817,16 @@ class ReactNativeLibsignalClientModule : Module() {
         currentSerializedKey: ByteArray
     ) : ByteArray {
         val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
-    val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
         val message = SenderKeyDistributionMessage(serializedMessage)
         val senderKey = SenderKeyRecord(currentSerializedKey)
-    val senderKeyStore = InMemorySenderKeyStore()
-    senderKeyStore.storeSenderKey(protoAddress, message.distributionId,  senderKey)
+        val senderKeyStore = InMemorySenderKeyStore()
+        senderKeyStore.storeSenderKey(protoAddress, message.distributionId,  senderKey)
 
-    val groupSessionBuilder = GroupSessionBuilder(senderKeyStore)
-         groupSessionBuilder.process(protoAddress,message)
-         val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, message.distributionId)
-    return newSenderKeyRecord.serialize()
+        val groupSessionBuilder = GroupSessionBuilder(senderKeyStore)
+        groupSessionBuilder.process(protoAddress,message)
+        val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, message.distributionId)
+        return newSenderKeyRecord.serialize()
     }
 
     private fun unidentifiedSenderMessageContentGetContents(serializedContent: ByteArray) : ByteArray {
@@ -926,7 +850,26 @@ class ReactNativeLibsignalClientModule : Module() {
         return content.groupId.toString()
     }
 
+    private fun sealedSenderDecryptToUsmc(base64Message: String, identityKeyState: IdentityStoreData, senderAddress: String) :Pair<ByteArray, SerializedAddressedKeys>  {
+        val message = Base64.decode(base64Message, Base64.NO_WRAP)
+        val (base64IdentityKey, ownerData) = identityKeyState
+        val (base64OwnerKeypair, ownerRegistrationId) = ownerData
+        val ownerKeypair = IdentityKeyPair(Base64.decode(base64OwnerKeypair, Base64.NO_WRAP))
+        val identityKey = IdentityKey(Base64.decode(base64IdentityKey, Base64.NO_WRAP))
+        val store = InMemorySignalProtocolStoreWithPrekeysList(ownerKeypair, ownerRegistrationId)
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val remoteProtoAddress = SignalProtocolAddress(serviceId, deviceId)
+        store.saveIdentity(remoteProtoAddress, identityKey)
+        val sealedSessionCipher = SealedSessionCipher(store, UUID.fromString(serviceId), serviceId, deviceId)
+        val validator = CertificateValidator(ECPublicKey(ownerKeypair.publicKey.serialize()))
+        val plaintext = sealedSessionCipher.decrypt(validator, message, Instant.now().toEpochMilli())
+        val updatedInMemorySessionStore = updateSessionStoreStateFromInMemoryProtocolStore(store, SignalProtocolAddress(serviceId, deviceId))
+        return Pair(plaintext.paddedMessage, updatedInMemorySessionStore)
+    }
+
     private fun generateRegistrationId(): Int {
         return KeyHelper.generateRegistrationId(false)
     }
+
+
 }
