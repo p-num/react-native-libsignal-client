@@ -52,7 +52,7 @@ export class PrivateKey {
 	}
 
 	static generate() : PrivateKey {
-		return new PrivateKey(ReactNativeLibsignalClientModule.generatePrivateKey());
+		return new PrivateKey(ReactNativeLibsignalClientModule.privateKeyGenerate());
 	}
 
 	sign(msg: Uint8Array): Uint8Array {
