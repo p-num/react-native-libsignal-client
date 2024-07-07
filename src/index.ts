@@ -67,11 +67,9 @@ export class PrivateKey {
     this.serialized = serialized;
   }
 
-  static generate(): PrivateKey {
-    return new PrivateKey(
-      ReactNativeLibsignalClientModule.generatePrivateKey()
-    );
-  }
+	static generate() : PrivateKey {
+		return new PrivateKey(ReactNativeLibsignalClientModule.privateKeyGenerate());
+	}
 
   sign(msg: Uint8Array): Uint8Array {
     return ReactNativeLibsignalClientModule.privateKeySign(
