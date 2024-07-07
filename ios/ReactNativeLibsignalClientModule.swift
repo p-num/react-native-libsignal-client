@@ -1,41 +1,115 @@
 import ExpoModulesCore
+import LibSignalClient
 
 public class ReactNativeLibsignalClientModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+
   public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ReactNativeLibsignalClient')` in JavaScript.
+
     Name("ReactNativeLibsignalClient")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
     Constants([
       "PI": Double.pi
     ])
 
-    // Defines event names that the module can send to JavaScript.
     Events("onChange")
 
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") {
-      return "Hello world! 👋"
+      return String(decoding: IdentityKeyPair.generate().publicKey.serialize(), as: UTF8.self)
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
+    Function("generateIdentityKeyPair") {
+      return IdentityKeyPair.generate().serialize()
+    }
+    Function("generatePrivateKey") {
+      return PrivateKey.generate().serialize()
+    }
+
+    Function("hkdfDeriveSecrets") {
+      (outputLength: Int, inputKeyMaterial: Data, info: Data, salt: Data?) -> [UInt8] in
+      return try hkdf(
+        outputLength: outputLength,
+        inputKeyMaterial: inputKeyMaterial,
+        salt: salt ?? Data(),
+        info: info
+      )
+    }
+
+    // Function("serviceIdServiceIdString"){(fixedWidthServiceId : [UInt8]) -> String in
+    // do {
+    //       let serviceId = ServiceId(fromFixedWidthBinary: fixedWidthServiceId)
+    //       return try serviceId.serviceIdString
+    //   } catch {
+    //       print("Error serviceIdServiceIdString: \(error)")
+    //       return "Error serviceIdServiceIdString: \(error)"
+    //   }
+
+    // }
+
+    Function("privateKeyGetPublicKey") { (serializedPrivateKey: [UInt8]) -> [UInt8]? in
+      let privateKey = try PrivateKey(serializedPrivateKey)
+      let publicKey = privateKey.publicKey
+      let serializedPublicKey = publicKey.serialize()
+      return serializedPublicKey
+    }
+
+    Function("generateKyberRecord") {
+      (keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: [UInt8]) -> [UInt8] in
+
+      let finalTimestamp = NSNumber(value: Float(timestamp))
+      let finalKeyId = NSNumber(value: Float(keyId))
+      let privateKey = try PrivateKey(privateKeySerialized)
+      let keyPairObject = KEMKeyPair.generate()
+      let keyPairObjectPublicKey = keyPairObject.publicKey.serialize()
+      let signature = privateKey.generateSignature(message: keyPairObjectPublicKey)
+      let kyberRecord = try KyberPreKeyRecord(
+        id: finalKeyId.uint32Value,
+        timestamp: finalTimestamp.uint64Value,
+        keyPair: keyPairObject,
+        signature: signature
+      )
+      let serializedRecord = kyberRecord.serialize()
+      return serializedRecord
+    }
+
+    Function("kyberPreKeyRecordGetId") { (record: [UInt8]) -> UInt32 in
+      let rec = try KyberPreKeyRecord(bytes: record)
+      return rec.id
+    }
+
+    Function("kyberPreKeyRecordGetPublicKey") { (record: [UInt8]) -> [UInt8] in
+      let rec = try KyberPreKeyRecord(bytes: record)
+      return rec.keyPair.publicKey.serialize()
+    }
+
+    Function("kyberPreKeyRecordGetSecretKey") { (record: [UInt8]) -> [UInt8] in
+      let rec = try KyberPreKeyRecord(bytes: record)
+      return rec.keyPair.secretKey.serialize()
+    }
+
+    Function("kyberPreKeyRecordGetSignature") { (record: [UInt8]) -> [UInt8] in
+      let rec = try KyberPreKeyRecord(bytes: record)
+      return rec.signature
+    }
+
+    Function("kyberPreKeyRecordGetTimestamp") { (record: [UInt8]) -> UInt64 in
+      let rec = try KyberPreKeyRecord(bytes: record)
+      return rec.timestamp
+    }
+
+
+ 
+
     AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
+
+      self.sendEvent(
+        "onChange",
+        [
+          "value": value
+        ])
     }
 
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
     View(ReactNativeLibsignalClientView.self) {
-      // Defines a setter for the `name` prop.
+
       Prop("name") { (view: ReactNativeLibsignalClientView, prop: String) in
         print(prop)
       }

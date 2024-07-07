@@ -30,14 +30,17 @@
         "expo-build-properties",
         {
           "ios": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "useFrameworks": "static",
+            "deploymentTarget": "14.0"
           },
           "android": {
             "newArchEnabled": true,
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "./app.plugin.js"
     ]
   }
 }
