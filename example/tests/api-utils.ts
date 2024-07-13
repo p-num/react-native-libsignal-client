@@ -2,6 +2,7 @@ import * as ReactNativeLibsignalClient from "../../src";
 import { ProtocolAddress } from "../../src/Address";
 import { TestStores } from "./mockStores";
 import { chance } from "./utils";
+import { Buffer } from "@craftzdog/react-native-buffer";
 
 async function makePQXDHBundleAndProcess(
   address: ProtocolAddress,

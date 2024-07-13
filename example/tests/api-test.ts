@@ -33,6 +33,7 @@ export const testServiceId = () =>
       deepEql(testingUuid, aci.getServiceIdString()),
       `serviceIdString ${aci.getServiceIdString()} is not equal to uuid ${testingUuid}`
     );
+
     assert(
       deepEql(uuid.parse(testingUuid), aci.getServiceIdBinary()),
       "serviceIdBinary is not equal to uuid"
@@ -187,8 +188,7 @@ export const testHKDF = () =>
           ReactNativeLibsignalClient.hkdf(42, secret, empty, empty)
         ).toString("hex"),
         "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
-      ),
-      "failed 1"
+      )
     );
 
     assert(
@@ -197,8 +197,7 @@ export const testHKDF = () =>
           ReactNativeLibsignalClient.hkdf(42, secret, empty, null)
         ).toString("hex"),
         "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
-      ),
-      "failed 2"
+      )
     );
 
     const salt = new Uint8Array(
@@ -212,8 +211,7 @@ export const testHKDF = () =>
           ReactNativeLibsignalClient.hkdf(42, secret, label, salt)
         ).toString("hex"),
         "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
-      ),
-      "failed 3"
+      )
     );
   });
 
@@ -256,21 +254,25 @@ export const testKyberPreKeyRecord = () =>
       deepEql(record.id(), keyId),
       `record id ${record.id()} is not the same as the the one it was created with ${keyId}`
     );
+
     assert(
       deepEql(record.timestamp(), timestamp),
       "timestamp is not the same as the the one it was created with"
     );
-    isInstanceOf(
-      record.publicKey().serialized,
-      Uint8Array,
-      "public key does not exist"
-    );
+
+    isInstanceOf(record.signature(), Uint8Array, "signature does not exist");
+
     isInstanceOf(
       record.secretKey().serialized,
       Uint8Array,
       "secret key does not exist"
     );
-    isInstanceOf(record.signature(), Uint8Array, "signature does not exist");
+
+    isInstanceOf(
+      record.publicKey().serialized,
+      Uint8Array,
+      "public key does not exist"
+    );
   });
 
 const testMessaging = (index: 0 | 1) => {
