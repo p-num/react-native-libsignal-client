@@ -67,9 +67,11 @@ export class PrivateKey {
     this.serialized = serialized;
   }
 
-	static generate() : PrivateKey {
-		return new PrivateKey(ReactNativeLibsignalClientModule.privateKeyGenerate());
-	}
+  static generate(): PrivateKey {
+    return new PrivateKey(
+      ReactNativeLibsignalClientModule.privateKeyGenerate()
+    );
+  }
 
   sign(msg: Uint8Array): Uint8Array {
     return ReactNativeLibsignalClientModule.privateKeySign(
@@ -293,6 +295,7 @@ export class SignedPreKeyRecord {
     privKey: PrivateKey,
     signature: Uint8Array
   ): SignedPreKeyRecord {
+    console.error(signature, "signature");
     return new SignedPreKeyRecord(
       ReactNativeLibsignalClientModule.signedPreKeyRecordNew(
         id,
