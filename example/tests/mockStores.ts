@@ -1,5 +1,20 @@
-import { Direction, IdentityKeyStore, KyberPreKeyRecord, KyberPreKeyStore, PreKeyRecord, PreKeyStore, PrivateKey, PublicKey, SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore } from 'react-native-libsignal-client';
-import { ProtocolAddress } from 'react-native-libsignal-client/Address';
+import {
+  Direction,
+  IdentityKeyStore,
+  KyberPreKeyRecord,
+  KyberPreKeyStore,
+  PreKeyRecord,
+  PreKeyStore,
+  PrivateKey,
+  PublicKey,
+  SenderKeyRecord,
+  SenderKeyStore,
+  SessionRecord,
+  SessionStore,
+  SignedPreKeyRecord,
+  SignedPreKeyStore,
+} from "../../src";
+import { ProtocolAddress } from "../../src/Address";
 
 class InMemorySessionStore extends SessionStore {
 	private state = new Map<string, Uint8Array>();

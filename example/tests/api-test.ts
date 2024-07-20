@@ -1,14 +1,14 @@
-import { Buffer } from '@craftzdog/react-native-buffer';
-import deepEql from 'deep-eql';
-import 'react-native-get-random-values';
-import * as ReactNativeLibsignalClient from 'react-native-libsignal-client';
-import { Aci, Pni, ProtocolAddress, ServiceId } from 'react-native-libsignal-client/Address';
-import { assert, isInstanceOf, isNotNull } from 'typed-assert';
-import * as uuid from 'uuid';
-import { sessionVersionTestCases } from './api-utils';
-import { noThrowSync, throwsAsync, throwsSync } from './extentions';
-import { TestStores } from './mockStores';
-import { test } from './utils';
+import { Buffer } from "@craftzdog/react-native-buffer";
+import deepEql from "deep-eql";
+import "react-native-get-random-values";
+import * as ReactNativeLibsignalClient from "../../src";
+import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
+import { assert, isInstanceOf, isNotNull } from "typed-assert";
+import * as uuid from "uuid";
+import { sessionVersionTestCases } from "./api-utils";
+import { noThrowSync, throwsAsync, throwsSync } from "./extentions";
+import { TestStores } from "./mockStores";
+import { test } from "./utils";
 
 export const testServiceId = () =>
 	test('aci for valid/invalid args', async () => {

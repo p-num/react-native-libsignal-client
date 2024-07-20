@@ -7,35 +7,60 @@ podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties
 ENV['RCT_NEW_ARCH_ENABLED'] = podfile_properties['newArchEnabled'] == 'true' ? '1' : '0'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 
-platform :ios, podfile_properties['ios.deploymentTarget'] || '13.4'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '14.0'
+
+use_frameworks!
+
+source 'https://cdn.cocoapods.org/'
+
 install! 'cocoapods',
   :deterministic_uuids => false
 
 prepare_react_native_project!
 
+
+
+
+
 target 'reactnativelibsignalclientexample' do
+  pod 'SignalCoreKit', git: 'https://github.com/signalapp/SignalCoreKit', testspecs: ["Tests"]
+  ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = '188f43a4369a9980c6c116bf9230d26d51ea7baa8a8af93a29ea02376e46ab06'
+  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.51.0', testspecs: ["Tests"]           
+  pod 'SwiftProtobuf', ">= 1.14.0"
+
   use_expo_modules!
   config = use_native_modules!
-
-  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
-  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
 
   use_react_native!(
     :path => config[:reactNativePath],
     :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
-    # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/..",
-    :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
 
   post_install do |installer|
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
+      :mac_catalyst_enabled => false
     )
+    enable_strip(installer)
+    enable_extension_support_for_purelayout(installer)
+    #configure_warning_flags(installer)
+    configure_testable_build(installer)
+    promote_minimum_supported_version(installer)
+    #disable_bitcode(installer)
+    disable_armv7(installer)
+    strip_valid_archs(installer)
+    update_frameworks_script(installer)
+    disable_non_development_pod_warnings(installer)
+    fix_ringrtc_project_symlink(installer)
+    copy_acknowledgements
 
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = "14.0"
+       end
+    end
     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results
@@ -47,6 +72,121 @@ target 'reactnativelibsignalclientexample' do
       end
     end
   end
+
+      # Works around CocoaPods behavior designed for static libraries.
+    # See https://github.com/CocoaPods/CocoaPods/issues/10277
+    def enable_strip(installer)
+      installer.pods_project.build_configurations.each do |build_configuration|
+        build_configuration.build_settings['STRIP_INSTALLED_PRODUCT'] = 'YES'
+      end
+    end
+
+        # PureLayout by default makes use of UIApplication, and must be configured to be built for an extension.
+    def enable_extension_support_for_purelayout(installer)
+      installer.pods_project.targets.each do |target|
+        if target.name.end_with? "PureLayout"
+          target.build_configurations.each do |build_configuration|
+            build_configuration.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= '$(inherited)'
+            build_configuration.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << ' PURELAYOUT_APP_EXTENSIONS=1'
+          end
+        end
+      end
+    end
+
+          # We want some warning to be treated as errors.
+      #
+      # NOTE: We have to manually keep this list in sync with what's in our
+      # Signal.xcodeproj config in Xcode go to:
+      #   Signal Project > Build Settings > Other Warning Flags
+      def configure_warning_flags(installer)
+        installer.pods_project.targets.each do |target|
+            target.build_configurations.each do |build_configuration|
+                build_configuration.build_settings['WARNING_CFLAGS'] = ['$(inherited)',
+                                                                        '-Werror=incompatible-pointer-types',
+                                                                        '-Werror=protocol',
+                                                                        '-Werror=incomplete-implementation',
+                                                                        '-Werror=objc-literal-conversion',
+                                                                        '-Werror=objc-property-synthesis',
+                                                                        '-Werror=objc-protocol-property-synthesis']
+            end
+        end
+      end
+
+      def configure_testable_build(installer)
+        installer.pods_project.targets.each do |target|
+          target.build_configurations.each do |build_configuration|
+            next unless ["Testable Release", "Debug", "Profiling"].include?(build_configuration.name)
+            build_configuration.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+            build_configuration.build_settings['OTHER_CFLAGS'] ||= '$(inherited)'
+            build_configuration.build_settings['OTHER_CFLAGS'] << ' -DTESTABLE_BUILD'
+      
+            build_configuration.build_settings['OTHER_SWIFT_FLAGS'] ||= '$(inherited)'
+            build_configuration.build_settings['OTHER_SWIFT_FLAGS'] << ' -DTESTABLE_BUILD'
+            if target.name.end_with? "PureLayout"
+              # Avoid overwriting the PURELAYOUT_APP_EXTENSIONS.
+            else
+              build_configuration.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= '$(inherited)'
+              build_configuration.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << ' TESTABLE_BUILD=1'
+            end
+            build_configuration.build_settings['ENABLE_TESTABILITY'] = 'YES'
+          end
+        end
+      end
+
+
+      # Xcode 13 dropped support for some older iOS versions. We only need them
+# to support our project's minimum version, so let's bump each Pod's min
+# version to our min to suppress these warnings.
+def promote_minimum_supported_version(installer)
+  project_min_version = current_target_definition.platform.deployment_target
+
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |build_configuration|
+      target_version_string = build_configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+      target_version = Version.create(target_version_string)
+
+      if target_version < project_min_version
+        build_configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      end
+    end
+  end
+end
+
+def disable_bitcode(installer)
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
+  end
+end
+
+def disable_armv7(installer)
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS'] = 'armv7'
+    end
+  end
+end
+
+def strip_valid_archs(installer)
+end
+
+#update_framework_scripts updates Pod-Signal-frameworks.sh to fix a bug in the .XCFramework->.framework
+#conversation process, by ensuring symlinks are properly respected in the XCFramework.
+#See https://github.com/CocoaPods/CocoaPods/issues/7587
+def update_frameworks_script(installer)
+end
+
+# Disable warnings on any Pod not currently being modified
+def disable_non_development_pod_warnings(installer)
+end
+
+# Workaround for RingRTC's weird cached artifacts, hopefully temporary
+def fix_ringrtc_project_symlink(installer)
+end
+
+def copy_acknowledgements
+end
 
   post_integrate do |installer|
     begin
