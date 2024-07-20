@@ -295,7 +295,6 @@ export class SignedPreKeyRecord {
     privKey: PrivateKey,
     signature: Uint8Array
   ): SignedPreKeyRecord {
-    console.error(signature, "signature");
     return new SignedPreKeyRecord(
       ReactNativeLibsignalClientModule.signedPreKeyRecordNew(
         id,
