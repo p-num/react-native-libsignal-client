@@ -36,11 +36,11 @@ export default function App() {
           testPreKeyRecord,
           testSignedPreKeyRecord,
           testMessagingWithoutKyber,
-          // testMessagingWithKyber,
-          // testMessagingDuplicateWithoutKyber,
-          // testMessagingDuplicateWithKyber,
-          // testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
-          // testMessagingUnacknowledgedSessionsExpiryWithKyber,
+          testMessagingWithKyber,
+          testMessagingDuplicateWithoutKyber,
+          testMessagingDuplicateWithKyber,
+          testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
+          testMessagingUnacknowledgedSessionsExpiryWithKyber,
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {

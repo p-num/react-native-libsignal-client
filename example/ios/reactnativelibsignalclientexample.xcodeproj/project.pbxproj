@@ -449,7 +449,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = expo.modules.libsignalclient.example;
-				PRODUCT_NAME = reactnativelibsignalclientexample;
+				PRODUCT_NAME = "reactnativelibsignalclientexample";
 				SWIFT_OBJC_BRIDGING_HEADER = "reactnativelibsignalclientexample/reactnativelibsignalclientexample-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -477,7 +477,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = expo.modules.libsignalclient.example;
-				PRODUCT_NAME = reactnativelibsignalclientexample;
+				PRODUCT_NAME = "reactnativelibsignalclientexample";
 				SWIFT_OBJC_BRIDGING_HEADER = "reactnativelibsignalclientexample/reactnativelibsignalclientexample-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
