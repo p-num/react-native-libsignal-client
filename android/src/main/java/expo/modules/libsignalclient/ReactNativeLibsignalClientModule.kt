@@ -106,7 +106,7 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("senderCertificateGetSignature", this@ReactNativeLibsignalClientModule::senderCertificateGetSignature)
     Function("senderCertificateValidate", this@ReactNativeLibsignalClientModule::senderCertificateValidate)
 
-    Function("generatePrivateKey", this@ReactNativeLibsignalClientModule::generatePrivateKey)
+    Function("privateKeyGenerate", this@ReactNativeLibsignalClientModule::privateKeyGenerate)
     Function("privateKeySign", this@ReactNativeLibsignalClientModule::privateKeySign)
     Function("privateKeyAgree", this@ReactNativeLibsignalClientModule::privateKeyAgree)
     Function("privateKeyGetPublicKey", this@ReactNativeLibsignalClientModule::privateKeyGetPublicKey)
@@ -203,7 +203,7 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
 
-  private fun generatePrivateKey() : ByteArray {
+  private fun privateKeyGenerate() : ByteArray {
     val keypair = Curve.generateKeyPair()
     return keypair.privateKey.serialize()
   }

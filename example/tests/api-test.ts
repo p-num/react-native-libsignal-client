@@ -33,7 +33,6 @@ export const testServiceId = () =>
       deepEql(testingUuid, aci.getServiceIdString()),
       `serviceIdString ${aci.getServiceIdString()} is not equal to uuid ${testingUuid}`
     );
-
     assert(
       deepEql(uuid.parse(testingUuid), aci.getServiceIdBinary()),
       "serviceIdBinary is not equal to uuid"
@@ -254,25 +253,21 @@ export const testKyberPreKeyRecord = () =>
       deepEql(record.id(), keyId),
       `record id ${record.id()} is not the same as the the one it was created with ${keyId}`
     );
-
     assert(
       deepEql(record.timestamp(), timestamp),
       "timestamp is not the same as the the one it was created with"
     );
-
-    isInstanceOf(record.signature(), Uint8Array, "signature does not exist");
-
-    isInstanceOf(
-      record.secretKey().serialized,
-      Uint8Array,
-      "secret key does not exist"
-    );
-
     isInstanceOf(
       record.publicKey().serialized,
       Uint8Array,
       "public key does not exist"
     );
+    isInstanceOf(
+      record.secretKey().serialized,
+      Uint8Array,
+      "secret key does not exist"
+    );
+    isInstanceOf(record.signature(), Uint8Array, "signature does not exist");
   });
 
 const testMessaging = (index: 0 | 1) => {
@@ -295,17 +290,14 @@ const testMessaging = (index: 0 | 1) => {
 
     isNotNull(aSession, "session is null");
     assert(aSession.serialized.length > 0, "session.serialize().length <= 0");
-
     // assert(
-    //   deepEql(aSession.localRegistrationId(), 5),
-    //   "localRegistrationId is not the same as the the one it was created with"
+    // 	deepEql(aSession.localRegistrationId(), 5),
+    // 	'localRegistrationId is not the same as the the one it was created with'
     // );
-
     assert(
       deepEql(aSession.remoteRegistrationId(), 5),
       "remoteRegistrationId is not the same as the the one it was created with"
     );
-
     assert(aSession.hasCurrentState(), "session has no current state");
     assert(
       !aSession.currentRatchetKeyMatches(
@@ -386,8 +378,8 @@ const testMessaging = (index: 0 | 1) => {
 
     assert(bSession.serialized.length > 0, "session.serialize().length <= 0");
     // assert(
-    //   deepEql(bSession.localRegistrationId(), 5),
-    //   "localRegistrationId is not the same as the the one it was created with"
+    // 	deepEql(bSession.localRegistrationId(), 5),
+    // 	'localRegistrationId is not the same as the the one it was created with'
     // );
     assert(
       deepEql(bSession.remoteRegistrationId(), 5),
