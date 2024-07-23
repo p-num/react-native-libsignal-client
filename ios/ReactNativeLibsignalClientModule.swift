@@ -485,6 +485,10 @@ public class ReactNativeLibsignalClientModule: Module {
             (record: Data) -> [UInt8] in
             return try preKeyRecordGetPrivateKeyBody(record: record)
         }
+        Function("generateRegistrationId") {
+            () -> UInt32 in
+            return UInt32.random(in: 1...0x3fff)
+        }
         Function("preKeyRecordGetPublicKey") {
             (record: Data) -> [UInt8] in
             return try preKeyRecordGetPublicKeyBody(record: record)
