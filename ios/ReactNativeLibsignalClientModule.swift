@@ -489,19 +489,6 @@ public class ReactNativeLibsignalClientModule: Module {
             (record: Data) -> [UInt8] in
             return try preKeyRecordGetPublicKeyBody(record: record)
         }
-        AsyncFunction("setValueAsync") {
-            (value: String) in
-            self.sendEvent(
-                "onChange",
-                [
-                    "value": value])
-        }
-        View(ReactNativeLibsignalClientView.self) {
-            Prop("name") {
-                (view: ReactNativeLibsignalClientView, prop: String) in
-                print(prop)
-            }
-        }
         /*END          bridge functions definitions              END*/
     }
 
