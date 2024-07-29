@@ -232,7 +232,7 @@ public class ReactNativeLibsignalClientModule: Module {
             return IdentityKeyPair.generate().serialize()
         }
         Function("identityKeyPairSerialize") {
-            (serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8]) -> Data in
+            (serializedPublicKey: Data, serializedPrivateKey: Data) -> Data in
             return try identityKeyPairSerializeHelper(serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey)
         }
         Function("sessionCipherEncryptMessage") {
@@ -245,19 +245,19 @@ public class ReactNativeLibsignalClientModule: Module {
                 now: now)
         }
         Function("preKeySignalMessageGetRegistrationId") {
-            (serializedMessage: [UInt8]) -> UInt32 in
+            (serializedMessage: Data) -> UInt32 in
             return try preKeySignalMessageGetRegistrationIdHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetSignedPreKeyId") {
-            (serializedMessage: [UInt8]) -> UInt32 in
+            (serializedMessage: Data) -> UInt32 in
             return try preKeySignalMessageGetSignedPreKeyIdHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetVersion") {
-            (serializedMessage: [UInt8]) -> UInt32 in
+            (serializedMessage: Data) -> UInt32 in
             return try preKeySignalMessageGetVersionHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetPreKeyId") {
-            (serializedMessage: [UInt8]) -> UInt32? in
+            (serializedMessage: Data) -> UInt32? in
             return try preKeySignalMessageGetPreKeyIdHelper(serializedMessage: serializedMessage)
         }
         Function("createAndProcessPreKeyBundle") {
@@ -283,7 +283,7 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         Function("sessionCipherDecryptSignalMessage") {
             (
-                serializedMessage: [UInt8],
+                serializedMessage: Data,
                 address: String,
                 sessionStoreState: [String: String],
                 identityKeyState: [Any])
@@ -296,7 +296,7 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         Function("sessionCipherDecryptPreKeySignalMessage") {
             (
-                serializedMessage: [UInt8],
+                serializedMessage: Data,
                 address: String,
                 ownerIdentityData: [Any],
                 prekeyStoreState: SerializedAddressedKeys,
@@ -379,11 +379,8 @@ public class ReactNativeLibsignalClientModule: Module {
             return try identityKeyVerifyAlternateIdentityWithPublicKeyHelper(serializedPublicKey: serializedPublicKey, message: message, signature: signature)
         }
         Function("sessionRecordCurrentRatchetKeyMatches") {
-            (record: Data, pubKey: [UInt8]) throws -> Bool in
+            (record: Data, pubKey: Data) throws -> Bool in
             return try sessionRecordCurrentRatchetKeyMatchesHelper(record: record, pubKey: pubKey)
-        }
-        Function("privateKeyGenerate") {
-            return PrivateKey.generate().serialize()
         }
         Function("hkdfDeriveSecrets") {
             (outputLength: Int, inputKeyMaterial: Data, info: Data, salt: Data?) -> [UInt8] in
@@ -414,43 +411,43 @@ public class ReactNativeLibsignalClientModule: Module {
             return Data(try serviceIdParseFromServiceIdBinaryHelper(serviceIdBinary: serviceIdBinary))
         }
         Function("privateKeyGetPublicKey") {
-            (serializedPrivateKey: [UInt8]) -> [UInt8]? in
+            (serializedPrivateKey: Data) -> Data? in
             return try privateKeyGetPublicKeyHelper(serializedPrivateKey: serializedPrivateKey)
         }
         Function("generateKyberRecord") {
-            (keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: [UInt8]) -> [UInt8] in
+            (keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: Data) -> Data in
             return try generateKyberRecordBody(keyId: keyId, timestamp: timestamp, privateKeySerialized: privateKeySerialized)
         }
         Function("kyberPreKeyRecordGetId") {
-            (record: [UInt8]) -> UInt32 in
+            (record: Data) -> UInt32 in
             return try kyberPreKeyRecordGetIdBody(record: record)
         }
         Function("kyberPreKeyRecordGetPublicKey") {
-            (record: [UInt8]) -> Data in
+            (record: Data) -> Data in
             return try kyberPreKeyRecordGetPublicKeyBody(record: record)
         }
         Function("kyberPreKeyRecordGetSecretKey") {
-            (record: [UInt8]) -> Data in
+            (record: Data) -> Data in
             return try kyberPreKeyRecordGetSecretKeyBody(record: record)
         }
         Function("kyberPreKeyRecordGetSignature") {
-            (record: [UInt8]) -> Data in
+            (record: Data) -> Data in
             return try kyberPreKeyRecordGetSignatureBody(record: record)
         }
         Function("kyberPreKeyRecordGetTimestamp") {
-            (record: [UInt8]) -> UInt64 in
+            (record: Data) -> UInt64 in
             return try kyberPreKeyRecordGetTimestampBody(record: record)
         }
         Function("privateKeyGenerate") {
-            () -> [UInt8] in
+            () -> Data in
             return privateKeyGenerateBody()
         }
         Function("privateKeySign") {
-            (serializedPrivateKey: [UInt8], message: [UInt8]) -> Data in
+            (serializedPrivateKey: Data, message: Data ) -> Data in
             return try privateKeySignBody(serializedPrivateKey: serializedPrivateKey, message: message)
         }
         Function("signedPreKeyRecordNew") {
-            (id: UInt32, timestamp: UInt64, serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8], signature: Data) -> Data in
+            (id: UInt32, timestamp: UInt64, serializedPublicKey: Data, serializedPrivateKey: Data, signature: Data) -> Data in
             return try signedPreKeyRecordNewBody(id: id, timestamp: timestamp, serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey, signature: signature)
         }
         Function("signedPreKeyRecordGetId") {
@@ -474,7 +471,7 @@ public class ReactNativeLibsignalClientModule: Module {
             return try signedPreKeyRecordGetTimestampBody(record: record)
         }
         Function("preKeyRecordNew") {
-            (id: UInt32, serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8]) -> Data in
+            (id: UInt32, serializedPublicKey: Data, serializedPrivateKey: Data) -> Data in
             return try preKeyRecordNewBody(id: id, serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey)
         }
         Function("preKeyRecordGetId") {
@@ -497,7 +494,7 @@ public class ReactNativeLibsignalClientModule: Module {
     }
 
     /*START          bridge functions implementation              START*/
-    private func identityKeyPairSerializeHelper(serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8]) throws -> Data {
+    private func identityKeyPairSerializeHelper(serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data {
         let publicKey = try PublicKey(serializedPublicKey)
         let privateKey = try PrivateKey(serializedPrivateKey)
         let identityKeyPair = IdentityKeyPair(publicKey: publicKey, privateKey: privateKey)
@@ -559,22 +556,22 @@ public class ReactNativeLibsignalClientModule: Module {
         return [[cipher.serialize(), messageType], [updatedInMemorySessionStore, updatedInMemoryIdentityStore]]
     }
 
-    private func preKeySignalMessageGetSignedPreKeyIdHelper(serializedMessage: [UInt8]) throws -> UInt32 {
+    private func preKeySignalMessageGetSignedPreKeyIdHelper(serializedMessage: Data) throws -> UInt32 {
         let message = try PreKeySignalMessage(bytes: serializedMessage)
         return message.signedPreKeyId
     }
 
-    private func preKeySignalMessageGetVersionHelper(serializedMessage: [UInt8]) throws -> UInt32 {
+    private func preKeySignalMessageGetVersionHelper(serializedMessage: Data) throws -> UInt32 {
         let message = try PreKeySignalMessage(bytes: serializedMessage)
         return try message.version()
     }
 
-    private func preKeySignalMessageGetRegistrationIdHelper(serializedMessage: [UInt8]) throws -> UInt32 {
+    private func preKeySignalMessageGetRegistrationIdHelper(serializedMessage: Data) throws -> UInt32 {
         let message = try PreKeySignalMessage(bytes: serializedMessage)
         return try message.registrationId()
     }
 
-    private func preKeySignalMessageGetPreKeyIdHelper(serializedMessage: [UInt8]) throws -> UInt32? {
+    private func preKeySignalMessageGetPreKeyIdHelper(serializedMessage: Data) throws -> UInt32? {
         let message = try PreKeySignalMessage(bytes: serializedMessage)
         return try message.preKeyId()
     }
@@ -665,7 +662,7 @@ public class ReactNativeLibsignalClientModule: Module {
     }
 
     private func sessionCipherDecryptSignalMessageHelper(
-        serializedMessage: [UInt8],
+        serializedMessage: Data,
         address: String,
         sessionStoreState: [String: String],
         identityKeyState: [Any])
@@ -711,7 +708,7 @@ public class ReactNativeLibsignalClientModule: Module {
     }
 
     private func sessionCipherDecryptPreKeySignalMessageHelper(
-        serializedMessage: [UInt8],
+        serializedMessage: Data,
         address: String,
         ownerIdentityData: [Any],
         prekeyStoreState: SerializedAddressedKeys,
@@ -895,7 +892,7 @@ public class ReactNativeLibsignalClientModule: Module {
 
     private func sessionRecordCurrentRatchetKeyMatchesHelper(
         record: Data,
-        pubKey: [UInt8])
+        pubKey: Data)
     throws -> Bool {
         let ecPublicKey = try PublicKey(Data(pubKey))
         let rec = try SessionRecord(bytes: record)
@@ -947,11 +944,11 @@ public class ReactNativeLibsignalClientModule: Module {
     }
 
     private func privateKeyGetPublicKeyHelper(
-        serializedPrivateKey: [UInt8])
-    throws -> [UInt8]? {
+        serializedPrivateKey: Data)
+    throws -> Data? {
         let privateKey = try PrivateKey(serializedPrivateKey)
         let publicKey = privateKey.publicKey
-        return publicKey.serialize()
+        return Data(publicKey.serialize())
     }
 
     func preKeyRecordGetPublicKeyBody(record: Data) throws -> [UInt8] {
@@ -969,7 +966,7 @@ public class ReactNativeLibsignalClientModule: Module {
         return rec.id
     }
 
-    func preKeyRecordNewBody(id: UInt32, serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8]) throws -> Data {
+    func preKeyRecordNewBody(id: UInt32, serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data {
         let publicKey = try PublicKey(serializedPublicKey)
         let privateKey = try PrivateKey(serializedPrivateKey)
         return Data(
@@ -1001,7 +998,7 @@ public class ReactNativeLibsignalClientModule: Module {
         return rec.id
     }
 
-    func signedPreKeyRecordNewBody(id: UInt32, timestamp: UInt64, serializedPublicKey: [UInt8], serializedPrivateKey: [UInt8], signature: Data) throws -> Data {
+    func signedPreKeyRecordNewBody(id: UInt32, timestamp: UInt64, serializedPublicKey: Data, serializedPrivateKey: Data, signature: Data) throws -> Data {
         let privateKey = try PrivateKey(serializedPrivateKey)
         return Data(
             try SignedPreKeyRecord(
@@ -1009,42 +1006,42 @@ public class ReactNativeLibsignalClientModule: Module {
             .serialize())
     }
 
-    func privateKeySignBody(serializedPrivateKey: [UInt8], message: [UInt8]) throws -> Data {
+    func privateKeySignBody(serializedPrivateKey: Data, message: Data) throws -> Data {
         let privateKey = try PrivateKey(serializedPrivateKey)
         return Data(privateKey.generateSignature(message: message))
     }
 
-    func privateKeyGenerateBody() -> [UInt8] {
+    func privateKeyGenerateBody() -> Data {
         let keypair = IdentityKeyPair.generate()
-        return keypair.privateKey.serialize()
+        return Data(keypair.privateKey.serialize())
     }
 
-    func kyberPreKeyRecordGetTimestampBody(record: [UInt8]) throws -> UInt64 {
+    func kyberPreKeyRecordGetTimestampBody(record: Data) throws -> UInt64 {
         let rec = try KyberPreKeyRecord(bytes: record)
         return rec.timestamp
     }
 
-    func kyberPreKeyRecordGetSignatureBody(record: [UInt8]) throws -> Data {
+    func kyberPreKeyRecordGetSignatureBody(record: Data) throws -> Data {
         let rec = try KyberPreKeyRecord(bytes: record)
         return Data(rec.signature)
     }
 
-    func kyberPreKeyRecordGetSecretKeyBody(record: [UInt8]) throws -> Data {
+    func kyberPreKeyRecordGetSecretKeyBody(record: Data) throws -> Data {
         let rec = try KyberPreKeyRecord(bytes: record)
         return Data(rec.keyPair.secretKey.serialize())
     }
 
-    func kyberPreKeyRecordGetPublicKeyBody(record: [UInt8]) throws -> Data {
+    func kyberPreKeyRecordGetPublicKeyBody(record: Data) throws -> Data {
         let rec = try KyberPreKeyRecord(bytes: record)
         return Data(rec.keyPair.publicKey.serialize())
     }
 
-    func kyberPreKeyRecordGetIdBody(record: [UInt8]) throws -> UInt32 {
+    func kyberPreKeyRecordGetIdBody(record: Data) throws -> UInt32 {
         let rec = try KyberPreKeyRecord(bytes: record)
         return rec.id
     }
 
-    func generateKyberRecordBody(keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: [UInt8]) throws -> [UInt8] {
+    func generateKyberRecordBody(keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: Data) throws -> Data {
         let finalTimestamp = NSNumber(value: Float(timestamp))
         let finalKeyId = NSNumber(value: Float(keyId))
         let privateKey = try PrivateKey(privateKeySerialized)
@@ -1056,7 +1053,7 @@ public class ReactNativeLibsignalClientModule: Module {
             timestamp: finalTimestamp.uint64Value,
             keyPair: keyPairObject,
             signature: signature)
-        return kyberRecord.serialize()
+        return Data(kyberRecord.serialize())
     }
 
     private func decodeBase64(_ base64String: String) -> Data? {

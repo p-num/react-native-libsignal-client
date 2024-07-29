@@ -69,7 +69,7 @@ export class PrivateKey {
 
   static generate(): PrivateKey {
     return new PrivateKey(
-      ReactNativeLibsignalClientModule.privateKeyGenerate()
+      new Uint8Array(ReactNativeLibsignalClientModule.privateKeyGenerate())
     );
   }
 
@@ -89,7 +89,9 @@ export class PrivateKey {
 
   getPublicKey(): PublicKey {
     return PublicKey._fromSerialized(
-      ReactNativeLibsignalClientModule.privateKeyGetPublicKey(this.serialized)
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.privateKeyGetPublicKey(this.serialized)
+      )
     );
   }
 
@@ -314,16 +316,20 @@ export class SignedPreKeyRecord {
 
   privateKey(): PrivateKey {
     return PrivateKey._fromSerialized(
-      ReactNativeLibsignalClientModule.signedPreKeyRecordGetPrivateKey(
-        this.serialized
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.signedPreKeyRecordGetPrivateKey(
+          this.serialized
+        )
       )
     );
   }
 
   publicKey(): PublicKey {
     return PublicKey._fromSerialized(
-      ReactNativeLibsignalClientModule.signedPreKeyRecordGetPublicKey(
-        this.serialized
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.signedPreKeyRecordGetPublicKey(
+          this.serialized
+        )
       )
     );
   }
@@ -368,15 +374,21 @@ export class PreKeyRecord {
 
   privateKey(): PrivateKey {
     return PrivateKey._fromSerialized(
-      ReactNativeLibsignalClientModule.preKeyRecordGetPrivateKey(
-        this.serialized
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.preKeyRecordGetPrivateKey(
+          this.serialized
+        )
       )
     );
   }
 
   publicKey(): PublicKey {
     return PublicKey._fromSerialized(
-      ReactNativeLibsignalClientModule.preKeyRecordGetPublicKey(this.serialized)
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.preKeyRecordGetPublicKey(
+          this.serialized
+        )
+      )
     );
   }
 
@@ -1080,7 +1092,7 @@ export class SignalMessage implements CipherTextMessage {
   // }
 
   static _fromSerialized(serialized: Uint8Array): SignalMessage {
-    return new SignalMessage(serialized);
+    return new SignalMessage(new Uint8Array(serialized));
   }
 
   body(): Uint8Array {
@@ -1162,6 +1174,7 @@ export class PreKeySignalMessage implements CipherTextMessage {
   }
 
   signedPreKeyId(): number {
+    console.error(this.serialized instanceof Uint8Array, "ajaba");
     return ReactNativeLibsignalClientModule.preKeySignalMessageGetSignedPreKeyId(
       this.serialized
     );
@@ -1178,7 +1191,7 @@ export class PreKeySignalMessage implements CipherTextMessage {
   }
 
   static _fromSerialized(serialized: Uint8Array): PreKeySignalMessage {
-    return new PreKeySignalMessage(serialized);
+    return new PreKeySignalMessage(new Uint8Array(serialized));
   }
 
   // asCiphertextMessage(): CiphertextMessage {
