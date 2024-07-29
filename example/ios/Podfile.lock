@@ -1227,7 +1227,7 @@ PODS:
     - React-logger (= 0.74.2)
     - React-perflogger (= 0.74.2)
     - React-utils (= 0.74.2)
-  - ReactNativeLibsignalClient (0.1.5):
+  - ReactNativeLibsignalClient (0.1.6):
     - ExpoModulesCore
     - LibSignalClient
   - SignalCoreKit (1.0.0):
@@ -1526,7 +1526,7 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 1f0b3361460921edcbe9042ce690e5ca6dab9639
   React-utils: 5a40a1bb87d8c2d42a6bbbb7ead6d95785ca6042
   ReactCommon: e5866ad8f7487779853fa3fe33f1c075207c3262
-  ReactNativeLibsignalClient: e6016de2bc9cc8dd5b8b6ebbe901fa95fcaabb63
+  ReactNativeLibsignalClient: 04f8c63a4185c4aede62d55da87eea3f79ce3365
   SignalCoreKit: 7658a72244fa81858df4618e92044b0db0dcf59e
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   SwiftProtobuf: 5e8349171e7c2f88f5b9e683cb3cb79d1dc780b3
