@@ -3,15 +3,22 @@ package expo.modules.libsignalclient
 import android.util.Base64
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import org.signal.libsignal.internal.NativeHandleGuard
 import org.signal.libsignal.metadata.SealedSessionCipher
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.signal.libsignal.metadata.certificate.InvalidCertificateException
 import org.signal.libsignal.metadata.certificate.SenderCertificate
 import org.signal.libsignal.metadata.certificate.ServerCertificate
 import org.signal.libsignal.metadata.protocol.UnidentifiedSenderMessageContent
-import org.signal.libsignal.protocol.*
-import org.signal.libsignal.protocol.UntrustedIdentityException
+import org.signal.libsignal.protocol.IdentityKey
+import org.signal.libsignal.protocol.IdentityKeyPair
+import org.signal.libsignal.protocol.InvalidKeyException
+import org.signal.libsignal.protocol.InvalidMessageException
+import org.signal.libsignal.protocol.ServiceId
+import org.signal.libsignal.protocol.ServiceId.Aci
+import org.signal.libsignal.protocol.ServiceId.Pni
+import org.signal.libsignal.protocol.SessionBuilder
+import org.signal.libsignal.protocol.SessionCipher
+import org.signal.libsignal.protocol.SignalProtocolAddress
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
 import org.signal.libsignal.protocol.ecc.ECPublicKey
@@ -22,11 +29,42 @@ import org.signal.libsignal.protocol.kdf.HKDF
 import org.signal.libsignal.protocol.kem.KEMKeyPair
 import org.signal.libsignal.protocol.kem.KEMKeyType
 import org.signal.libsignal.protocol.kem.KEMPublicKey
-import org.signal.libsignal.protocol.message.*
-import org.signal.libsignal.protocol.state.*
+import org.signal.libsignal.protocol.message.DecryptionErrorMessage
+import org.signal.libsignal.protocol.message.PlaintextContent
+import org.signal.libsignal.protocol.message.PreKeySignalMessage
+import org.signal.libsignal.protocol.message.SenderKeyDistributionMessage
+import org.signal.libsignal.protocol.message.SenderKeyMessage
+import org.signal.libsignal.protocol.message.SignalMessage
+import org.signal.libsignal.protocol.state.KyberPreKeyRecord
+import org.signal.libsignal.protocol.state.PreKeyBundle
+import org.signal.libsignal.protocol.state.PreKeyRecord
+import org.signal.libsignal.protocol.state.SessionRecord
+import org.signal.libsignal.protocol.state.SignedPreKeyRecord
 import org.signal.libsignal.protocol.util.KeyHelper
+import org.signal.libsignal.zkgroup.InvalidInputException
+import org.signal.libsignal.zkgroup.NotarySignature
+import org.signal.libsignal.zkgroup.ServerPublicParams
+import org.signal.libsignal.zkgroup.VerificationFailedException
+import org.signal.libsignal.zkgroup.auth.AuthCredentialPresentation
+import org.signal.libsignal.zkgroup.auth.AuthCredentialWithPni
+import org.signal.libsignal.zkgroup.auth.AuthCredentialWithPniResponse
+import org.signal.libsignal.zkgroup.auth.ClientZkAuthOperations
+import org.signal.libsignal.zkgroup.groups.ClientZkGroupCipher
+import org.signal.libsignal.zkgroup.groups.GroupMasterKey
+import org.signal.libsignal.zkgroup.groups.GroupPublicParams
+import org.signal.libsignal.zkgroup.groups.GroupSecretParams
+import org.signal.libsignal.zkgroup.groups.ProfileKeyCiphertext
+import org.signal.libsignal.zkgroup.groups.UuidCiphertext
+import org.signal.libsignal.zkgroup.internal.Constants
+import org.signal.libsignal.zkgroup.profiles.ClientZkProfileOperations
+import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredential
+import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredentialResponse
+import org.signal.libsignal.zkgroup.profiles.ProfileKey
+import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialPresentation
+import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
+import java.security.SecureRandom
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 import javax.crypto.spec.SecretKeySpec
 
 
@@ -184,6 +222,35 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("sealedSenderDecryptToUsmc", this@ReactNativeLibsignalClientModule::sealedSenderDecryptToUsmc)
 
     Function("generateRegistrationId", this@ReactNativeLibsignalClientModule::generateRegistrationId)
+    Function("serverPublicParamsVerifySignature", this@ReactNativeLibsignalClientModule::serverPublicParamsVerifySignature)
+    Function("groupPublicParamsGetGroupIdentifier", this@ReactNativeLibsignalClientModule::groupPublicParamsGetGroupIdentifier)
+    Function("groupSecretParamsGenerateDeterministic", this@ReactNativeLibsignalClientModule::groupSecretParamsGenerateDeterministic)
+    Function("groupSecretParamsDeriveFromMasterKey", this@ReactNativeLibsignalClientModule::groupSecretParamsDeriveFromMasterKey)
+    Function("groupSecretParamsGetPublicParams", this@ReactNativeLibsignalClientModule::groupSecretParamsGetPublicParams)
+    Function("groupSecretParamsGetMasterKey", this@ReactNativeLibsignalClientModule::groupSecretParamsGetMasterKey)
+    Function("generateRandomBytes", this@ReactNativeLibsignalClientModule::generateRandomBytes)
+    Function("profileKeyGetCommitment", this@ReactNativeLibsignalClientModule::profileKeyGetCommitment)
+    Function("profileKeyGetVersion", this@ReactNativeLibsignalClientModule::profileKeyGetVersion)
+    Function("profileKeyDeriveAccessKey", this@ReactNativeLibsignalClientModule::profileKeyDeriveAccessKey)
+
+    Function("serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic", this@ReactNativeLibsignalClientModule::serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic)
+    Function("serverPublicParamsReceiveAuthCredentialWithPniAsServiceId", this@ReactNativeLibsignalClientModule::serverPublicParamsReceiveAuthCredentialWithPniAsServiceId)
+    Function("authCredentialPresentationGetRedemptionTime", this@ReactNativeLibsignalClientModule::authCredentialPresentationGetRedemptionTime)
+    Function("authCredentialPresentationGetPniCiphertext", this@ReactNativeLibsignalClientModule::authCredentialPresentationGetPniCiphertext)
+    Function("authCredentialPresentationGetUuidCiphertext", this@ReactNativeLibsignalClientModule::authCredentialPresentationGetUuidCiphertext)
+    Function("serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic", this@ReactNativeLibsignalClientModule::serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic)
+    Function("serverPublicParamsReceiveExpiringProfileKeyCredential", this@ReactNativeLibsignalClientModule::serverPublicParamsReceiveExpiringProfileKeyCredential)
+    Function("serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic", this@ReactNativeLibsignalClientModule::serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic)
+    Function("profileKeyCredentialRequestContextGetRequest", this@ReactNativeLibsignalClientModule::profileKeyCredentialRequestContextGetRequest)
+    Function("profileKeyCredentialPresentationGetProfileKeyCiphertext", this@ReactNativeLibsignalClientModule::profileKeyCredentialPresentationGetProfileKeyCiphertext)
+    Function("profileKeyCredentialPresentationGetUuidCiphertext", this@ReactNativeLibsignalClientModule::profileKeyCredentialPresentationGetUuidCiphertext)
+    Function("expiringProfileKeyCredentialGetExpirationTime", this@ReactNativeLibsignalClientModule::expiringProfileKeyCredentialGetExpirationTime)
+    Function("decryptBlobWithPadding", this@ReactNativeLibsignalClientModule::decryptBlobWithPadding)
+    Function("encryptBlobWithPaddingDeterministic", this@ReactNativeLibsignalClientModule::encryptBlobWithPaddingDeterministic)
+    Function("groupSecretParamsDecryptProfileKey", this@ReactNativeLibsignalClientModule::groupSecretParamsDecryptProfileKey)
+    Function("groupSecretParamsEncryptProfileKey", this@ReactNativeLibsignalClientModule::groupSecretParamsEncryptProfileKey)
+    Function("groupSecretParamsDecryptServiceId", this@ReactNativeLibsignalClientModule::groupSecretParamsDecryptServiceId)
+    Function("groupSecretParamsEncryptServiceId", this@ReactNativeLibsignalClientModule::groupSecretParamsEncryptServiceId)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -871,5 +938,208 @@ class ReactNativeLibsignalClientModule : Module() {
         return KeyHelper.generateRegistrationId(false)
     }
 
+    private fun serverPublicParamsVerifySignature(serializedSrvPubParams: ByteArray, msg: ByteArray, sig: ByteArray) : Boolean {
+        val svpublicParams = ServerPublicParams(serializedSrvPubParams);
+        val signature = NotarySignature(sig);
 
+        try {
+            svpublicParams.verifySignature(msg, signature);
+            return true
+        } catch (e: VerificationFailedException) {
+            return false
+        }
+    }
+
+    private fun groupPublicParamsGetGroupIdentifier(serializedGpPubParams: ByteArray) : ByteArray {
+        val groupPublicParams = GroupPublicParams(serializedGpPubParams);
+        return groupPublicParams.groupIdentifier.serialize()
+    }
+
+    private fun groupSecretParamsGenerateDeterministic(rand: ByteArray) : ByteArray {
+        val groupSecretParams = GroupSecretParams.generate(SecureRandom(rand));
+
+        return groupSecretParams.serialize();
+    }
+
+    private fun groupSecretParamsDeriveFromMasterKey(serializedGpMasterKey: ByteArray) : ByteArray {
+        val masterKey = GroupMasterKey(serializedGpMasterKey);
+        return GroupSecretParams.deriveFromMasterKey(masterKey).serialize();
+    }
+
+    private fun groupSecretParamsGetPublicParams(gpSecParams: ByteArray) : ByteArray {
+        val groupSecretParams = GroupSecretParams(gpSecParams);
+        return groupSecretParams.publicParams.serialize();
+
+        return ByteArray(0);
+    }
+
+    private fun groupSecretParamsGetMasterKey(gpSecParams: ByteArray) : ByteArray {
+        val groupSecretParams = GroupSecretParams(gpSecParams);
+        return groupSecretParams.masterKey.serialize();
+    }
+
+    private fun generateRandomBytes(len: Int) : ByteArray {
+        val srandom = SecureRandom();
+        val random = ByteArray(len)
+
+        srandom.nextBytes(random);
+
+        return random;
+    }
+
+    private fun profileKeyGetCommitment(serializedProfileKey: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
+        val pk = ProfileKey(serializedProfileKey);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+
+        return pk.getCommitment(aci).serialize();
+    }
+
+    private fun profileKeyGetVersion(serializedProfileKey: ByteArray, fixedWidthAci: ByteArray) : String {
+        val pk = ProfileKey(serializedProfileKey);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+
+        return pk.getProfileKeyVersion(aci).serialize();
+    }
+
+    private fun profileKeyDeriveAccessKey(serializedProfileKey: ByteArray) : ByteArray {
+        val pk = ProfileKey(serializedProfileKey);
+
+        return pk.deriveAccessKey()
+    }
+
+    private fun groupSecretParamsEncryptServiceId(sGroupSecretParams: ByteArray, fixedWidthServiceId: ByteArray) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val sId = ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId);
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.encrypt(sId).serialize();
+    }
+
+    private fun groupSecretParamsDecryptServiceId(sGroupSecretParams: ByteArray, rawCipherText: ByteArray) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val cipherText = UuidCiphertext(rawCipherText);
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.decrypt(cipherText).toServiceIdFixedWidthBinary()
+    }
+
+    private fun groupSecretParamsEncryptProfileKey(sGroupSecretParams: ByteArray, rawProfileKey: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val pk = ProfileKey(rawProfileKey);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.encryptProfileKey(pk, aci).serialize()
+    }
+
+    private fun groupSecretParamsDecryptProfileKey(sGroupSecretParams: ByteArray, rawProfileKeyCipherText: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val pkct = ProfileKeyCiphertext(rawProfileKeyCipherText);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.decryptProfileKey(pkct, aci).serialize();
+    }
+
+    private fun encryptBlobWithPaddingDeterministic(sGroupSecretParams: ByteArray, randomNess: ByteArray, plainText: ByteArray, paddingLen: Int) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.encryptBlob(SecureRandom(randomNess), plainText);
+    }
+
+    private fun decryptBlobWithPadding(sGroupSecretParams: ByteArray, blobCipherText: ByteArray) : ByteArray {
+        val gsp = GroupSecretParams(sGroupSecretParams);
+        val clZkCipher = ClientZkGroupCipher(gsp);
+
+        return clZkCipher.decryptBlob(blobCipherText);
+    }
+
+    private fun expiringProfileKeyCredentialGetExpirationTime(sExpiringProfileKeyCredential: ByteArray) : Long {
+        val expkc = ExpiringProfileKeyCredential(sExpiringProfileKeyCredential);
+
+        return expkc.expirationTime.epochSecond;
+    }
+
+    private fun profileKeyCredentialPresentationGetUuidCiphertext(sProfileKeyCredentialPresentation: ByteArray) : ByteArray {
+        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation);
+
+        return pkcp.uuidCiphertext.serialize();
+    }
+
+    private fun profileKeyCredentialPresentationGetProfileKeyCiphertext(sProfileKeyCredentialPresentation: ByteArray) : ByteArray {
+        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation);
+
+        return pkcp.profileKeyCiphertext.serialize();
+    }
+
+    private fun profileKeyCredentialRequestContextGetRequest(sProfileKeyCredentialRequestContext: ByteArray) : ByteArray {
+        val pkcrc = ProfileKeyCredentialRequestContext(sProfileKeyCredentialRequestContext);
+
+        return pkcrc.request.serialize();
+    }
+
+    private fun serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic(sServerPublicParams: ByteArray, randomness: ByteArray, fixedWidthAci: ByteArray, sProfileKey: ByteArray) : ByteArray {
+        val serverPublicParams = ServerPublicParams(sServerPublicParams);
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+        val profileKey = ProfileKey(sProfileKey);
+
+        return clientZkProfileOperation.createProfileKeyCredentialRequestContext(SecureRandom(randomness), aci, profileKey).serialize();
+    }
+
+    private fun serverPublicParamsReceiveExpiringProfileKeyCredential(sServerPublicParams: ByteArray, sProfileKeyCredReqCtx: ByteArray, sExpProfileKeyCredResponse: ByteArray, ts: Long) : ByteArray {
+        val serverPublicParams = ServerPublicParams(sServerPublicParams);
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
+        val pkCredReqCtx = ProfileKeyCredentialRequestContext(sProfileKeyCredReqCtx);
+        val pkExpCredResp = ExpiringProfileKeyCredentialResponse(sExpProfileKeyCredResponse);
+
+        return clientZkProfileOperation.receiveExpiringProfileKeyCredential(pkCredReqCtx, pkExpCredResp).serialize();
+    }
+
+    private fun serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic(sServerPublicParams: ByteArray, randomness: ByteArray, sGpSecParams: ByteArray, sExpProfKeyCred: ByteArray) : ByteArray {
+        val serverPublicParams = ServerPublicParams(sServerPublicParams);
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
+        val groupSecretParams = GroupSecretParams(sGpSecParams);
+        val expProfKeyCredential = ExpiringProfileKeyCredential(sExpProfKeyCred);
+
+        return clientZkProfileOperation.createProfileKeyCredentialPresentation(SecureRandom(randomness), groupSecretParams, expProfKeyCredential).serialize();
+    }
+
+    private fun authCredentialPresentationGetUuidCiphertext(sAuthCredPres: ByteArray) : ByteArray {
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+
+        return authCredPresentation.uuidCiphertext.serialize();
+    }
+
+    private fun authCredentialPresentationGetPniCiphertext(sAuthCredPres: ByteArray) : ByteArray {
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+
+        return authCredPresentation.pniCiphertext.serialize()
+    }
+
+    private fun authCredentialPresentationGetRedemptionTime(sAuthCredPres: ByteArray) : Long {
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+
+        return authCredPresentation.redemptionTime.epochSecond
+    }
+
+    private fun serverPublicParamsReceiveAuthCredentialWithPniAsServiceId(sSrvPubParams: ByteArray, fixedWidthAci: ByteArray, fixedWidthPni: ByteArray, redemptionTime: Long, authCredPniResp: ByteArray) : ByteArray {
+        val serverPublicParams = ServerPublicParams(sSrvPubParams);
+        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams);
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+        val pni = Pni.parseFromFixedWidthBinary(fixedWidthPni);
+        val authCredentialPniResponse = AuthCredentialWithPniResponse(authCredPniResp);
+
+        return clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(aci, pni, redemptionTime, authCredentialPniResponse).serialize();
+    }
+
+    private fun serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic(sSrvPubParams: ByteArray, randomness: ByteArray, sGpSecParams: ByteArray, authCredPni: ByteArray) : ByteArray {
+        val serverPublicParams = ServerPublicParams(sSrvPubParams);
+        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams);
+        val gpSecretParams = GroupSecretParams(sGpSecParams);
+        val authCredentialPni = AuthCredentialWithPni(authCredPni);
+
+        return clientZkAuthOperation.createAuthCredentialPresentation(gpSecretParams, authCredentialPni).serialize();
+    }
 }
