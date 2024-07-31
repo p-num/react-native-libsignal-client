@@ -30,9 +30,9 @@ export default class AuthCredentialPresentation {
   getRedemptionTime(): Date {
     return new Date(
       1000 *
-        ReactNativeLibsignalClientModule.authCredentialPresentationGetRedemptionTime(
-          this.serialized,
-        ),
+      ReactNativeLibsignalClientModule.authCredentialPresentationGetRedemptionTime(
+        this.serialized,
+      ),
     );
   }
 }
