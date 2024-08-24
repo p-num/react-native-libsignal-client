@@ -953,12 +953,12 @@ public class ReactNativeLibsignalClientModule: Module {
 
     func preKeyRecordGetPublicKeyBody(record: Data) throws -> [UInt8] {
         let rec = try PreKeyRecord(bytes: record)
-        return rec.publicKey.serialize()
+        return try rec.publicKey().serialize()
     }
 
     func preKeyRecordGetPrivateKeyBody(record: Data) throws -> [UInt8] {
         let rec = try PreKeyRecord(bytes: record)
-        return rec.privateKey.serialize()
+        return try rec.privateKey().serialize()
     }
 
     func preKeyRecordGetIdBody(record: Data) throws -> UInt32 {
@@ -985,12 +985,12 @@ public class ReactNativeLibsignalClientModule: Module {
 
     func signedPreKeyRecordGetPublicKeyBody(record: Data) throws -> [UInt8] {
         let rec = try SignedPreKeyRecord(bytes: record)
-        return rec.publicKey.serialize()
+        return try rec.publicKey().serialize()
     }
 
     func signedPreKeyRecordGetPrivateKeyBody(record: Data) throws -> [UInt8] {
         let rec = try SignedPreKeyRecord(bytes: record)
-        return rec.privateKey.serialize()
+        return try rec.privateKey().serialize()
     }
 
     func signedPreKeyRecordGetIdBody(record: Data) throws -> UInt32 {
@@ -1028,12 +1028,12 @@ public class ReactNativeLibsignalClientModule: Module {
 
     func kyberPreKeyRecordGetSecretKeyBody(record: Data) throws -> Data {
         let rec = try KyberPreKeyRecord(bytes: record)
-        return Data(rec.keyPair.secretKey.serialize())
+        return Data(try rec.keyPair().secretKey.serialize())
     }
 
     func kyberPreKeyRecordGetPublicKeyBody(record: Data) throws -> Data {
         let rec = try KyberPreKeyRecord(bytes: record)
-        return Data(rec.keyPair.publicKey.serialize())
+        return Data(try rec.keyPair().publicKey.serialize())
     }
 
     func kyberPreKeyRecordGetIdBody(record: Data) throws -> UInt32 {
