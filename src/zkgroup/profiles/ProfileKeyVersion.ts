@@ -1,3 +1,5 @@
+import { Buffer } from "@craftzdog/react-native-buffer";
+
 export default class ProfileKeyVersion {
     readonly serialized: Uint8Array;
     static SIZE = 64;
@@ -11,6 +13,6 @@ export default class ProfileKeyVersion {
     }
 
     toString(): string {
-        return new TextDecoder('utf-8').decode(this.serialized);
+        return Buffer.from(this.serialized).toString('utf-8')
     }
 }
