@@ -45,8 +45,8 @@ PODS:
   - hermes-engine (0.74.2):
     - hermes-engine/Pre-built (= 0.74.2)
   - hermes-engine/Pre-built (0.74.2)
-  - LibSignalClient (0.51.0)
-  - LibSignalClient/Tests (0.51.0)
+  - LibSignalClient (0.56.0)
+  - LibSignalClient/Tests (0.56.0)
   - RCT-Folly (2024.01.01.00):
     - boost
     - DoubleConversion
@@ -1227,7 +1227,7 @@ PODS:
     - React-logger (= 0.74.2)
     - React-perflogger (= 0.74.2)
     - React-utils (= 0.74.2)
-  - ReactNativeLibsignalClient (0.1.6):
+  - ReactNativeLibsignalClient (0.1.11):
     - ExpoModulesCore
     - LibSignalClient
   - SignalCoreKit (1.0.0):
@@ -1235,7 +1235,7 @@ PODS:
   - SignalCoreKit/Tests (1.0.0):
     - CocoaLumberjack (~> 3.7.4)
   - SocketRocket (0.7.0)
-  - SwiftProtobuf (1.26.0)
+  - SwiftProtobuf (1.28.1)
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -1252,8 +1252,8 @@ DEPENDENCIES:
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
-  - LibSignalClient (from `https://github.com/signalapp/libsignal.git`, tag `v0.51.0`)
-  - LibSignalClient/Tests (from `https://github.com/signalapp/libsignal.git`, tag `v0.51.0`)
+  - LibSignalClient (from `https://github.com/signalapp/libsignal.git`, tag `v0.56.0`)
+  - LibSignalClient/Tests (from `https://github.com/signalapp/libsignal.git`, tag `v0.56.0`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCT-Folly/Fabric (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -1347,7 +1347,7 @@ EXTERNAL SOURCES:
     :tag: hermes-2024-06-03-RNv0.74.2-bb1e74fe1e95c2b5a2f4f9311152da052badc2bc
   LibSignalClient:
     :git: https://github.com/signalapp/libsignal.git
-    :tag: v0.51.0
+    :tag: v0.56.0
   RCT-Folly:
     :podspec: "../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTDeprecation:
@@ -1456,7 +1456,7 @@ EXTERNAL SOURCES:
 CHECKOUT OPTIONS:
   LibSignalClient:
     :git: https://github.com/signalapp/libsignal.git
-    :tag: v0.51.0
+    :tag: v0.56.0
   SignalCoreKit:
     :commit: 52afaa82ef9a123ddf1fa219b71619fefa35c67e
     :git: https://github.com/signalapp/SignalCoreKit
@@ -1476,7 +1476,7 @@ SPEC CHECKSUMS:
   fmt: 4c2741a687cc09f0634a2e2c72a838b99f1ff120
   glog: fdfdfe5479092de0c4bdbebedd9056951f092c4f
   hermes-engine: 01d3e052018c2a13937aca1860fbedbccd4a41b7
-  LibSignalClient: b8199e390968eeca7f3832f01747dc422b4ece3a
+  LibSignalClient: b9454c549d6b153292d0876d5e6c65c283f4b423
   RCT-Folly: 02617c592a293bd6d418e0a88ff4ee1f88329b47
   RCTDeprecation: b03c35057846b685b3ccadc9bfe43e349989cdb2
   RCTRequired: 194626909cfa8d39ca6663138c417bc6c431648c
@@ -1526,12 +1526,12 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 1f0b3361460921edcbe9042ce690e5ca6dab9639
   React-utils: 5a40a1bb87d8c2d42a6bbbb7ead6d95785ca6042
   ReactCommon: e5866ad8f7487779853fa3fe33f1c075207c3262
-  ReactNativeLibsignalClient: 04f8c63a4185c4aede62d55da87eea3f79ce3365
+  ReactNativeLibsignalClient: 3da9352da1186735433521518abcb6d45f9b0d87
   SignalCoreKit: 7658a72244fa81858df4618e92044b0db0dcf59e
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
-  SwiftProtobuf: 5e8349171e7c2f88f5b9e683cb3cb79d1dc780b3
+  SwiftProtobuf: cc47329e2a10c235e35ba4faed831742ae5135ce
   Yoga: 9ad2c02dbd9811bb5a35fe23081cb0f5d5a3f9dd
 
-PODFILE CHECKSUM: 3e199fabd171a6235660d7a2b1115bd9ef9fc277
+PODFILE CHECKSUM: 4c64aaf377ebf7ec6c4484c247a1fbb26193b43b
 
 COCOAPODS: 1.15.2
