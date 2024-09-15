@@ -230,278 +230,139 @@ public class ReactNativeLibsignalClientModule: Module {
         Name("ReactNativeLibsignalClient")
         /*START          bridge functions definitions              START*/
         Function("serverPublicParamsVerifySignature") { (serializedSrvPubParams: Data, msg: Data, sig: Data) -> Bool in
-            let svpublicParams = try ServerPublicParams(contents: [UInt8](serializedSrvPubParams))
-            let signature = try NotarySignature(contents: [UInt8](sig))
+            return try! serverPublicParamsVerifySignatureHelper(serializedSrvPubParams: serializedSrvPubParams, msg: msg, sig: sig)
+        }
 
-            do {
-                try svpublicParams.verifySignature(message: [UInt8](msg), notarySignature: signature)
-                return true
-            } catch {
-                return false
-            }
-        }
         Function("groupPublicParamsGetGroupIdentifier") { (serializedGpPubParams: Data) -> [UInt8] in
-            let groupPublicParams = try GroupPublicParams(contents: [UInt8](serializedGpPubParams));
-            return try groupPublicParams.getGroupIdentifier().serialize()
+            return try! groupPublicParamsGetGroupIdentifierHelper(serializedGpPubParams: serializedGpPubParams)
         }
+
         Function("groupSecretParamsGenerateDeterministic") { (rand: Data) -> [UInt8] in
-            guard rand.count == 32 else {
-                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
-            }
-            let randomnessBytes = rand.withUnsafeBytes { pointer in
-                pointer.load(as: SignalRandomnessBytes.self)
-            }
-            
-            let groupSecretParams = try GroupSecretParams.generate(randomness: Randomness(randomnessBytes))
-            return groupSecretParams.serialize()
+            return try! groupSecretParamsGenerateDeterministicHelper(rand: rand)
         }
+        
         Function("groupSecretParamsDeriveFromMasterKey") { (serializedGpMasterKey: Data) -> [UInt8] in
-            let masterKey = try GroupMasterKey(contents: [UInt8](serializedGpMasterKey))
-            return try GroupSecretParams.deriveFromMasterKey(groupMasterKey: masterKey).serialize()
+            return try! groupSecretParamsDeriveFromMasterKeyHelper(serializedGpMasterKey: serializedGpMasterKey)
         }
+
         Function("groupSecretParamsGetPublicParams") { (gpSecParams: Data) -> [UInt8] in
-            let groupSecretParams = try GroupSecretParams(contents: [UInt8](gpSecParams))
-            return try groupSecretParams.getPublicParams().serialize()
+            return try! groupSecretParamsGetPublicParamsHelper(gpSecParams: gpSecParams)
         }
+
         Function("groupSecretParamsGetMasterKey") { (gpSecParams: Data) -> [UInt8] in
-            let groupSecretParams = try GroupSecretParams(contents: [UInt8](gpSecParams))
-            return try groupSecretParams.getMasterKey().serialize()
+            return try! groupSecretParamsGetMasterKeyHelper(gpSecParams: gpSecParams)
         }
 
         Function("generateRandomBytes") { (len: Int) -> [UInt8] in
-            var randomBytes = [UInt8](repeating: 0, count: len)
-            let status = SecRandomCopyBytes(kSecRandomDefault, len, &randomBytes)
-            
-            guard status == errSecSuccess else {
-                throw NSError(domain: "RandomBytesGenerationError", code: Int(status), userInfo: nil)
-            }
-            
-            return randomBytes
+            return try! generateRandomBytesHelper(len: len)
         }
 
         Function("profileKeyGetCommitment") { (serializedProfileKey: Data, fixedWidthAci: Data) -> [UInt8] in
-            let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-    
-            
-            let aci = Aci(fromUUID: uuid)
-            return try pk.getCommitment(userId: aci).serialize()
-        }
-        Function("profileKeyGetVersion") { (serializedProfileKey: Data, fixedWidthAci: Data) -> [UInt8] in
-            let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-    
-            
-            let aci = Aci(fromUUID: uuid)
-            return try pk.getProfileKeyVersion(userId:aci).serialize()
+            return try! profileKeyGetCommitmentHelper(serializedProfileKey: serializedProfileKey, fixedWidthAci: fixedWidthAci)
         }
 
+        Function("profileKeyGetVersion") { (serializedProfileKey: Data, fixedWidthAci: Data) -> [UInt8] in
+            return try! profileKeyGetVersionHelper(serializedProfileKey: serializedProfileKey, fixedWidthAci: fixedWidthAci)
+        }
         Function("profileKeyDeriveAccessKey") { (serializedProfileKey: Data) -> [UInt8] in
-            let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
-            return pk.deriveAccessKey()
+            return try! profileKeyDeriveAccessKeyHelper(serializedProfileKey: serializedProfileKey)
         }
 
         Function("groupSecretParamsEncryptServiceId") { (sGroupSecretParams: Data, fixedWidthServiceId: Data) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let sIdBinary = try serviceIdServiceIdBinaryHelper(fixedWidthServiceId: fixedWidthServiceId)
-            let sId = try ServiceId.parseFrom(serviceIdBinary:sIdBinary )
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-            return try clZkCipher.encrypt(sId).serialize()
+            return try! groupSecretParamsEncryptServiceIdHelper(sGroupSecretParams: sGroupSecretParams, fixedWidthServiceId: fixedWidthServiceId)
         }
 
         Function("groupSecretParamsDecryptServiceId") { (sGroupSecretParams: Data, rawCipherText: Data) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let cipherText = try UuidCiphertext(contents: [UInt8](rawCipherText))
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-            return try clZkCipher.decrypt(cipherText).serviceIdFixedWidthBinary
+            return try! groupSecretParamsDecryptServiceIdHelper(sGroupSecretParams: sGroupSecretParams, rawCipherText: rawCipherText)
         }
 
         Function("groupSecretParamsEncryptProfileKey") { (sGroupSecretParams: Data, rawProfileKey: Data, fixedWidthAci: Data) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let pk = try ProfileKey(contents: [UInt8](rawProfileKey))
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-            let aci = Aci(fromUUID: uuid)
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-            return try clZkCipher.encryptProfileKey(profileKey: pk, userId: aci).serialize()
+            return try! groupSecretParamsEncryptProfileKeyHelper(sGroupSecretParams: sGroupSecretParams, rawProfileKey: rawProfileKey, fixedWidthAci: fixedWidthAci)
         }
 
         Function("groupSecretParamsDecryptProfileKey") { (sGroupSecretParams: Data, rawProfileKeyCipherText: Data, fixedWidthAci: Data) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let pkct = try ProfileKeyCiphertext(contents: [UInt8](rawProfileKeyCipherText))
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-            let aci = Aci(fromUUID: uuid)
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-            return try clZkCipher.decryptProfileKey(profileKeyCiphertext: pkct, userId: aci).serialize()
+            return try! groupSecretParamsDecryptProfileKeyHelper(sGroupSecretParams: sGroupSecretParams, rawProfileKeyCipherText: rawProfileKeyCipherText, fixedWidthAci: fixedWidthAci)
         }
 
         Function("encryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-
-            guard randomNess.count == 32 else {
-                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
-            }
-            let randomnessBytes = randomNess.withUnsafeBytes { pointer in
-                pointer.load(as: SignalRandomnessBytes.self)
-            }
-            return try clZkCipher.encryptBlob(randomness: Randomness(randomnessBytes), plaintext: [UInt8](plainText))
+            return try! encryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: randomNess, plainText: plainText, paddingLen: paddingLen)
         }
 
         Function("decryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: Data) -> [UInt8] in
-            let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
-            let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
-            return try clZkCipher.decryptBlob(blobCiphertext: [UInt8](blobCipherText))
+            return try! decryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
         }
 
         Function("expiringProfileKeyCredentialGetExpirationTime") { (sExpiringProfileKeyCredential: Data) -> Int64 in
-            let expkc = try ExpiringProfileKeyCredential(contents: [UInt8](sExpiringProfileKeyCredential))
-            return Int64(expkc.expirationTime.timeIntervalSince1970)
+            return try! expiringProfileKeyCredentialGetExpirationTimeHelper(sExpiringProfileKeyCredential: sExpiringProfileKeyCredential)
         }
-
         Function("profileKeyCredentialPresentationGetUuidCiphertext") { (sProfileKeyCredentialPresentation: Data) -> [UInt8] in
-            let pkcp = try ProfileKeyCredentialPresentation(contents: [UInt8](sProfileKeyCredentialPresentation))
-            return try pkcp.getUuidCiphertext().serialize()
+            return try! profileKeyCredentialPresentationGetUuidCiphertextHelper(sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation)
         }
 
         Function("profileKeyCredentialPresentationGetProfileKeyCiphertext") { (sProfileKeyCredentialPresentation: Data) -> [UInt8] in
-            let pkcp = try ProfileKeyCredentialPresentation(contents: [UInt8](sProfileKeyCredentialPresentation))
-            return try pkcp.getProfileKeyCiphertext().serialize()
+            return try! profileKeyCredentialPresentationGetProfileKeyCiphertextHelper(sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation)
         }
 
         Function("profileKeyCredentialRequestContextGetRequest") { (sProfileKeyCredentialRequestContext: Data) -> [UInt8] in
-            let pkcrc = try ProfileKeyCredentialRequestContext(contents: [UInt8](sProfileKeyCredentialRequestContext))
-            return try pkcrc.getRequest().serialize()
+            return try! profileKeyCredentialRequestContextGetRequestHelper(sProfileKeyCredentialRequestContext: sProfileKeyCredentialRequestContext)
         }
 
         Function("serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic") { (sServerPublicParams: Data, randomness: Data, fixedWidthAci: Data, sProfileKey: Data) -> [UInt8] in
-            let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
-            let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-            let aci = Aci(fromUUID: uuid)
-            let profileKey = try ProfileKey(contents: [UInt8](sProfileKey))
-            guard randomness.count == 32 else {
-                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
-            }
-            let randomnessBytes = randomness.withUnsafeBytes { pointer in
-                pointer.load(as: SignalRandomnessBytes.self)
-            }
-            return try clientZkProfileOperation.createProfileKeyCredentialRequestContext(randomness:  Randomness(randomnessBytes), userId: aci, profileKey: profileKey).serialize()
+            return try! serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministicHelper(
+                sServerPublicParams: sServerPublicParams,
+                randomness: randomness,
+                fixedWidthAci: fixedWidthAci,
+                sProfileKey: sProfileKey
+            )
         }
 
         Function("serverPublicParamsReceiveExpiringProfileKeyCredential") { (sServerPublicParams: Data, sProfileKeyCredReqCtx: Data, sExpProfileKeyCredResponse: Data, ts: Int64) -> [UInt8] in
-            let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
-            let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
-            let pkCredReqCtx = try ProfileKeyCredentialRequestContext(contents: [UInt8](sProfileKeyCredReqCtx))
-            let pkExpCredResp = try ExpiringProfileKeyCredentialResponse(contents: [UInt8](sExpProfileKeyCredResponse))
-            return try clientZkProfileOperation.receiveExpiringProfileKeyCredential(profileKeyCredentialRequestContext: pkCredReqCtx, profileKeyCredentialResponse: pkExpCredResp).serialize()
+            return try! serverPublicParamsReceiveExpiringProfileKeyCredentialHelper(
+                sServerPublicParams: sServerPublicParams,
+                sProfileKeyCredReqCtx: sProfileKeyCredReqCtx,
+                sExpProfileKeyCredResponse: sExpProfileKeyCredResponse,
+                ts: ts
+            )
         }
-
         Function("serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic") { (sServerPublicParams: Data, randomness: Data, sGpSecParams: Data, sExpProfKeyCred: Data) -> [UInt8] in
-            let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
-            let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
-            let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGpSecParams))
-            let expProfKeyCredential = try ExpiringProfileKeyCredential(contents: [UInt8](sExpProfKeyCred))
-            guard randomness.count == 32 else {
-                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
-            }
-            let randomnessBytes = randomness.withUnsafeBytes { pointer in
-                pointer.load(as: SignalRandomnessBytes.self)
-            }
-            return try clientZkProfileOperation.createProfileKeyCredentialPresentation(randomness: Randomness(randomnessBytes), groupSecretParams: groupSecretParams, profileKeyCredential: expProfKeyCredential).serialize()
+            return try! serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministicHelper(
+                sServerPublicParams: sServerPublicParams,
+                randomness: randomness,
+                sGpSecParams: sGpSecParams,
+                sExpProfKeyCred: sExpProfKeyCred
+            )
         }
 
         Function("authCredentialPresentationGetUuidCiphertext") { (sAuthCredPres: Data) -> [UInt8] in
-            let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
-            return try authCredPresentation.getUuidCiphertext().serialize()
+            return try! authCredentialPresentationGetUuidCiphertextHelper(sAuthCredPres: sAuthCredPres)
         }
 
         Function("authCredentialPresentationGetPniCiphertext") { (sAuthCredPres: Data) -> [UInt8] in
-            let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
-            guard let pniCiphertext = try authCredPresentation.getPniCiphertext() else {
-                throw NSError(domain: "AuthCredentialPresentationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "PniCiphertext is nil"])
-            }
-            return pniCiphertext.serialize()
+            return try! authCredentialPresentationGetPniCiphertextHelper(sAuthCredPres: sAuthCredPres)
         }
 
         Function("authCredentialPresentationGetRedemptionTime") { (sAuthCredPres: Data) -> Int64 in
-            let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
-            return try Int64(authCredPresentation.getRedemptionTime().timeIntervalSince1970)
+            return try! authCredentialPresentationGetRedemptionTimeHelper(sAuthCredPres: sAuthCredPres)
         }
 
         Function("serverPublicParamsReceiveAuthCredentialWithPniAsServiceId") { (sSrvPubParams: Data, fixedWidthAci: Data, fixedWidthPni: Data, redemptionTime: UInt64, authCredPniResp: Data) -> [UInt8] in
-            let serverPublicParams = try ServerPublicParams(contents: [UInt8](sSrvPubParams))
-            let clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams: serverPublicParams)
-            var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
-            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
-            let uuid = UUID(uuid: (
-                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
-                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
-                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
-                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
-            ))
-            let aci = Aci(fromUUID: uuid)
-            var bytes2 = convertDataToServiceIdStorage(data: fixedWidthPni)
-            let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
-            let uuid2 = UUID(uuid: (
-                byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
-                byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
-                byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
-                byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
-            ))
-            let pni = Pni(fromUUID: uuid2)
-            let authCredentialPniResponse = try AuthCredentialWithPniResponse(contents: [UInt8](authCredPniResp))
-            return try clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(aci: aci, pni: pni, redemptionTime: redemptionTime, authCredentialResponse: authCredentialPniResponse).serialize()
+            return try! serverPublicParamsReceiveAuthCredentialWithPniAsServiceIdHelper(
+                sSrvPubParams: sSrvPubParams,
+                fixedWidthAci: fixedWidthAci,
+                fixedWidthPni: fixedWidthPni,
+                redemptionTime: redemptionTime,
+                authCredPniResp: authCredPniResp
+            )
         }
 
         Function("serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic") { (sSrvPubParams: Data, randomness: Data, sGpSecParams: Data, authCredPni: Data) -> [UInt8] in
-            let serverPublicParams = try ServerPublicParams(contents: [UInt8](sSrvPubParams))
-            let clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams: serverPublicParams)
-            let gpSecretParams = try GroupSecretParams(contents: [UInt8](sGpSecParams))
-            let authCredentialPni = try AuthCredentialWithPni(contents: [UInt8](authCredPni))
-            guard randomness.count == 32 else {
-                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
-            }
-            let randomnessBytes = randomness.withUnsafeBytes { pointer in
-                pointer.load(as: SignalRandomnessBytes.self)
-            }
-            return try clientZkAuthOperation.createAuthCredentialPresentation(randomness: Randomness(randomnessBytes), groupSecretParams: gpSecretParams, authCredential: authCredentialPni).serialize()
+            return try! serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministicHelper(
+                sSrvPubParams: sSrvPubParams,
+                randomness: randomness,
+                sGpSecParams: sGpSecParams,
+                authCredPni: authCredPni
+            )
         }
-
 
         Function("generateIdentityKeyPair") {
             return IdentityKeyPair.generate().serialize()
@@ -769,6 +630,332 @@ public class ReactNativeLibsignalClientModule: Module {
     }
 
     /*START          bridge functions implementation              START*/
+    private func serverPublicParamsVerifySignatureHelper(serializedSrvPubParams: Data, msg: Data, sig: Data) throws -> Bool {
+        let svpublicParams = try ServerPublicParams(contents: [UInt8](serializedSrvPubParams))
+        let signature = try NotarySignature(contents: [UInt8](sig))
+
+        do {
+            try svpublicParams.verifySignature(message: [UInt8](msg), notarySignature: signature)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func groupPublicParamsGetGroupIdentifierHelper(serializedGpPubParams: Data) throws -> [UInt8] {
+        let groupPublicParams = try GroupPublicParams(contents: [UInt8](serializedGpPubParams))
+        return try groupPublicParams.getGroupIdentifier().serialize()
+    }
+
+    private func groupSecretParamsDeriveFromMasterKeyHelper(serializedGpMasterKey: Data) throws -> [UInt8] {
+        let masterKey = try GroupMasterKey(contents: [UInt8](serializedGpMasterKey))
+        let groupSecretParams = try GroupSecretParams.deriveFromMasterKey(groupMasterKey: masterKey)
+        return groupSecretParams.serialize()
+    }
+
+    private func groupSecretParamsGetPublicParamsHelper(gpSecParams: Data) throws -> [UInt8] {
+        let groupSecretParams = try GroupSecretParams(contents: [UInt8](gpSecParams))
+        let publicParams = try groupSecretParams.getPublicParams()
+        return publicParams.serialize()
+    }
+
+
+    private func generateRandomBytesHelper(len: Int) throws -> [UInt8] {
+        var randomBytes = [UInt8](repeating: 0, count: len)
+        let status = SecRandomCopyBytes(kSecRandomDefault, len, &randomBytes)
+        
+        guard status == errSecSuccess else {
+            throw NSError(domain: "RandomBytesGenerationError", code: Int(status), userInfo: nil)
+        }
+        
+        return randomBytes
+    }
+
+    private func profileKeyGetCommitmentHelper(serializedProfileKey: Data, fixedWidthAci: Data) throws -> [UInt8] {
+        let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        
+        let aci = Aci(fromUUID: uuid)
+        return try pk.getCommitment(userId: aci).serialize()
+    }
+
+    private func profileKeyDeriveAccessKeyHelper(serializedProfileKey: Data) throws -> [UInt8] {
+        let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
+        return try pk.deriveAccessKey()
+    }
+
+    private func groupSecretParamsEncryptServiceIdHelper(sGroupSecretParams: Data, fixedWidthServiceId: Data) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let sIdBinary = try serviceIdServiceIdBinaryHelper(fixedWidthServiceId: fixedWidthServiceId)
+        let sId = try ServiceId.parseFrom(serviceIdBinary: sIdBinary)
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+        return try clZkCipher.encrypt(sId).serialize()
+    }
+
+    private func groupSecretParamsDecryptServiceIdHelper(sGroupSecretParams: Data, rawCipherText: Data) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let cipherText = try UuidCiphertext(contents: [UInt8](rawCipherText))
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+        let decryptedServiceId = try clZkCipher.decrypt(cipherText)
+        return decryptedServiceId.serviceIdFixedWidthBinary
+    }
+
+    private func groupSecretParamsEncryptProfileKeyHelper(sGroupSecretParams: Data, rawProfileKey: Data, fixedWidthAci: Data) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let pk = try ProfileKey(contents: [UInt8](rawProfileKey))
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        let aci = Aci(fromUUID: uuid)
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+        return try clZkCipher.encryptProfileKey(profileKey: pk, userId: aci).serialize()
+    }
+
+    private func groupSecretParamsDecryptProfileKeyHelper(sGroupSecretParams: Data, rawProfileKeyCipherText: Data, fixedWidthAci: Data) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let pkct = try ProfileKeyCiphertext(contents: [UInt8](rawProfileKeyCipherText))
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        let aci = Aci(fromUUID: uuid)
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+        return try clZkCipher.decryptProfileKey(profileKeyCiphertext: pkct, userId: aci).serialize()
+    }
+
+    private func encryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+
+        guard randomNess.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomNess.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        return try clZkCipher.encryptBlob(randomness: Randomness(randomnessBytes), plaintext: [UInt8](plainText))
+    }
+
+    private func decryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: Data) throws -> [UInt8] {
+        let gsp = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let clZkCipher = ClientZkGroupCipher(groupSecretParams: gsp)
+        return try clZkCipher.decryptBlob(blobCiphertext: [UInt8](blobCipherText))
+    }
+
+    private func expiringProfileKeyCredentialGetExpirationTimeHelper(sExpiringProfileKeyCredential: Data) throws -> Int64 {
+            let expkc = try ExpiringProfileKeyCredential(contents: [UInt8](sExpiringProfileKeyCredential))
+            return Int64(expkc.expirationTime.timeIntervalSince1970)
+        }
+        private func profileKeyCredentialPresentationGetUuidCiphertextHelper(sProfileKeyCredentialPresentation: Data) throws -> [UInt8] {
+        let pkcp = try ProfileKeyCredentialPresentation(contents: [UInt8](sProfileKeyCredentialPresentation))
+        return try pkcp.getUuidCiphertext().serialize()
+    }
+
+    private func profileKeyCredentialPresentationGetProfileKeyCiphertextHelper(sProfileKeyCredentialPresentation: Data) throws -> [UInt8] {
+        let pkcp = try ProfileKeyCredentialPresentation(contents: [UInt8](sProfileKeyCredentialPresentation))
+        return try pkcp.getProfileKeyCiphertext().serialize()
+    }
+
+    private func profileKeyCredentialRequestContextGetRequestHelper(sProfileKeyCredentialRequestContext: Data) throws -> [UInt8] {
+        let pkcrc = try ProfileKeyCredentialRequestContext(contents: [UInt8](sProfileKeyCredentialRequestContext))
+        return try pkcrc.getRequest().serialize()
+    }
+
+    private func serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministicHelper(
+        sServerPublicParams: Data,
+        randomness: Data,
+        fixedWidthAci: Data,
+        sProfileKey: Data
+    ) throws -> [UInt8] {
+        let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
+        let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        let aci = Aci(fromUUID: uuid)
+        let profileKey = try ProfileKey(contents: [UInt8](sProfileKey))
+        guard randomness.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomness.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        return try clientZkProfileOperation.createProfileKeyCredentialRequestContext(
+            randomness: Randomness(randomnessBytes), 
+            userId: aci, 
+            profileKey: profileKey
+        ).serialize()
+    }
+
+    private func serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministicHelper(
+        sServerPublicParams: Data,
+        randomness: Data,
+        sGpSecParams: Data,
+        sExpProfKeyCred: Data
+    ) throws -> [UInt8] {
+        let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
+        let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
+        let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGpSecParams))
+        let expProfKeyCredential = try ExpiringProfileKeyCredential(contents: [UInt8](sExpProfKeyCred))
+        guard randomness.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomness.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        return try clientZkProfileOperation.createProfileKeyCredentialPresentation(
+            randomness: Randomness(randomnessBytes), 
+            groupSecretParams: groupSecretParams, 
+            profileKeyCredential: expProfKeyCredential
+        ).serialize()
+    }
+
+    private func authCredentialPresentationGetUuidCiphertextHelper(sAuthCredPres: Data) throws -> [UInt8] {
+        let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
+        return try authCredPresentation.getUuidCiphertext().serialize()
+    }
+
+    private func authCredentialPresentationGetPniCiphertextHelper(sAuthCredPres: Data) throws -> [UInt8] {
+        let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
+        guard let pniCiphertext = try authCredPresentation.getPniCiphertext() else {
+            throw NSError(domain: "AuthCredentialPresentationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "PniCiphertext is nil"])
+        }
+        return pniCiphertext.serialize()
+    }
+
+    private func authCredentialPresentationGetRedemptionTimeHelper(sAuthCredPres: Data) throws -> Int64 {
+        let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
+        return try Int64(authCredPresentation.getRedemptionTime().timeIntervalSince1970)
+    }
+
+    private func serverPublicParamsReceiveAuthCredentialWithPniAsServiceIdHelper(
+        sSrvPubParams: Data,
+        fixedWidthAci: Data,
+        fixedWidthPni: Data,
+        redemptionTime: UInt64,
+        authCredPniResp: Data
+    ) throws -> [UInt8] {
+        let serverPublicParams = try ServerPublicParams(contents: [UInt8](sSrvPubParams))
+        let clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams: serverPublicParams)
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        let aci = Aci(fromUUID: uuid)
+        var bytes2 = convertDataToServiceIdStorage(data: fixedWidthPni)
+        let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
+        let uuid2 = UUID(uuid: (
+            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
+            byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+        ))
+        let pni = Pni(fromUUID: uuid2)
+        let authCredentialPniResponse = try AuthCredentialWithPniResponse(contents: [UInt8](authCredPniResp))
+        return try clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(
+            aci: aci, 
+            pni: pni, 
+            redemptionTime: redemptionTime, 
+            authCredentialResponse: authCredentialPniResponse
+        ).serialize()
+    }
+
+    private func serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministicHelper(
+        sSrvPubParams: Data,
+        randomness: Data,
+        sGpSecParams: Data,
+        authCredPni: Data
+    ) throws -> [UInt8] {
+        let serverPublicParams = try ServerPublicParams(contents: [UInt8](sSrvPubParams))
+        let clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams: serverPublicParams)
+        let gpSecretParams = try GroupSecretParams(contents: [UInt8](sGpSecParams))
+        let authCredentialPni = try AuthCredentialWithPni(contents: [UInt8](authCredPni))
+        guard randomness.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomness.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        return try clientZkAuthOperation.createAuthCredentialPresentation(
+            randomness: Randomness(randomnessBytes), 
+            groupSecretParams: gpSecretParams, 
+            authCredential: authCredentialPni
+        ).serialize()
+    }
+
+    private func serverPublicParamsReceiveExpiringProfileKeyCredentialHelper(
+        sServerPublicParams: Data,
+        sProfileKeyCredReqCtx: Data,
+        sExpProfileKeyCredResponse: Data,
+        ts: Int64
+    ) throws -> [UInt8] {
+        let serverPublicParams = try ServerPublicParams(contents: [UInt8](sServerPublicParams))
+        let clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams: serverPublicParams)
+        let pkCredReqCtx = try ProfileKeyCredentialRequestContext(contents: [UInt8](sProfileKeyCredReqCtx))
+        let pkExpCredResp = try ExpiringProfileKeyCredentialResponse(contents: [UInt8](sExpProfileKeyCredResponse))
+        return try clientZkProfileOperation.receiveExpiringProfileKeyCredential(
+            profileKeyCredentialRequestContext: pkCredReqCtx, 
+            profileKeyCredentialResponse: pkExpCredResp
+        ).serialize()
+    }
+
+    private func profileKeyGetVersionHelper(serializedProfileKey: Data, fixedWidthAci: Data) throws -> [UInt8] {
+        let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
+        var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        
+        let aci = Aci(fromUUID: uuid)
+        return try pk.getProfileKeyVersion(userId: aci).serialize()
+    }
+
+
+    private func groupSecretParamsGetMasterKeyHelper(gpSecParams: Data) throws -> [UInt8] {
+        let groupSecretParams = try GroupSecretParams(contents: [UInt8](gpSecParams))
+        let masterKey = try groupSecretParams.getMasterKey()
+        return masterKey.serialize()
+    }
+    private func groupSecretParamsGenerateDeterministicHelper(rand: Data) throws -> [UInt8] {
+        guard rand.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = rand.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+
+        let groupSecretParams = try GroupSecretParams.generate(randomness: Randomness(randomnessBytes))
+        return groupSecretParams.serialize()
+    }
     private func identityKeyPairSerializeHelper(serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data {
         let publicKey = try PublicKey(serializedPublicKey)
         let privateKey = try PrivateKey(serializedPrivateKey)
