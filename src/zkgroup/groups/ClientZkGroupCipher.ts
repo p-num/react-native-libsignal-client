@@ -5,6 +5,7 @@ import { Aci, ServiceId } from "../../Address";
 import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
 import { RANDOM_LENGTH } from "../internal/Constants";
 import ProfileKey from "../profiles/ProfileKey";
+import { randomBytes } from "../../randomBytes";
 
 export default class ClientZkGroupCipher {
   groupSecretParams: GroupSecretParams;
@@ -55,7 +56,7 @@ export default class ClientZkGroupCipher {
   }
 
   encryptBlob(plaintext: Uint8Array ): Uint8Array {
-    const random = ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
+    const random = randomBytes(RANDOM_LENGTH);
 
     return this.encryptBlobWithRandom(random, plaintext);
   }

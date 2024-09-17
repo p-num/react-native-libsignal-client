@@ -17,6 +17,7 @@ import {
   testSignedPreKeyRecord,
 } from "./tests/api-test";
 import { runTests, sleep } from "./tests/utils";
+import { testZkGroup } from "./tests/zkgroup-test";
 export type TestStatus = "IDLE" | "RUNNING" | "SUCCESS" | "ERROR";
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
           testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
           testMessagingUnacknowledgedSessionsExpiryWithKyber,
           testGenerateRegistrationId,
+          testZkGroup
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {
