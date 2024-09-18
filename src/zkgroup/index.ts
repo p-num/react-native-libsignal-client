@@ -1,6 +1,6 @@
 // Root
 export { default as ServerPublicParams } from "./ServerPublicParams";
-// export { default as ServerSecretParams } from "./ServerSecretParams";
+export { default as ServerSecretParams } from "./ServerSecretParams";
 
 export { default as GenericServerPublicParams } from "./GenericServerPublicParams";
 // export { default as GenericServerSecretParams } from "./GenericServerSecretParams";
@@ -9,7 +9,7 @@ export { default as NotarySignature } from "./NotarySignature";
 
 // Auth
 export { default as ClientZkAuthOperations } from "./auth/ClientZkAuthOperations";
-// export { default as ServerZkAuthOperations } from "./auth/ServerZkAuthOperations";
+export { default as ServerZkAuthOperations } from "./auth/ServerZkAuthOperations";
 
 export { default as AuthCredentialPresentation } from "./auth/AuthCredentialPresentation";
 export { default as AuthCredentialWithPni } from "./auth/AuthCredentialWithPni";
@@ -27,7 +27,7 @@ export { default as UuidCiphertext } from "./groups/UuidCiphertext";
 
 // Profiles
 export { default as ClientZkProfileOperations } from "./profiles/ClientZkProfileOperations";
-// export { default as ServerZkProfileOperations } from "./profiles/ServerZkProfileOperations";
+export { default as ServerZkProfileOperations } from "./profiles/ServerZkProfileOperations";
 
 export { default as ProfileKey } from "./profiles/ProfileKey";
 export { default as ProfileKeyCommitment } from "./profiles/ProfileKeyCommitment";

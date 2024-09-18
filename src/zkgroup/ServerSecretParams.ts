@@ -1,0 +1,52 @@
+//
+// Copyright 2021 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
+
+import ReactNativeLibsignalClientModule from "../ReactNativeLibsignalClientModule";
+import { RANDOM_LENGTH } from './internal/Constants';
+import ServerPublicParams from './ServerPublicParams';
+import NotarySignature from './NotarySignature';
+import { randomBytes } from "../randomBytes";
+
+export default class ServerSecretParams {
+    readonly serialized: Uint8Array;
+
+    static generate(): ServerSecretParams {
+        const random = randomBytes(RANDOM_LENGTH);
+
+        return ServerSecretParams.generateWithRandom(random);
+    }
+
+    static generateWithRandom(random: Uint8Array): ServerSecretParams {
+        return new ServerSecretParams(
+            ReactNativeLibsignalClientModule.serverSecretParamsGenerateDeterministic(random)
+        );
+    }
+
+    constructor(contents: Uint8Array | ServerSecretParams) {
+        if (contents instanceof Uint8Array) {
+            this.serialized = contents;
+        } else {
+            this.serialized = contents.serialized;
+        }
+    }
+
+    getPublicParams(): ServerPublicParams {
+        return new ServerPublicParams(
+            ReactNativeLibsignalClientModule.serverSecretParamsGetPublicParams(this.serialized)
+        );
+    }
+
+    sign(message: Uint8Array): NotarySignature {
+        const random = randomBytes(RANDOM_LENGTH);
+
+        return this.signWithRandom(random, message);
+    }
+
+    signWithRandom(random: Uint8Array, message: Uint8Array): NotarySignature {
+        return new NotarySignature(
+            ReactNativeLibsignalClientModule.serverSecretParamsSignDeterministic(this.serialized, random, message)
+        );
+    }
+}
