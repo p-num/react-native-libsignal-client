@@ -227,6 +227,7 @@ open class InMemorySignalProtocolStoreWithPreKeysList: IdentityKeyStore, PreKeyS
 public class ReactNativeLibsignalClientModule: Module {
     public func definition() -> ModuleDefinition {
 
+
         Name("ReactNativeLibsignalClient")
         /*START          bridge functions definitions              START*/
         Function("serverPublicParamsVerifySignature") { (serializedSrvPubParams: Data, msg: Data, sig: Data) -> Bool in
@@ -626,10 +627,171 @@ public class ReactNativeLibsignalClientModule: Module {
             (record: Data) -> [UInt8] in
             return try preKeyRecordGetPublicKeyBody(record: record)
         }
+        Function("serverSecretParamsGenerateDeterministic") { (rndm: Data) -> [UInt8] in
+            return try! serverSecretParamsGenerateDeterministicHelper(randomNess: rndm)
+        }
+        Function("serverSecretParamsGetPublicParams") { (sSrvSecParams: Data) -> [UInt8] in
+            return try! serverSecretParamsGetPublicParamsHelper(sSrvSecParams: sSrvSecParams)
+        }
+        Function("serverSecretParamsSignDeterministic") { (sSrvSecParams: Data, rndm: Data, msg: Data) -> [UInt8] in
+            return try! serverSecretParamsSignDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, msg: msg)
+        }
+        Function("serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) -> [UInt8] in
+            return try! serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, sAci: sAci, sPni: sPni, redemptionTime: redemptionTime)
+        }
+        Function("serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) -> [UInt8] in
+            return try! serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, sAci: sAci, sPni: sPni, redemptionTime: redemptionTime)
+        }
+        Function("serverSecretParamsVerifyAuthCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sAuthCredPresent: Data, instant: Double) in
+            try! serverSecretParamsVerifyAuthCredentialPresentationHelper(sSrvSecParams: sSrvSecParams, sGpPublicParams: sGpPublicParams, sAuthCredPresent: sAuthCredPresent, instant: instant)
+        }
+        Function("groupSecretParamsEncryptCiphertext") { (sGpSecParams: Data, sServiceId: Data) -> [UInt8] in
+            return try! groupSecretParamsEncryptCiphertextHelper(sGpSecParams: sGpSecParams, sServiceId: sServiceId)
+        }
+        Function("serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic") { (sSrvSecParams: Data, rand: Data, sProfCredRequest: Data, sAci: Data, sProfileKeyCommitment: Data, expiration: UInt64) -> [UInt8] in
+            return try! serverSecretParamsIssueExpiringProfileKeyCredentialDeterministicHelper(sSrvSecParams: sSrvSecParams, rand: rand, sProfCredRequest: sProfCredRequest, sAci: sAci, sProfileKeyCommitment: sProfileKeyCommitment, expiration: expiration)
+        }
+        Function("serverSecretParamsVerifyProfileKeyCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) in
+            try! serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(sSrvSecParams: sSrvSecParams, sGpPublicParams: sGpPublicParams, sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation, instant: instant)
+        }
+
         /*END          bridge functions definitions              END*/
     }
 
     /*START          bridge functions implementation              START*/
+    private func serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) throws -> [UInt8] {
+        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let serverAuthOp = ServerZkAuthOperations(serverSecretParams: srvSecParams)
+        var bytes = convertDataToServiceIdStorage(data: sAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        
+        let aci = Aci(fromUUID: uuid)
+        var bytes2 = convertDataToServiceIdStorage(data: sPni)
+        let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
+        let uuid2 = UUID(uuid: (
+            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
+            byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+        ))
+        let pni = Pni(fromUUID: uuid2)
+        guard rndm.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = rndm.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniAsServiceId(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTime)
+        
+        return authCredPniResp.serialize()
+    }
+    private func serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) throws -> [UInt8] {
+        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let serverAuthOp = ServerZkAuthOperations(serverSecretParams: srvSecParams)
+        var bytes = convertDataToServiceIdStorage(data: sAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        
+        let aci = Aci(fromUUID: uuid)
+        var bytes2 = convertDataToServiceIdStorage(data: sPni)
+        let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
+        let uuid2 = UUID(uuid: (
+            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
+            byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+        ))
+        let pni = Pni(fromUUID: uuid2)
+        guard rndm.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = rndm.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniZkc(randomness:Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTime)
+        
+        return authCredPniResp.serialize()
+    }
+
+    private func serverSecretParamsGenerateDeterministicHelper(randomNess: Data) throws -> [UInt8] {
+        guard randomNess.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomNess.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        let srvSecParams = try ServerSecretParams.generate(randomness:  Randomness(randomnessBytes))
+        return srvSecParams.serialize()
+    }
+    private func serverSecretParamsVerifyAuthCredentialPresentationHelper(sSrvSecParams: Data, sGpPublicParams: Data, sAuthCredPresent: Data, instant: Double) throws {
+        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let serverAuthOp = ServerZkAuthOperations(serverSecretParams: srvSecParams)
+        let gpPubParams = try GroupPublicParams(contents: [UInt8](sGpPublicParams))
+        let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPresent))
+        
+        try serverAuthOp.verifyAuthCredentialPresentation(groupPublicParams:gpPubParams , authCredentialPresentation: authCredPresentation , now: Date(timeIntervalSince1970: instant))
+    }
+    private func groupSecretParamsEncryptCiphertextHelper(sGpSecParams: Data, sServiceId: Data) throws -> [UInt8] {
+        let gpSecParams = try GroupSecretParams(contents: [UInt8](sGpSecParams))
+        var bytes = convertDataToServiceIdStorage(data: sServiceId)
+        let serviceIdBinary = try signalServiceIdServiceIdBinary(value: &bytes)
+        let serviceId = try ServiceId.parseFrom(serviceIdBinary: serviceIdBinary)
+
+        let clZkGpCipher = ClientZkGroupCipher(groupSecretParams: gpSecParams)
+        
+        return try clZkGpCipher.encrypt(serviceId).serialize()
+    }
+    private func serverSecretParamsIssueExpiringProfileKeyCredentialDeterministicHelper(sSrvSecParams: Data, rand: Data, sProfCredRequest: Data, sAci: Data, sProfileKeyCommitment: Data, expiration: UInt64) throws -> [UInt8] {
+        let srvSecretParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let srvProfileOp = ServerZkProfileOperations(serverSecretParams: srvSecretParams)
+        let profCredRequest = try ProfileKeyCredentialRequest(contents: [UInt8](sProfCredRequest))
+        var bytes = convertDataToServiceIdStorage(data: sAci)
+        let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+        let uuid = UUID(uuid: (
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+            byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+            byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+            byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+        ))
+        let aci = Aci(fromUUID: uuid)
+        let profCommitment = try ProfileKeyCommitment(contents: [UInt8](sProfileKeyCommitment))
+        guard rand.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = rand.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        let expiringProfileKeyCred = try srvProfileOp.issueExpiringProfileKeyCredential(randomness: Randomness(randomnessBytes), profileKeyCredentialRequest: profCredRequest, userId: aci, profileKeyCommitment: profCommitment, expiration: expiration)
+        
+        return expiringProfileKeyCred.serialize()
+    }
+    private func serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) throws {
+        let srvSecretParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let srvProfileOp = ServerZkProfileOperations(serverSecretParams: srvSecretParams)
+        let gpPubParams = try GroupPublicParams(contents: [UInt8](sGpPublicParams))
+        let profKeyCredPresentation = try ProfileKeyCredentialPresentation(contents: [UInt8](sProfileKeyCredentialPresentation))
+        
+        try srvProfileOp.verifyProfileKeyCredentialPresentation(groupPublicParams: gpPubParams, profileKeyCredentialPresentation: profKeyCredPresentation, now: Date(timeIntervalSince1970: instant))
+    }
+    private func serverSecretParamsGetPublicParamsHelper(sSrvSecParams: Data) throws -> [UInt8] {
+        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        return try srvSecParams.getPublicParams().serialize()
+    }
+    private func serverSecretParamsSignDeterministicHelper(sSrvSecParams: Data, rndm: Data, msg: Data) throws -> [UInt8] {
+        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        return try srvSecParams.sign(message: [UInt8](msg)).serialize()
+    }
     private func serverPublicParamsVerifySignatureHelper(serializedSrvPubParams: Data, msg: Data, sig: Data) throws -> Bool {
         let svpublicParams = try ServerPublicParams(contents: [UInt8](serializedSrvPubParams))
         let signature = try NotarySignature(contents: [UInt8](sig))
@@ -688,7 +850,7 @@ public class ReactNativeLibsignalClientModule: Module {
 
     private func profileKeyDeriveAccessKeyHelper(serializedProfileKey: Data) throws -> [UInt8] {
         let pk = try ProfileKey(contents: [UInt8](serializedProfileKey))
-        return try pk.deriveAccessKey()
+        return pk.deriveAccessKey()
     }
 
     private func groupSecretParamsEncryptServiceIdHelper(sGroupSecretParams: Data, fixedWidthServiceId: Data) throws -> [UInt8] {
