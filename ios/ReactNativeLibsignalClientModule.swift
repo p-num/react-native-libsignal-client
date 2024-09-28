@@ -238,8 +238,8 @@ public class ReactNativeLibsignalClientModule: Module {
             return try! groupPublicParamsGetGroupIdentifierHelper(serializedGpPubParams: serializedGpPubParams)
         }
 
-        Function("groupSecretParamsGenerateDeterministic") { (rand: Data) -> [UInt8] in
-            return try! groupSecretParamsGenerateDeterministicHelper(rand: rand)
+        Function("groupSecretParamsGenerateDeterministic") { (rand: [UInt8]) -> [UInt8] in
+            return try! groupSecretParamsGenerateDeterministicHelper(rawrand: rand)
         }
         
         Function("groupSecretParamsDeriveFromMasterKey") { (serializedGpMasterKey: Data) -> [UInt8] in
@@ -636,10 +636,10 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("serverSecretParamsSignDeterministic") { (sSrvSecParams: Data, rndm: Data, msg: Data) -> [UInt8] in
             return try! serverSecretParamsSignDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, msg: msg)
         }
-        Function("serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) -> [UInt8] in
+        Function("serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) -> [UInt8] in
             return try! serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, sAci: sAci, sPni: sPni, redemptionTime: redemptionTime)
         }
-        Function("serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) -> [UInt8] in
+        Function("serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic") { (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) -> [UInt8] in
             return try! serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, sAci: sAci, sPni: sPni, redemptionTime: redemptionTime)
         }
         Function("serverSecretParamsVerifyAuthCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sAuthCredPresent: Data, instant: Double) in
@@ -654,12 +654,41 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("serverSecretParamsVerifyProfileKeyCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) in
             try! serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(sSrvSecParams: sSrvSecParams, sGpPublicParams: sGpPublicParams, sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation, instant: instant)
         }
+        Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: [UInt8], plainText: Data, paddingLen: Int) -> [UInt8] in
+            return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: randomNess, plainText: plainText, paddingLen: paddingLen)
+        }
+        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: [UInt8]) -> [UInt8] in
+            return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
+        }
+
+
 
         /*END          bridge functions definitions              END*/
     }
 
     /*START          bridge functions implementation              START*/
-    private func serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) throws -> [UInt8] {
+    private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: [UInt8]) throws -> [UInt8] {
+        let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let clientZkCipher = ClientZkGroupCipher(groupSecretParams: groupSecretParams)
+        
+        let decryptedBlob = try clientZkCipher.decryptBlob(blobCiphertext: blobCipherText)
+        
+        return decryptedBlob
+    }
+    private func groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: Data, randomNess: [UInt8], plainText: Data, paddingLen: Int) throws -> [UInt8] {
+        let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
+        let clientZkCipher = ClientZkGroupCipher(groupSecretParams: groupSecretParams)
+        guard randomNess.count == 32 else {
+            throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+        }
+        let randomnessBytes = randomNess.withUnsafeBytes { pointer in
+            pointer.load(as: SignalRandomnessBytes.self)
+        }
+        let encryptedBlob = try clientZkCipher.encryptBlob(randomness:Randomness(randomnessBytes), plaintext: [UInt8](plainText))
+        
+        return encryptedBlob
+    }
+    private func serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) throws -> [UInt8] {
         let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
         let serverAuthOp = ServerZkAuthOperations(serverSecretParams: srvSecParams)
         var bytes = convertDataToServiceIdStorage(data: sAci)
@@ -675,10 +704,10 @@ public class ReactNativeLibsignalClientModule: Module {
         var bytes2 = convertDataToServiceIdStorage(data: sPni)
         let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
         let uuid2 = UUID(uuid: (
-            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[1], byteArray2[2], byteArray2[3], 
             byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
             byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
-            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15],byteArray2[16]
         ))
         let pni = Pni(fromUUID: uuid2)
         guard rndm.count == 32 else {
@@ -687,11 +716,12 @@ public class ReactNativeLibsignalClientModule: Module {
         let randomnessBytes = rndm.withUnsafeBytes { pointer in
             pointer.load(as: SignalRandomnessBytes.self)
         }
-        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniAsServiceId(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTime)
+        let redemptionTimeUInt64: UInt64 = UInt64(redemptionTime)
+        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniAsServiceId(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTimeUInt64)
         
         return authCredPniResp.serialize()
     }
-    private func serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: UInt64) throws -> [UInt8] {
+    private func serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) throws -> [UInt8] {
         let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
         let serverAuthOp = ServerZkAuthOperations(serverSecretParams: srvSecParams)
         var bytes = convertDataToServiceIdStorage(data: sAci)
@@ -707,10 +737,10 @@ public class ReactNativeLibsignalClientModule: Module {
         var bytes2 = convertDataToServiceIdStorage(data: sPni)
         let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
         let uuid2 = UUID(uuid: (
-            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[1], byteArray2[2], byteArray2[3], 
             byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
             byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
-            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15], byteArray2[16]
         ))
         let pni = Pni(fromUUID: uuid2)
         guard rndm.count == 32 else {
@@ -719,7 +749,8 @@ public class ReactNativeLibsignalClientModule: Module {
         let randomnessBytes = rndm.withUnsafeBytes { pointer in
             pointer.load(as: SignalRandomnessBytes.self)
         }
-        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniZkc(randomness:Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTime)
+        let redemptionTimeUInt64: UInt64 = UInt64(redemptionTime)
+        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniZkc(randomness:Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime:  redemptionTimeUInt64)
         
         return authCredPniResp.serialize()
     }
@@ -785,7 +816,7 @@ public class ReactNativeLibsignalClientModule: Module {
         try srvProfileOp.verifyProfileKeyCredentialPresentation(groupPublicParams: gpPubParams, profileKeyCredentialPresentation: profKeyCredPresentation, now: Date(timeIntervalSince1970: instant))
     }
     private func serverSecretParamsGetPublicParamsHelper(sSrvSecParams: Data) throws -> [UInt8] {
-        let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))
+        let srvSecParams = try ServerSecretParams(contents:  [UInt8](sSrvSecParams))
         return try srvSecParams.getPublicParams().serialize()
     }
     private func serverSecretParamsSignDeterministicHelper(sSrvSecParams: Data, rndm: Data, msg: Data) throws -> [UInt8] {
@@ -1018,10 +1049,13 @@ public class ReactNativeLibsignalClientModule: Module {
         redemptionTime: UInt64,
         authCredPniResp: Data
     ) throws -> [UInt8] {
+        
+
         let serverPublicParams = try ServerPublicParams(contents: [UInt8](sSrvPubParams))
         let clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams: serverPublicParams)
         var bytes = convertDataToServiceIdStorage(data: fixedWidthAci)
         let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+
         let uuid = UUID(uuid: (
             byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
             byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
@@ -1032,12 +1066,13 @@ public class ReactNativeLibsignalClientModule: Module {
         var bytes2 = convertDataToServiceIdStorage(data: fixedWidthPni)
         let byteArray2 = try signalServiceIdServiceIdBinary(value: &bytes2)
         let uuid2 = UUID(uuid: (
-            byteArray2[0], byteArray2[1], byteArray2[2], byteArray2[3], 
+            byteArray2[1], byteArray2[2], byteArray2[3], 
             byteArray2[4], byteArray2[5], byteArray2[6], byteArray2[7], 
             byteArray2[8], byteArray2[9], byteArray2[10], byteArray2[11], 
-            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15]
+            byteArray2[12], byteArray2[13], byteArray2[14], byteArray2[15], byteArray2[16]
         ))
         let pni = Pni(fromUUID: uuid2)
+
         let authCredentialPniResponse = try AuthCredentialWithPniResponse(contents: [UInt8](authCredPniResp))
         return try clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(
             aci: aci, 
@@ -1045,6 +1080,7 @@ public class ReactNativeLibsignalClientModule: Module {
             redemptionTime: redemptionTime, 
             authCredentialResponse: authCredentialPniResponse
         ).serialize()
+
     }
 
     private func serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministicHelper(
@@ -1107,7 +1143,8 @@ public class ReactNativeLibsignalClientModule: Module {
         let masterKey = try groupSecretParams.getMasterKey()
         return masterKey.serialize()
     }
-    private func groupSecretParamsGenerateDeterministicHelper(rand: Data) throws -> [UInt8] {
+    private func groupSecretParamsGenerateDeterministicHelper(rawrand: [UInt8]) throws -> [UInt8] {
+        let rand = Data(rawrand)
         guard rand.count == 32 else {
             throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
         }

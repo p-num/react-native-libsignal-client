@@ -16,10 +16,12 @@ export default class ClientZkGroupCipher {
 
   encryptServiceId(serviceId: ServiceId): UuidCiphertext {
     return new UuidCiphertext(
-      ReactNativeLibsignalClientModule.groupSecretParamsEncryptCiphertext(
-        this.groupSecretParams.serialized,
-        serviceId.getServiceIdFixedWidthBinary(),
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsEncryptCiphertext(
+          this.groupSecretParams.serialized,
+          serviceId.getServiceIdFixedWidthBinary()
+        )
+      )
     );
   }
 
@@ -27,35 +29,39 @@ export default class ClientZkGroupCipher {
     return ServiceId.parseFromServiceIdFixedWidthBinary(
       ReactNativeLibsignalClientModule.groupSecretParamsDecryptServiceId(
         this.groupSecretParams.serialized,
-        ciphertext.serialized,
-      ),
+        ciphertext.serialized
+      )
     );
   }
 
   encryptProfileKey(profileKey: ProfileKey, userId: Aci): ProfileKeyCiphertext {
     return new ProfileKeyCiphertext(
-      ReactNativeLibsignalClientModule.groupSecretParamsEncryptProfileKey(
-        this.groupSecretParams.serialized,
-        profileKey.serialized,
-        userId.getServiceIdFixedWidthBinary(),
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsEncryptProfileKey(
+          this.groupSecretParams.serialized,
+          profileKey.serialized,
+          userId.getServiceIdFixedWidthBinary()
+        )
+      )
     );
   }
 
   decryptProfileKey(
     profileKeyCiphertext: ProfileKeyCiphertext,
-    userId: Aci,
+    userId: Aci
   ): ProfileKey {
     return new ProfileKey(
-      ReactNativeLibsignalClientModule.groupSecretParamsDecryptProfileKey(
-        this.groupSecretParams.serialized,
-        profileKeyCiphertext.serialized,
-        userId.getServiceIdFixedWidthBinary(),
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsDecryptProfileKey(
+          this.groupSecretParams.serialized,
+          profileKeyCiphertext.serialized,
+          userId.getServiceIdFixedWidthBinary()
+        )
+      )
     );
   }
 
-  encryptBlob(plaintext: Uint8Array ): Uint8Array {
+  encryptBlob(plaintext: Uint8Array): Uint8Array {
     const random = randomBytes(RANDOM_LENGTH);
 
     return this.encryptBlobWithRandom(random, plaintext);
@@ -66,14 +72,16 @@ export default class ClientZkGroupCipher {
       this.groupSecretParams.serialized,
       random,
       plaintext,
-      0,
+      0
     );
   }
 
   decryptBlob(blobCiphertext: Uint8Array): Uint8Array {
-    return ReactNativeLibsignalClientModule.groupSecretParamsDecryptBlobWithPadding(
-      this.groupSecretParams.serialized,
-      blobCiphertext,
+    return new Uint8Array(
+      ReactNativeLibsignalClientModule.groupSecretParamsDecryptBlobWithPadding(
+        this.groupSecretParams.serialized,
+        blobCiphertext
+      )
     );
   }
 }

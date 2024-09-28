@@ -4,49 +4,63 @@
 //
 
 import ReactNativeLibsignalClientModule from "../ReactNativeLibsignalClientModule";
-import { RANDOM_LENGTH } from './internal/Constants';
-import ServerPublicParams from './ServerPublicParams';
-import NotarySignature from './NotarySignature';
+import { RANDOM_LENGTH } from "./internal/Constants";
+import ServerPublicParams from "./ServerPublicParams";
+import NotarySignature from "./NotarySignature";
 import { randomBytes } from "../randomBytes";
 
 export default class ServerSecretParams {
-    readonly serialized: Uint8Array;
+  readonly serialized: Uint8Array;
 
-    static generate(): ServerSecretParams {
-        const random = randomBytes(RANDOM_LENGTH);
+  static generate(): ServerSecretParams {
+    const random = randomBytes(RANDOM_LENGTH);
 
-        return ServerSecretParams.generateWithRandom(random);
+    return ServerSecretParams.generateWithRandom(random);
+  }
+
+  static generateWithRandom(random: Uint8Array): ServerSecretParams {
+    return new ServerSecretParams(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverSecretParamsGenerateDeterministic(
+          random
+        )
+      )
+    );
+  }
+
+  constructor(contents: Uint8Array | ServerSecretParams) {
+    if (contents instanceof Uint8Array) {
+      this.serialized = contents;
+    } else {
+      this.serialized = contents.serialized;
     }
+  }
 
-    static generateWithRandom(random: Uint8Array): ServerSecretParams {
-        return new ServerSecretParams(
-            ReactNativeLibsignalClientModule.serverSecretParamsGenerateDeterministic(random)
-        );
-    }
+  getPublicParams(): ServerPublicParams {
+    return new ServerPublicParams(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverSecretParamsGetPublicParams(
+          this.serialized
+        )
+      )
+    );
+  }
 
-    constructor(contents: Uint8Array | ServerSecretParams) {
-        if (contents instanceof Uint8Array) {
-            this.serialized = contents;
-        } else {
-            this.serialized = contents.serialized;
-        }
-    }
+  sign(message: Uint8Array): NotarySignature {
+    const random = randomBytes(RANDOM_LENGTH);
 
-    getPublicParams(): ServerPublicParams {
-        return new ServerPublicParams(
-            ReactNativeLibsignalClientModule.serverSecretParamsGetPublicParams(this.serialized)
-        );
-    }
+    return this.signWithRandom(random, message);
+  }
 
-    sign(message: Uint8Array): NotarySignature {
-        const random = randomBytes(RANDOM_LENGTH);
-
-        return this.signWithRandom(random, message);
-    }
-
-    signWithRandom(random: Uint8Array, message: Uint8Array): NotarySignature {
-        return new NotarySignature(
-            ReactNativeLibsignalClientModule.serverSecretParamsSignDeterministic(this.serialized, random, message)
-        );
-    }
+  signWithRandom(random: Uint8Array, message: Uint8Array): NotarySignature {
+    return new NotarySignature(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverSecretParamsSignDeterministic(
+          this.serialized,
+          random,
+          message
+        )
+      )
+    );
+  }
 }

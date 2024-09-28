@@ -3,17 +3,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-import { RANDOM_LENGTH } from '../internal/Constants';
+import { RANDOM_LENGTH } from "../internal/Constants";
 
-import GroupPublicParams from '../groups/GroupPublicParams';
+import GroupPublicParams from "../groups/GroupPublicParams";
 import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import ExpiringProfileKeyCredentialResponse from './ExpiringProfileKeyCredentialResponse';
-import ProfileKeyCommitment from './ProfileKeyCommitment';
-import ProfileKeyCredentialPresentation from './ProfileKeyCredentialPresentation';
-import ProfileKeyCredentialRequest from './ProfileKeyCredentialRequest';
-import { Aci } from '../../Address';
-import { randomBytes } from '../../randomBytes';
-import ServerSecretParams from '../ServerSecretParams';
+import ExpiringProfileKeyCredentialResponse from "./ExpiringProfileKeyCredentialResponse";
+import ProfileKeyCommitment from "./ProfileKeyCommitment";
+import ProfileKeyCredentialPresentation from "./ProfileKeyCredentialPresentation";
+import ProfileKeyCredentialRequest from "./ProfileKeyCredentialRequest";
+import { Aci } from "../../Address";
+import { randomBytes } from "../../randomBytes";
+import ServerSecretParams from "../ServerSecretParams";
 
 export default class ServerZkProfileOperations {
   serverSecretParams: ServerSecretParams;
@@ -47,14 +47,16 @@ export default class ServerZkProfileOperations {
     expirationInSeconds: number
   ): ExpiringProfileKeyCredentialResponse {
     return new ExpiringProfileKeyCredentialResponse(
+      new Uint8Array(
         ReactNativeLibsignalClientModule.serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic(
-            this.serverSecretParams.serialized,
-            random,
-            profileKeyCredentialRequest.serialized,
-            userId.getServiceIdFixedWidthBinary(),
-            profileKeyCommitment.serialized,
-            expirationInSeconds
+          this.serverSecretParams.serialized,
+          random,
+          profileKeyCredentialRequest.serialized,
+          userId.getServiceIdFixedWidthBinary(),
+          profileKeyCommitment.serialized,
+          expirationInSeconds
         )
+      )
     );
   }
 

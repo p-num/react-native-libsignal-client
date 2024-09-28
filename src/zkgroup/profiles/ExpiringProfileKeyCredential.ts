@@ -11,7 +11,7 @@ export default class ExpiringProfileKeyCredential {
     return new Date(
       1000 *
         ReactNativeLibsignalClientModule.expiringProfileKeyCredentialGetExpirationTime(
-            this.serialized,
+          this.serialized
         )
     );
   }
