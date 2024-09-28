@@ -18,7 +18,7 @@ export default class ClientZkProfileOperations {
 
   createProfileKeyCredentialRequestContext(
     userId: Aci,
-    profileKey: ProfileKey,
+    profileKey: ProfileKey
   ): ProfileKeyCredentialRequestContext {
     const random =
       ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
@@ -26,65 +26,72 @@ export default class ClientZkProfileOperations {
     return this.createProfileKeyCredentialRequestContextWithRandom(
       random,
       userId,
-      profileKey,
+      profileKey
     );
   }
 
   createProfileKeyCredentialRequestContextWithRandom(
     random: Uint8Array,
     userId: Aci,
-    profileKey: ProfileKey,
+    profileKey: ProfileKey
   ): ProfileKeyCredentialRequestContext {
     return new ProfileKeyCredentialRequestContext(
-      ReactNativeLibsignalClientModule.serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic(
-        this.serverPublicParams.serialized,
-        random,
-        userId.getServiceIdFixedWidthBinary(),
-        profileKey.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic(
+          this.serverPublicParams.serialized,
+          random,
+          userId.getServiceIdFixedWidthBinary(),
+          profileKey.serialized
+        )
+      )
     );
   }
 
   receiveExpiringProfileKeyCredential(
     profileKeyCredentialRequestContext: ProfileKeyCredentialRequestContext,
     profileKeyCredentialResponse: ExpiringProfileKeyCredentialResponse,
-    now: Date = new Date(),
+    now: Date = new Date()
   ): ExpiringProfileKeyCredential {
     return new ExpiringProfileKeyCredential(
-      ReactNativeLibsignalClientModule.serverPublicParamsReceiveExpiringProfileKeyCredential(
-        this.serverPublicParams.serialized,
-        profileKeyCredentialRequestContext.serialized,
-        profileKeyCredentialResponse.serialized,
-        Math.floor(now.getTime() / 1000),
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverPublicParamsReceiveExpiringProfileKeyCredential(
+          this.serverPublicParams.serialized,
+          profileKeyCredentialRequestContext.serialized,
+          profileKeyCredentialResponse.serialized,
+          Math.floor(now.getTime() / 1000)
+        )
+      )
     );
   }
 
   createExpiringProfileKeyCredentialPresentation(
     groupSecretParams: GroupSecretParams,
-    profileKeyCredential: ExpiringProfileKeyCredential,
+    profileKeyCredential: ExpiringProfileKeyCredential
   ): ProfileKeyCredentialPresentation {
-    const random = ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
+    const random =
+      ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
 
     return this.createExpiringProfileKeyCredentialPresentationWithRandom(
       random,
       groupSecretParams,
-      profileKeyCredential,
+      profileKeyCredential
     );
   }
 
   createExpiringProfileKeyCredentialPresentationWithRandom(
     random: Uint8Array,
     groupSecretParams: GroupSecretParams,
-    profileKeyCredential: ExpiringProfileKeyCredential,
+    profileKeyCredential: ExpiringProfileKeyCredential
   ): ProfileKeyCredentialPresentation {
     return new ProfileKeyCredentialPresentation(
-      ReactNativeLibsignalClientModule.serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic(
-        this.serverPublicParams.serialized,
-        random,
-        groupSecretParams.serialized,
-        profileKeyCredential.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic(
+          this.serverPublicParams.serialized,
+          random,
+          groupSecretParams.serialized,
+          profileKeyCredential.serialized
+        )
+      )
     );
   }
 }

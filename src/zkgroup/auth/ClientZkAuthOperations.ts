@@ -25,44 +25,48 @@ export default class ClientZkAuthOperations {
     aci: Aci,
     pni: Pni,
     redemptionTime: number,
-    authCredentialResponse: AuthCredentialWithPniResponse,
+    authCredentialResponse: AuthCredentialWithPniResponse
   ): AuthCredentialWithPni {
     return new AuthCredentialWithPni(
-      ReactNativeLibsignalClientModule.serverPublicParamsReceiveAuthCredentialWithPniAsServiceId(
-        this.serverPublicParams.serialized,
-        aci.getServiceIdFixedWidthBinary(),
-        pni.getServiceIdFixedWidthBinary(),
-        redemptionTime,
-        authCredentialResponse.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverPublicParamsReceiveAuthCredentialWithPniAsServiceId(
+          this.serverPublicParams.serialized,
+          aci.getServiceIdFixedWidthBinary(),
+          pni.getServiceIdFixedWidthBinary(),
+          redemptionTime,
+          authCredentialResponse.serialized
+        )
+      )
     );
   }
 
   createAuthCredentialWithPniPresentation(
     groupSecretParams: GroupSecretParams,
-    authCredential: AuthCredentialWithPni,
+    authCredential: AuthCredentialWithPni
   ): AuthCredentialPresentation {
     const random = randomBytes(RANDOM_LENGTH);
 
     return this.createAuthCredentialWithPniPresentationWithRandom(
       random,
       groupSecretParams,
-      authCredential,
+      authCredential
     );
   }
 
   createAuthCredentialWithPniPresentationWithRandom(
     random: Uint8Array,
     groupSecretParams: GroupSecretParams,
-    authCredential: AuthCredentialWithPni,
+    authCredential: AuthCredentialWithPni
   ): AuthCredentialPresentation {
     return new AuthCredentialPresentation(
-      ReactNativeLibsignalClientModule.serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic(
-        this.serverPublicParams.serialized,
-        random,
-        groupSecretParams.serialized,
-        authCredential.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic(
+          this.serverPublicParams.serialized,
+          random,
+          groupSecretParams.serialized,
+          authCredential.serialized
+        )
+      )
     );
   }
 }

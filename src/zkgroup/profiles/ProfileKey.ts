@@ -4,36 +4,46 @@ import { Aci } from "../../Address";
 import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
 
 export default class ProfileKey {
-    readonly serialized: Uint8Array;
-    static SIZE = 32;
+  readonly serialized: Uint8Array;
+  static SIZE = 32;
 
-    constructor(serialized: Uint8Array) {
-        if (serialized.length !== ProfileKey.SIZE) {
-            throw new Error(`ProfileKey must be ${ProfileKey.SIZE} bytes, but was ${serialized.length}`);
-        }
-
-        this.serialized = serialized;
+  constructor(serialized: Uint8Array) {
+    if (serialized.length !== ProfileKey.SIZE) {
+      throw new Error(
+        `ProfileKey must be ${ProfileKey.SIZE} bytes, but was ${serialized.length}`
+      );
     }
 
-    getCommitment(userId: Aci): ProfileKeyCommitment {
-        return new ProfileKeyCommitment(
-            ReactNativeLibsignalClientModule.profileKeyGetCommitment(
-                this.serialized,
-                userId.getServiceIdFixedWidthBinary()
-            )
-        );
-    }
+    this.serialized = serialized;
+  }
 
-    getProfileKeyVersion(userId: Aci): ProfileKeyVersion {
-        return new ProfileKeyVersion(
-            ReactNativeLibsignalClientModule.profileKeyGetVersion(
-                this.serialized,
-                userId.getServiceIdFixedWidthBinary()
-            )
-        );
-    }
+  getCommitment(userId: Aci): ProfileKeyCommitment {
+    return new ProfileKeyCommitment(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.profileKeyGetCommitment(
+          this.serialized,
+          userId.getServiceIdFixedWidthBinary()
+        )
+      )
+    );
+  }
 
-    deriveAccessKey(): Uint8Array {
-        return ReactNativeLibsignalClientModule.profileKeyDeriveAccessKey(this.serialized);
-    }
+  getProfileKeyVersion(userId: Aci): ProfileKeyVersion {
+    return new ProfileKeyVersion(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.profileKeyGetVersion(
+          this.serialized,
+          userId.getServiceIdFixedWidthBinary()
+        )
+      )
+    );
+  }
+
+  deriveAccessKey(): Uint8Array {
+    return new Uint8Array(
+      ReactNativeLibsignalClientModule.profileKeyDeriveAccessKey(
+        this.serialized
+      )
+    );
+  }
 }

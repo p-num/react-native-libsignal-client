@@ -44,7 +44,7 @@ export default function App() {
           testMessagingUnacknowledgedSessionsExpiryWithoutKyber,
           testMessagingUnacknowledgedSessionsExpiryWithKyber,
           testGenerateRegistrationId,
-          testZkGroup
+          testZkGroup,
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {

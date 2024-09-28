@@ -15,8 +15,10 @@ export default class GroupSecretParams {
 
   static generateWithRandom(random: Uint8Array): GroupSecretParams {
     return new GroupSecretParams(
-      ReactNativeLibsignalClientModule.groupSecretParamsGenerateDeterministic(
-        random,
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsGenerateDeterministic(
+          random
+        )
       )
     );
   }
@@ -25,7 +27,11 @@ export default class GroupSecretParams {
     groupMasterKey: GroupMasterKey
   ): GroupSecretParams {
     return new GroupSecretParams(
-      ReactNativeLibsignalClientModule.groupSecretParamsDeriveFromMasterKey(groupMasterKey.serialized)
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsDeriveFromMasterKey(
+          groupMasterKey.serialized
+        )
+      )
     );
   }
 
@@ -35,13 +41,21 @@ export default class GroupSecretParams {
 
   getMasterKey(): GroupMasterKey {
     return new GroupMasterKey(
-      ReactNativeLibsignalClientModule.groupSecretParamsGetMasterKey(this.serialized)
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsGetMasterKey(
+          this.serialized
+        )
+      )
     );
   }
 
   getPublicParams(): GroupPublicParams {
     return new GroupPublicParams(
-      ReactNativeLibsignalClientModule.groupSecretParamsGetPublicParams(this.serialized)
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSecretParamsGetPublicParams(
+          this.serialized
+        )
+      )
     );
   }
 }

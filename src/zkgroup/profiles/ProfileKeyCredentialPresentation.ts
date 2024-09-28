@@ -11,17 +11,21 @@ export default class ProfileKeyCredentialPresentation {
 
   getUuidCiphertext(): UuidCiphertext {
     return new UuidCiphertext(
-      ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetUuidCiphertext(
-        this.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetUuidCiphertext(
+          this.serialized
+        )
+      )
     );
   }
 
   getProfileKeyCiphertext(): ProfileKeyCiphertext {
     return new ProfileKeyCiphertext(
-      ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetProfileKeyCiphertext(
-        this.serialized,
-      ),
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetProfileKeyCiphertext(
+          this.serialized
+        )
+      )
     );
   }
 }

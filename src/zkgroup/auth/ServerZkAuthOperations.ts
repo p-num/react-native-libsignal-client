@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-import { RANDOM_LENGTH } from '../internal/Constants';
+import { RANDOM_LENGTH } from "../internal/Constants";
 
-import ServerSecretParams from '../ServerSecretParams';
-import AuthCredentialPresentation from './AuthCredentialPresentation';
-import AuthCredentialWithPniResponse from './AuthCredentialWithPniResponse';
-import GroupPublicParams from '../groups/GroupPublicParams';
-import { Aci, Pni } from '../../Address';
-import { randomBytes } from '../../randomBytes';
-import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import ServerSecretParams from "../ServerSecretParams";
+import AuthCredentialPresentation from "./AuthCredentialPresentation";
+import AuthCredentialWithPniResponse from "./AuthCredentialWithPniResponse";
+import GroupPublicParams from "../groups/GroupPublicParams";
+import { Aci, Pni } from "../../Address";
+import { randomBytes } from "../../randomBytes";
+import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
 
 export default class ServerZkAuthOperations {
   serverSecretParams: ServerSecretParams;
@@ -42,12 +42,14 @@ export default class ServerZkAuthOperations {
     redemptionTime: number
   ): AuthCredentialWithPniResponse {
     return new AuthCredentialWithPniResponse(
+      new Uint8Array(
         ReactNativeLibsignalClientModule.serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic(
-            this.serverSecretParams.serialized,
-            random,
-            aci.getServiceIdFixedWidthBinary(),
-            pni.getServiceIdFixedWidthBinary(),
-            redemptionTime
+          this.serverSecretParams.serialized,
+          random,
+          aci.getServiceIdFixedWidthBinary(),
+          pni.getServiceIdFixedWidthBinary(),
+          redemptionTime
+        )
       )
     );
   }
@@ -74,12 +76,14 @@ export default class ServerZkAuthOperations {
     redemptionTime: number
   ): AuthCredentialWithPniResponse {
     return new AuthCredentialWithPniResponse(
+      new Uint8Array(
         ReactNativeLibsignalClientModule.serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic(
-        this.serverSecretParams.serialized,
-        random,
-        aci.getServiceIdFixedWidthBinary(),
-        pni.getServiceIdFixedWidthBinary(),
-        redemptionTime
+          this.serverSecretParams.serialized,
+          random,
+          aci.getServiceIdFixedWidthBinary(),
+          pni.getServiceIdFixedWidthBinary(),
+          redemptionTime
+        )
       )
     );
   }
