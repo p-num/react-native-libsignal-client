@@ -1,48 +1,48 @@
 {
-	"name": "react-native-libsignal-client",
-	"version": "0.1.11",
-	"description": "My new module",
-	"main": "build/index.js",
-	"types": "build/index.d.ts",
-	"scripts": {
-		"build": "expo-module build",
-		"clean": "expo-module clean",
-		"lint": "expo-module lint",
-		"test": "expo-module test",
-		"prepare": "expo-module prepare",
-		"prepublishOnly": "expo-module prepublishOnly",
-		"expo-module": "expo-module",
-		"open:ios": "xed example/ios",
-		"open:android": "open -a \"Android Studio\" example/android"
-	},
-	"keywords": [
-		"react-native",
-		"expo",
-		"react-native-libsignal-client",
-		"ReactNativeLibsignalClient"
-	],
-	"repository": "https://github.com/ehsunahmadi/react-native-libsignal-client",
-	"bugs": {
-		"url": "https://github.com/ehsunahmadi/react-native-libsignal-client/issues"
-	},
-	"author": "ehsun <ehsun.ahmadi@gmail.com> (https://github.com/ehsunahmadi)",
-	"license": "MIT",
-	"homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
-	"dependencies": {
-		"@craftzdog/react-native-buffer": "^6.0.5",
-		"react-native-get-random-values": "^1.11.0",
-		"react-native-quick-base64": "^2.1.2",
-		"uuid": "^10.0.0"
-	},
-	"devDependencies": {
-		"@types/react": "~18.2.79",
-		"@types/uuid": "^10.0.0",
-		"expo-module-scripts": "^3.5.2",
-		"expo-modules-core": "~1.12.23"
-	},
-	"peerDependencies": {
-		"expo": "*",
-		"react": "*",
-		"react-native": "*"
-	}
+  "name": "react-native-libsignal-client",
+  "version": "0.1.12",
+  "description": "My new module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module",
+    "open:ios": "xed example/ios",
+    "open:android": "open -a \"Android Studio\" example/android"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "react-native-libsignal-client",
+    "ReactNativeLibsignalClient"
+  ],
+  "repository": "https://github.com/ehsunahmadi/react-native-libsignal-client",
+  "bugs": {
+    "url": "https://github.com/ehsunahmadi/react-native-libsignal-client/issues"
+  },
+  "author": "ehsun <ehsun.ahmadi@gmail.com> (https://github.com/ehsunahmadi)",
+  "license": "MIT",
+  "homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
+  "dependencies": {
+    "@craftzdog/react-native-buffer": "^6.0.5",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-quick-base64": "^2.1.2",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.2.79",
+    "@types/uuid": "^10.0.0",
+    "expo-module-scripts": "^3.5.2",
+    "expo-modules-core": "~1.12.24"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
 }
