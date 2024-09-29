@@ -238,8 +238,8 @@ public class ReactNativeLibsignalClientModule: Module {
             return try! groupPublicParamsGetGroupIdentifierHelper(serializedGpPubParams: serializedGpPubParams)
         }
 
-        Function("groupSecretParamsGenerateDeterministic") { (rand: [UInt8]) -> [UInt8] in
-            return try! groupSecretParamsGenerateDeterministicHelper(rawrand: rand)
+        Function("groupSecretParamsGenerateDeterministic") { (rand: Data) -> [UInt8] in
+            return try! groupSecretParamsGenerateDeterministicHelper(rawrand: [UInt8](rand))
         }
         
         Function("groupSecretParamsDeriveFromMasterKey") { (serializedGpMasterKey: Data) -> [UInt8] in
@@ -654,8 +654,8 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("serverSecretParamsVerifyProfileKeyCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) in
             try! serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(sSrvSecParams: sSrvSecParams, sGpPublicParams: sGpPublicParams, sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation, instant: instant)
         }
-        Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: [UInt8], plainText: Data, paddingLen: Int) -> [UInt8] in
-            return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: randomNess, plainText: plainText, paddingLen: paddingLen)
+        Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) -> [UInt8] in
+            return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: [UInt8](randomNess), plainText: plainText, paddingLen: paddingLen)
         }
         Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: [UInt8]) -> [UInt8] in
             return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
