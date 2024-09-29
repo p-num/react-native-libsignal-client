@@ -20,8 +20,9 @@ export default class ClientZkProfileOperations {
     userId: Aci,
     profileKey: ProfileKey
   ): ProfileKeyCredentialRequestContext {
-    const random =
-      ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
+    const random = new Uint8Array(
+      ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH)
+    );
 
     return this.createProfileKeyCredentialRequestContextWithRandom(
       random,
@@ -68,8 +69,9 @@ export default class ClientZkProfileOperations {
     groupSecretParams: GroupSecretParams,
     profileKeyCredential: ExpiringProfileKeyCredential
   ): ProfileKeyCredentialPresentation {
-    const random =
-      ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH);
+    const random = new Uint8Array(
+      ReactNativeLibsignalClientModule.generateRandomBytes(RANDOM_LENGTH)
+    );
 
     return this.createExpiringProfileKeyCredentialPresentationWithRandom(
       random,
