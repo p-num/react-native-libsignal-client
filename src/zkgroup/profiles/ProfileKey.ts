@@ -1,7 +1,7 @@
-import ProfileKeyCommitment from "./ProfileKeyCommitment";
-import ProfileKeyVersion from "./ProfileKeyVersion";
 import { Aci } from "../../Address";
 import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
+import ProfileKeyCommitment from "./ProfileKeyCommitment";
+import ProfileKeyVersion from "./ProfileKeyVersion";
 
 export default class ProfileKey {
   readonly serialized: Uint8Array;
@@ -30,12 +30,10 @@ export default class ProfileKey {
 
   getProfileKeyVersion(userId: Aci): ProfileKeyVersion {
     return new ProfileKeyVersion(
-      new Uint8Array(
         ReactNativeLibsignalClientModule.profileKeyGetVersion(
           this.serialized,
           userId.getServiceIdFixedWidthBinary()
         )
-      )
     );
   }
 
