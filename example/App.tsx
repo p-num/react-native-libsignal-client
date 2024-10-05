@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { log } from "./logger";
 import { TestFeedback } from "./TestFeedback";
 import {
+  testAesCbc,
+  testAesGcm,
   testGenerateRegistrationId,
   testHKDF,
   testKyberPreKeyRecord,
@@ -15,6 +17,7 @@ import {
   testProtocolAddress,
   testServiceId,
   testSignedPreKeyRecord,
+  testSignHmacSha256,
 } from "./tests/api-test";
 import { runTests, sleep } from "./tests/utils";
 import { testZkGroup } from "./tests/zkgroup-test";
@@ -45,6 +48,9 @@ export default function App() {
           testMessagingUnacknowledgedSessionsExpiryWithKyber,
           testGenerateRegistrationId,
           testZkGroup,
+          testAesGcm,
+          testAesCbc,
+          testSignHmacSha256
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {

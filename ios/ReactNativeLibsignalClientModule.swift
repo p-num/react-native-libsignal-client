@@ -2,6 +2,7 @@ import ExpoModulesCore
 import LibSignalClient
 import SignalFfi
 import Foundation
+import CryptoKit
 /*START        typealias +  structs  + enums          START*/
 typealias ServiceIdStorage = SignalServiceIdFixedWidthBinaryBytes
 typealias SignalServiceIdFixedWidthBinaryBytes = (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
@@ -654,15 +655,59 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("serverSecretParamsVerifyProfileKeyCredentialPresentation") { (sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) in
             try! serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(sSrvSecParams: sSrvSecParams, sGpPublicParams: sGpPublicParams, sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation, instant: instant)
         }
-        Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) -> [UInt8] in
-            return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: [UInt8](randomNess), plainText: plainText, paddingLen: paddingLen)
+        Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, Sivata, iv: Data, plaintext: Data, aad: Data?) -> Data in
+            let gcmEnc = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: ad)
+            try! gcmEnc.encrypt(&plaintext)
         }
-        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: [UInt8]) -> [UInt8] in
-            return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
+        Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
+            let gcmDec = try! Aes256GcmDecryption(key: key, nonce: iv, associatedData: ad)
+            try! gcmDec.decrypt(&ciphertext)
+        }
+        Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) -> Data in
+            let cipherContext = try CipherContext(
+                operation: .encrypt,
+                algorithm: .aes,
+                options: .pkcs7Padding,
+                key: key,
+                iv: iv
+            )
+            return try cipherContext.update(plaintext)
+        }
+        Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
+            let cipherContext = try CipherContext(
+                operation: .decrypt,
+                algorithm: .aes,
+                options: .pkcs7Padding,
+                key: key,
+                iv: iv
+            )
+            return try cipherContext.update(ciphertext)
+        }
+        Function("HmacSHA256") {(key: Data, data: Data) -> Data? in
+            do {
+                let hmacBytes = try HMAC(key: key.bytes, variant: .sha2(.sha256)).authenticate(data.bytes)
+                return Data(hmacBytes)
+            } catch {
+                print("HMAC calculation error: \(error)")
+                return nil
+            }
         }
 
+        Function("ConstantTimeEqual") {(lhs: Data, rhs: Data) -> Bool in
+            guard lhs.count == rhs.count else {
+                return false
+            }
 
+            // avoid possible nil baseAddress by ensuring buffers aren't empty
+            if lhs.isEmpty {
+                return rhs.isEmpty
+            }
 
+            return lhs.withUnsafeBytes { b1 in
+                rhs.withUnsafeBytes { b2 in
+                    timingsafe_bcmp(b1.baseAddress, b2.baseAddress, b1.count)
+                }
+            } == 0        }
         /*END          bridge functions definitions              END*/
     }
 

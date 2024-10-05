@@ -23,6 +23,7 @@ import {
 	updatedPrekeyStoreFromObject,
 } from "./stores";
 export * from "./Address";
+export * from "./crypto";
 export * from "./Errors";
 
 export class HKDF {

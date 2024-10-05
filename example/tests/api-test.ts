@@ -1,16 +1,17 @@
 import { Buffer } from "@craftzdog/react-native-buffer";
 import deepEql from "deep-eql";
+import { getRandomBytes } from 'expo-crypto';
+import { Platform } from "react-native";
 import "react-native-get-random-values";
-import * as ReactNativeLibsignalClient from "../../src";
-import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
 import { assert, isInstanceOf, isNotNull } from "typed-assert";
 import * as uuid from "uuid";
+import * as ReactNativeLibsignalClient from "../../src";
+import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
+import ReactNativeLibsignalClientModule from "../../src/ReactNativeLibsignalClientModule";
 import { isUint32, sessionVersionTestCases } from "./api-utils";
 import { noThrowSync, throwsAsync, throwsSync } from "./extentions";
 import { TestStores } from "./mockStores";
 import { test } from "./utils";
-import ReactNativeLibsignalClientModule from "../../src/ReactNativeLibsignalClientModule";
-import { Platform } from "react-native";
 
 export const testServiceId = () =>
   test("aci for valid/invalid args", async () => {
@@ -705,6 +706,182 @@ export const testSignedPreKeyRecord = () =>
       "signature is not the same as the the one it was created with"
     );
   });
+
+  export const testAesGcm = () =>
+   test('AES-GCM test', () => {
+    const key = Buffer.from(
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
+    );
+
+    const aes_gcm_siv = ReactNativeLibsignalClient.Aes256Gcm.new(key);
+
+    const nonce = Buffer.from('030000000000000000000000', 'hex');
+    const aad = Buffer.from('010000000000000000000000', 'hex');
+    const ptext = Buffer.from('02000000', 'hex');
+
+    const ctext = aes_gcm_siv.encrypt(ptext, nonce, aad);
+
+    assert(deepEql(
+      ctext.toString(),
+      Buffer.from('02000000', 'hex').toString()
+), 'ctext is not the same as the the one it was created with'
+    );
+
+    // const decrypted = aes_gcm_siv.decrypt(ctext, nonce, aad);
+
+    // assert.deepEqual(decrypted.toString('hex'), '02000000');
+    
+   }
+  );
+
+  export const testAesCbc = () =>
+    test('AES-CBC test', () => {
+
+    }
+    );
+
+export const testSignHmacSha256 = () =>
+  test('HMAC-SHA256 test ', () => {
+    function verifyHmacSha256(
+      plaintext: Uint8Array,
+      key: Uint8Array,
+      theirMac: Uint8Array,
+      length: number
+    ): void {
+      const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+    
+      if (theirMac.byteLength !== length || ourMac.byteLength < length) {
+        throw new Error('Bad MAC length');
+      }
+      let result = 0;
+    
+      for (let i = 0; i < theirMac.byteLength; i += 1) {
+        result |= ourMac[i] ^ theirMac[i];
+      }
+      if (result !== 0) {
+        throw new Error('Bad MAC');
+      }
+    }
+    const testTooShort = () => {
+      test('rejects if their MAC is too short', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = ourMac.slice(0, -1);
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testTooLong = () => {
+      test('rejects if their MAC is too long', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = new Uint8Array(Buffer.concat(
+          [ourMac, new Uint8Array([0xff])]
+        ));
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testShorter = () => {
+      test("rejects if our MAC is shorter than the specified length", () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = ourMac;
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength + 1);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testMismatch = () => {
+      test("rejects if the MACs don't match", () => {
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourKey = getRandomBytes(32);
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(ourKey, plaintext);
+        const theirKey = getRandomBytes(32);
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(theirKey, plaintext);
+        let error;
+        try {
+          verifyHmacSha256(plaintext, ourKey, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC'), 'error message is not "Bad MAC"');
+      }
+      )
+    }
+
+    const testUndefinedResolutionIfNoMatch = () => {
+      test('resolves with undefined if the MACs match exactly', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const result = verifyHmacSha256(
+          plaintext,
+          key,
+          theirMac,
+          theirMac.byteLength
+        );
+        assert(result === undefined, 'result is not undefined');
+      }
+      )
+    }
+
+    const testUndefinedResolutionIfFirstLengthMatch = () => {
+      test('resolves with undefined if the first `length` bytes of the MACs match', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext).slice(0, -5);
+        const result = verifyHmacSha256(
+          plaintext,
+          key,
+          theirMac,
+          theirMac.byteLength
+        );
+        assert(result === undefined, 'result is not undefined');
+      }
+      )
+    }
+
+    return (() => {
+      testTooShort();
+      testTooLong();
+      testShorter();
+      testMismatch();
+      testUndefinedResolutionIfNoMatch();
+      testUndefinedResolutionIfFirstLengthMatch();
+    })()
+  }
+)
+
+
 
 // export const testSenderKeyMessage = () =>
 // 	test('Sender Key Message', async () => {
