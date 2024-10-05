@@ -18,3 +18,15 @@ export enum ContentHint {
 }
 
 export type Uuid = string;
+
+export enum CipherType {
+	AES256CBC = 'AES/CBC/PKCS5Padding',
+	AES256GCM = 'AES/GCM/NoPadding',
+}
+
+export type EncryptionOptions = {
+	key: Uint8Array;
+	text: Uint8Array;
+	iv: Uint8Array;
+	aad?: Uint8Array;
+};

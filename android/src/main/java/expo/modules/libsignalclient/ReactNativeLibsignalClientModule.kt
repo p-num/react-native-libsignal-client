@@ -72,9 +72,12 @@ import java.security.Security
 import java.time.Instant
 import java.util.ArrayList
 import java.util.UUID
-import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
-
+import javax.crypto.Cipher
+import javax.crypto.Mac
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 typealias StringifiedProtocolAddress = String
 typealias SerializedAddressedKeys = Map<StringifiedProtocolAddress, String>
@@ -268,6 +271,13 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("groupSecretParamsEncryptCiphertext", this@ReactNativeLibsignalClientModule::groupSecretParamsEncryptCiphertext)
     Function("serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic", this@ReactNativeLibsignalClientModule::serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic)
     Function("serverSecretParamsVerifyProfileKeyCredentialPresentation", this@ReactNativeLibsignalClientModule::serverSecretParamsVerifyProfileKeyCredentialPresentation)
+
+    Function("Aes256GcmEncrypt", this@ReactNativeLibsignalClientModule::Aes256GcmEncrypt)
+    Function("Aes256GcmDecrypt", this@ReactNativeLibsignalClientModule::Aes256GcmDecrypt)
+    Function("Aes256CbcEncrypt", this@ReactNativeLibsignalClientModule::Aes256CbcEncrypt)
+    Function("Aes256CbcDecrypt", this@ReactNativeLibsignalClientModule::Aes256CbcDecrypt)
+    Function("HmacSHA256", this@ReactNativeLibsignalClientModule::HmacSHA256)
+    Function("ConstantTimeEqual", this@ReactNativeLibsignalClientModule::ConstantTimeEqual)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1233,4 +1243,79 @@ class ReactNativeLibsignalClientModule : Module() {
         SrvProfileOp.verifyProfileKeyCredentialPresentation(GpPubParams,
             ProfKeyCredPresentation, Instant.ofEpochSecond(instant))
     }
+
+    private fun Aes256GcmEncrypt(key: ByteArray, iv: ByteArray, plaintext: ByteArray, aad: ByteArray?): ByteArray {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val gcmSpec = GCMParameterSpec(128, iv)
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            gcmSpec
+        )
+        if (aad != null) {
+            cipher.updateAAD(aad)
+        }
+        return cipher.doFinal(plaintext)
+    }
+
+    private fun Aes256GcmDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray, aad: ByteArray?): ByteArray {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val gcmSpec = GCMParameterSpec(128, iv)
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            gcmSpec
+        )
+        if (aad != null) {
+            cipher.updateAAD(aad)
+        }
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun Aes256CbcEncrypt(key: ByteArray, iv: ByteArray, plaintext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(plaintext)
+    }
+
+    private fun Aes256CbcDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun HmacSHA256(key: ByteArray, data: ByteArray): ByteArray? {
+        return try {
+            val mac = Mac.getInstance("HmacSHA256")
+            val secretKey = SecretKeySpec(key, "HmacSHA256")
+            mac.init(secretKey)
+            mac.doFinal(data)
+        } catch (e: Exception) {
+            
+            return null
+        }
+    }
+
+    private fun ConstantTimeEqual(lhs: ByteArray, rhs: ByteArray): Boolean {
+        if (lhs === rhs) return true
+
+        if (lhs.size != rhs.size) return false
+
+        var result = 0
+        for (i in lhs.indices) {
+            result = result or (lhs[i].toInt() xor rhs[i].toInt())
+        }
+        return result == 0
+    }
+
+
+    
 }

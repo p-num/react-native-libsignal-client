@@ -1,16 +1,17 @@
 import { Buffer } from "@craftzdog/react-native-buffer";
 import deepEql from "deep-eql";
+import { getRandomBytes } from 'expo-crypto';
+import { Platform } from "react-native";
 import "react-native-get-random-values";
-import * as ReactNativeLibsignalClient from "../../src";
-import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
 import { assert, isInstanceOf, isNotNull } from "typed-assert";
 import * as uuid from "uuid";
+import * as ReactNativeLibsignalClient from "../../src";
+import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
+import ReactNativeLibsignalClientModule from "../../src/ReactNativeLibsignalClientModule";
 import { isUint32, sessionVersionTestCases } from "./api-utils";
 import { noThrowSync, throwsAsync, throwsSync } from "./extentions";
 import { TestStores } from "./mockStores";
 import { test } from "./utils";
-import ReactNativeLibsignalClientModule from "../../src/ReactNativeLibsignalClientModule";
-import { Platform } from "react-native";
 
 export const testServiceId = () =>
   test("aci for valid/invalid args", async () => {
@@ -705,6 +706,381 @@ export const testSignedPreKeyRecord = () =>
       "signature is not the same as the the one it was created with"
     );
   });
+
+  export const testAesGcm = () =>
+   test('AES-GCM test', () => {
+    const key = Buffer.from(
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
+    );
+
+    const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(new Uint8Array(key));
+
+    const nonce = Buffer.from('030000000000000000000000', 'hex');
+    const aad = Buffer.from('010000000000000000000000', 'hex');
+    const ptext = Buffer.from('02000000', 'hex');
+
+    const ctext = aes_gcm.encrypt(new Uint8Array(ptext), new Uint8Array(nonce), new Uint8Array(aad));
+
+    assert(deepEql(
+      Buffer.from(ctext).toString('hex'),
+      '754886b9d6a7ce57ab90c133dcb4403ee9ba9e36',
+    ),  `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`);
+
+    const decrypted = aes_gcm.decrypt(ctext, new Uint8Array(nonce), new Uint8Array(aad));
+
+    assert(deepEql(Buffer.from(decrypted).toString('hex'), '02000000'), `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`);
+   }
+  );
+
+  export const testAesCbc = () =>
+    test('AES-CBC test', () => {
+      const key = Buffer.from(
+        '0100000000000000000000000000000000000000000000000000000000000000',
+        'hex'
+      );
+
+      const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(new Uint8Array(key));
+
+      const iv = Buffer.from('03000000000000000000000000000000', 'hex');
+      const ptext = Buffer.from('02000000', 'hex');
+
+      const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
+
+      assert(deepEql(
+        Buffer.from(ctext).toString('hex'),
+        '65d6c77d8edd28fdc8fcd83277e02be5',
+      ),  `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`);
+
+      const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
+
+      assert(deepEql(Buffer.from(decrypted).toString('hex'), '02000000'), `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`);
+    }
+  );
+
+export const testSignHmacSha256 = () =>
+  test('HMAC-SHA256 test ', () => {
+    function verifyHmacSha256(
+      plaintext: Uint8Array,
+      key: Uint8Array,
+      theirMac: Uint8Array,
+      length: number
+    ): void {
+      const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+    
+      if (theirMac.byteLength !== length || ourMac.byteLength < length) {
+        throw new Error('Bad MAC length');
+      }
+      let result = 0;
+    
+      for (let i = 0; i < theirMac.byteLength; i += 1) {
+        result |= ourMac[i] ^ theirMac[i];
+      }
+      if (result !== 0) {
+        throw new Error('Bad MAC');
+      }
+    }
+    const testTooShort = () => {
+      test('rejects if their MAC is too short', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = ourMac.slice(0, -1);
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testTooLong = () => {
+      test('rejects if their MAC is too long', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = new Uint8Array(Buffer.concat(
+          [ourMac, new Uint8Array([0xff])]
+        ));
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testShorter = () => {
+      test("rejects if our MAC is shorter than the specified length", () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const theirMac = ourMac;
+        let error;
+        try {
+          verifyHmacSha256(plaintext, key, theirMac, ourMac.byteLength + 1);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC length'), 'error message is not "Bad MAC length"');
+      }
+      )
+    }
+
+    const testMismatch = () => {
+      test("rejects if the MACs don't match", () => {
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const ourKey = getRandomBytes(32);
+        const ourMac = ReactNativeLibsignalClient.signHmacSha256(ourKey, plaintext);
+        const theirKey = getRandomBytes(32);
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(theirKey, plaintext);
+        let error;
+        try {
+          verifyHmacSha256(plaintext, ourKey, theirMac, ourMac.byteLength);
+        } catch (err) {
+          error = err;
+        }
+        isInstanceOf(error, Error, 'error is not an instance of Error');
+        assert(deepEql(error.message, 'Bad MAC'), 'error message is not "Bad MAC"');
+      }
+      )
+    }
+
+    const testUndefinedResolutionIfNoMatch = () => {
+      test('resolves with undefined if the MACs match exactly', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
+        const result = verifyHmacSha256(
+          plaintext,
+          key,
+          theirMac,
+          theirMac.byteLength
+        );
+        assert(result === undefined, 'result is not undefined');
+      }
+      )
+    }
+
+    const testUndefinedResolutionIfFirstLengthMatch = () => {
+      test('resolves with undefined if the first `length` bytes of the MACs match', () => {
+        const key = getRandomBytes(32);
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
+        const theirMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext).slice(0, -5);
+        const result = verifyHmacSha256(
+          plaintext,
+          key,
+          theirMac,
+          theirMac.byteLength
+        );
+        assert(result === undefined, 'result is not undefined');
+      }
+      )
+    }
+
+    return (() => {
+      testTooShort();
+      testTooLong();
+      testShorter();
+      testMismatch();
+      testUndefinedResolutionIfNoMatch();
+      testUndefinedResolutionIfFirstLengthMatch();
+    })()
+  }
+)
+
+export const testConstantTimeEqual = () => 
+  test('Constant Time Equal test', () => {
+    const testCases = [
+      // Test identical arrays
+      {
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        expected: true,
+      },
+      // Test arrays differing by one character
+      {
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello World', 'utf8')),
+        expected: false,
+      },
+      // Test arrays of different lengths
+      {
+        a: new Uint8Array(Buffer.from('Short', 'utf8')),
+        b: new Uint8Array(Buffer.from('A much longer string', 'utf8')),
+        expected: false,
+      },
+      // Test empty arrays
+      {
+        a: new Uint8Array([]),
+        b: new Uint8Array([]),
+        expected: true,
+      },
+      // Test one empty array and one non-empty array
+      {
+        a: new Uint8Array([]),
+        b: new Uint8Array(Buffer.from('Non-empty', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with binary data
+      {
+        a: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        b: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        expected: true,
+      },
+      // Test arrays with binary data that differ
+      {
+        a: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        b: new Uint8Array([0x00, 0xff, 0x7f, 0x81]),
+        expected: false,
+      },
+      // Test very long arrays
+      {
+        a: new Uint8Array(1000).fill(0x01),
+        b: new Uint8Array(1000).fill(0x01),
+        expected: true,
+      },
+      // Test very long arrays that differ at the end
+      {
+        a: new Uint8Array(1000).fill(0x01),
+        b: (() => {
+          const arr = new Uint8Array(1000).fill(0x01);
+          arr[999] = 0x02;
+          return arr;
+        })(),
+        expected: false,
+      },
+      // Test arrays with Unicode characters
+      {
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with different Unicode characters
+      {
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんばんは', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with null bytes
+      {
+        a: new Uint8Array([0x00, 0x00, 0x00]),
+        b: new Uint8Array([0x00, 0x00, 0x00]),
+        expected: true,
+      },
+      // Test arrays with different lengths but same prefix
+      {
+        a: new Uint8Array(Buffer.from('Hello', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with repeated patterns
+      {
+        a: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        b: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        expected: true,
+      },
+      // Test arrays with similar patterns but differing values
+      {
+        a: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        b: new Uint8Array([1, 2, 4, 1, 2, 3]),
+        expected: false,
+      },
+      // Test arrays with non-ASCII characters
+      {
+        a: new Uint8Array(Buffer.from('ñandú', 'utf8')),
+        b: new Uint8Array(Buffer.from('ñandú', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with special characters
+      {
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with similar special characters but differing
+      {
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*(', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with numbers as strings
+      {
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with numbers that differ
+      {
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('123456789', 'utf8')),
+        expected: false,
+      },
+    ];
+    
+
+    const iterations = 1000; // Number of iterations for averaging
+    const results = [];
+
+    for (const { a, b, expected } of testCases) {
+      const durations = [];
+
+      for (let i = 0; i < iterations; i++) {
+        const start = performance.now();
+        const result = ReactNativeLibsignalClient.constantTimeEqual(a, b);
+        const end = performance.now();
+
+        assert(
+          result === expected,
+          `Result ${result} does not match expected ${expected}`
+        );
+
+        durations.push(end - start);
+      }
+
+      const averageDuration =
+        durations.reduce((sum, value) => sum + value, 0) / iterations;
+      const variance =
+        durations.reduce(
+          (sum, value) => sum + (value - averageDuration) ** 2,
+          0
+        ) / iterations;
+      const stdDeviation = Math.sqrt(variance);
+
+      results.push({ averageDuration, stdDeviation });
+    }
+
+    // Analyze the results
+    const [firstResult, ...otherResults] = results;
+    for (const result of otherResults) {
+      const durationDifference = Math.abs(
+        firstResult.averageDuration - result.averageDuration
+      );
+
+      // Set an acceptable threshold based on observed variance
+      console.log({durationDifference})
+      const acceptableThreshold = 0.01; // 00.1 milliseconds
+
+      assert(
+        durationDifference <= acceptableThreshold,
+        `Timing difference ${durationDifference} ms exceeds acceptable threshold`
+      );
+    }
+
+    console.log('Timing analysis complete:', results);
+  });
+
+
+
 
 // export const testSenderKeyMessage = () =>
 // 	test('Sender Key Message', async () => {
