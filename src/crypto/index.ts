@@ -13,12 +13,12 @@ export class Aes256Gcm {
     return new Aes256Gcm(key);
   }
 
-  encrypt(message: Uint8Array, nonce: Uint8Array, associated_data: Uint8Array): Uint8Array {
-    return ReactNativeLibsignalClientModule.Aes256GcmEncrypt(this.serialized, message, nonce, associated_data);
+  encrypt(message: Uint8Array, nonce: Uint8Array, associated_data?: Uint8Array): Uint8Array {
+    return ReactNativeLibsignalClientModule.Aes256GcmEncrypt(this.serialized, nonce, message, associated_data);
   }
 
-  decrypt(message: Uint8Array, nonce: Uint8Array, associated_data: Uint8Array): Uint8Array {
-    return ReactNativeLibsignalClientModule.Aes256GcmDecrypt(this.serialized, message, nonce, associated_data);
+  decrypt(message: Uint8Array, nonce: Uint8Array, associated_data?: Uint8Array): Uint8Array {
+    return ReactNativeLibsignalClientModule.Aes256GcmDecrypt(this.serialized, nonce, message, associated_data);
   }
 }
 
@@ -35,11 +35,11 @@ export class Aes256Cbc {
   }
 
   encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-    return ReactNativeLibsignalClientModule.Aes256CbcEncrypt(this.serialized, data, iv);
+    return ReactNativeLibsignalClientModule.Aes256CbcEncrypt(this.serialized, iv, data);
   }
 
   decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-    return ReactNativeLibsignalClientModule.Aes256CbcDecrypt(this.serialized, data, iv);
+    return ReactNativeLibsignalClientModule.Aes256CbcDecrypt(this.serialized, iv, data);
   }
 }
 

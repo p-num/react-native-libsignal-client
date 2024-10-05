@@ -714,32 +714,49 @@ export const testSignedPreKeyRecord = () =>
       'hex'
     );
 
-    const aes_gcm_siv = ReactNativeLibsignalClient.Aes256Gcm.new(key);
+    const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(new Uint8Array(key));
 
     const nonce = Buffer.from('030000000000000000000000', 'hex');
     const aad = Buffer.from('010000000000000000000000', 'hex');
     const ptext = Buffer.from('02000000', 'hex');
 
-    const ctext = aes_gcm_siv.encrypt(ptext, nonce, aad);
+    const ctext = aes_gcm.encrypt(new Uint8Array(ptext), new Uint8Array(nonce), new Uint8Array(aad));
 
     assert(deepEql(
-      ctext.toString(),
-      Buffer.from('02000000', 'hex').toString()
-), 'ctext is not the same as the the one it was created with'
-    );
+      Buffer.from(ctext).toString('hex'),
+      '754886b9d6a7ce57ab90c133dcb4403ee9ba9e36',
+    ),  `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`);
 
-    // const decrypted = aes_gcm_siv.decrypt(ctext, nonce, aad);
+    const decrypted = aes_gcm.decrypt(ctext, new Uint8Array(nonce), new Uint8Array(aad));
 
-    // assert.deepEqual(decrypted.toString('hex'), '02000000');
-    
+    assert(deepEql(Buffer.from(decrypted).toString('hex'), '02000000'), `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`);
    }
   );
 
   export const testAesCbc = () =>
     test('AES-CBC test', () => {
+      const key = Buffer.from(
+        '0100000000000000000000000000000000000000000000000000000000000000',
+        'hex'
+      );
 
+      const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(new Uint8Array(key));
+
+      const iv = Buffer.from('03000000000000000000000000000000', 'hex');
+      const ptext = Buffer.from('02000000', 'hex');
+
+      const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
+
+      assert(deepEql(
+        Buffer.from(ctext).toString('hex'),
+        '65d6c77d8edd28fdc8fcd83277e02be5',
+      ),  `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`);
+
+      const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
+
+      assert(deepEql(Buffer.from(decrypted).toString('hex'), '02000000'), `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`);
     }
-    );
+  );
 
 export const testSignHmacSha256 = () =>
   test('HMAC-SHA256 test ', () => {
