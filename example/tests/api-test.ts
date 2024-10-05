@@ -898,6 +898,188 @@ export const testSignHmacSha256 = () =>
   }
 )
 
+export const testConstantTimeEqual = () => 
+  test('Constant Time Equal test', () => {
+    const testCases = [
+      // Test identical arrays
+      {
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        expected: true,
+      },
+      // Test arrays differing by one character
+      {
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello World', 'utf8')),
+        expected: false,
+      },
+      // Test arrays of different lengths
+      {
+        a: new Uint8Array(Buffer.from('Short', 'utf8')),
+        b: new Uint8Array(Buffer.from('A much longer string', 'utf8')),
+        expected: false,
+      },
+      // Test empty arrays
+      {
+        a: new Uint8Array([]),
+        b: new Uint8Array([]),
+        expected: true,
+      },
+      // Test one empty array and one non-empty array
+      {
+        a: new Uint8Array([]),
+        b: new Uint8Array(Buffer.from('Non-empty', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with binary data
+      {
+        a: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        b: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        expected: true,
+      },
+      // Test arrays with binary data that differ
+      {
+        a: new Uint8Array([0x00, 0xff, 0x7f, 0x80]),
+        b: new Uint8Array([0x00, 0xff, 0x7f, 0x81]),
+        expected: false,
+      },
+      // Test very long arrays
+      {
+        a: new Uint8Array(1000).fill(0x01),
+        b: new Uint8Array(1000).fill(0x01),
+        expected: true,
+      },
+      // Test very long arrays that differ at the end
+      {
+        a: new Uint8Array(1000).fill(0x01),
+        b: (() => {
+          const arr = new Uint8Array(1000).fill(0x01);
+          arr[999] = 0x02;
+          return arr;
+        })(),
+        expected: false,
+      },
+      // Test arrays with Unicode characters
+      {
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with different Unicode characters
+      {
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんばんは', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with null bytes
+      {
+        a: new Uint8Array([0x00, 0x00, 0x00]),
+        b: new Uint8Array([0x00, 0x00, 0x00]),
+        expected: true,
+      },
+      // Test arrays with different lengths but same prefix
+      {
+        a: new Uint8Array(Buffer.from('Hello', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with repeated patterns
+      {
+        a: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        b: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        expected: true,
+      },
+      // Test arrays with similar patterns but differing values
+      {
+        a: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        b: new Uint8Array([1, 2, 4, 1, 2, 3]),
+        expected: false,
+      },
+      // Test arrays with non-ASCII characters
+      {
+        a: new Uint8Array(Buffer.from('ñandú', 'utf8')),
+        b: new Uint8Array(Buffer.from('ñandú', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with special characters
+      {
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with similar special characters but differing
+      {
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*(', 'utf8')),
+        expected: false,
+      },
+      // Test arrays with numbers as strings
+      {
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        expected: true,
+      },
+      // Test arrays with numbers that differ
+      {
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('123456789', 'utf8')),
+        expected: false,
+      },
+    ];
+    
+
+    const iterations = 1000; // Number of iterations for averaging
+    const results = [];
+
+    for (const { a, b, expected } of testCases) {
+      const durations = [];
+
+      for (let i = 0; i < iterations; i++) {
+        const start = performance.now();
+        const result = ReactNativeLibsignalClient.constantTimeEqual(a, b);
+        const end = performance.now();
+
+        assert(
+          result === expected,
+          `Result ${result} does not match expected ${expected}`
+        );
+
+        durations.push(end - start);
+      }
+
+      const averageDuration =
+        durations.reduce((sum, value) => sum + value, 0) / iterations;
+      const variance =
+        durations.reduce(
+          (sum, value) => sum + (value - averageDuration) ** 2,
+          0
+        ) / iterations;
+      const stdDeviation = Math.sqrt(variance);
+
+      results.push({ averageDuration, stdDeviation });
+    }
+
+    // Analyze the results
+    const [firstResult, ...otherResults] = results;
+    for (const result of otherResults) {
+      const durationDifference = Math.abs(
+        firstResult.averageDuration - result.averageDuration
+      );
+
+      // Set an acceptable threshold based on observed variance
+      console.log({durationDifference})
+      const acceptableThreshold = 0.01; // 00.1 milliseconds
+
+      assert(
+        durationDifference <= acceptableThreshold,
+        `Timing difference ${durationDifference} ms exceeds acceptable threshold`
+      );
+    }
+
+    console.log('Timing analysis complete:', results);
+  });
+
+
 
 
 // export const testSenderKeyMessage = () =>

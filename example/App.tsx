@@ -4,6 +4,7 @@ import { TestFeedback } from "./TestFeedback";
 import {
   testAesCbc,
   testAesGcm,
+  testConstantTimeEqual,
   testGenerateRegistrationId,
   testHKDF,
   testKyberPreKeyRecord,
@@ -50,7 +51,8 @@ export default function App() {
           testZkGroup,
           testAesGcm,
           testAesCbc,
-          testSignHmacSha256
+          testSignHmacSha256,
+          testConstantTimeEqual
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {
