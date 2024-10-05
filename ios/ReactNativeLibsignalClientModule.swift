@@ -228,10 +228,6 @@ open class InMemorySignalProtocolStoreWithPreKeysList: IdentityKeyStore, PreKeyS
 }
 /*END          InMemorySignalProtocolStoreWithPreKeysList              END*/
 
-//
-// Copyright 2024 Signal Messenger, LLC
-// SPDX-License-Identifier: AGPL-3.0-only
-//
 public class CipherContext {
     public enum Operation {
         case encrypt
@@ -290,13 +286,13 @@ public class CipherContext {
             }
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw OWSAssertionError("Invalid arguments provided \(result)")
+            throw NSError("Invalid arguments provided \(result)")
         }
     }
 
     public func outputLength(forUpdateWithInputLength inputLength: Int) throws -> Int {
         guard let cryptor else {
-            throw OWSAssertionError("Unexpectedly attempted to read a finalized cipher")
+            throw NSError("Unexpectedly attempted to read a finalized cipher")
         }
 
         return CCCryptorGetOutputLength(cryptor, inputLength, false)
@@ -304,7 +300,7 @@ public class CipherContext {
 
     public func outputLengthForFinalize() throws -> Int {
         guard let cryptor else {
-            throw OWSAssertionError("Unexpectedly attempted to read a finalized cipher")
+            throw NSError("Unexpectedly attempted to read a finalized cipher")
         }
 
         return CCCryptorGetOutputLength(cryptor, 0, true)
@@ -339,7 +335,7 @@ public class CipherContext {
         outputLength: Int? = nil
     ) throws -> Int {
         guard let cryptor else {
-            throw OWSAssertionError("Unexpectedly attempted to update a finalized cipher")
+            throw NSError("Unexpectedly attempted to update a finalized cipher")
         }
 
         let outputLength = outputLength ?? (output.count - offsetInOutput)
@@ -357,7 +353,7 @@ public class CipherContext {
             }
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw OWSAssertionError("Unexpected result \(result)")
+            throw NSError("Unexpected result \(result)")
         }
         return actualOutputLength
     }
@@ -386,7 +382,7 @@ public class CipherContext {
         outputLength: Int? = nil
     ) throws -> Int {
         guard let cryptor = cryptor else {
-            throw OWSAssertionError("Unexpectedly attempted to finalize a finalized cipher")
+            throw NSError("Unexpectedly attempted to finalize a finalized cipher")
         }
 
         defer {
@@ -405,7 +401,7 @@ public class CipherContext {
             )
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw OWSAssertionError("Unexpected result \(result)")
+            throw NSError("Unexpected result \(result)")
         }
         return actualOutputLength
     }
@@ -878,8 +874,10 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         Function("HmacSHA256") {(key: Data, data: Data) -> Data? in
             do {
-                let hmacBytes = try HMAC(key: key.bytes, variant: .sha2(.sha256)).authenticate(data.bytes)
-                return Data(hmacBytes)
+                let hmac = HMAC(key: .init(data: [UInt8](key)))
+                hmac.update(data: [UInt8](data))
+                let digest = hmac.finalize()
+                return Data(digest)
             } catch {
                 print("HMAC calculation error: \(error)")
                 return nil
