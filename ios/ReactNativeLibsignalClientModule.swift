@@ -286,13 +286,13 @@ public class CipherContext {
             }
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw NSError("Invalid arguments provided \(result)")
+            throw NSError(domain: "Invalid arguments provided \(result)", code: 1, userInfo: nil)
         }
     }
 
     public func outputLength(forUpdateWithInputLength inputLength: Int) throws -> Int {
         guard let cryptor else {
-            throw NSError("Unexpectedly attempted to read a finalized cipher")
+            throw NSError(domain: "Unexpectedly attempted to read a finalized cipher", code: 1, userInfo: nil)
         }
 
         return CCCryptorGetOutputLength(cryptor, inputLength, false)
@@ -300,7 +300,7 @@ public class CipherContext {
 
     public func outputLengthForFinalize() throws -> Int {
         guard let cryptor else {
-            throw NSError("Unexpectedly attempted to read a finalized cipher")
+            throw NSError(domain: "Unexpectedly attempted to read a finalized cipher", code: 1, userInfo: nil)
         }
 
         return CCCryptorGetOutputLength(cryptor, 0, true)
@@ -335,7 +335,7 @@ public class CipherContext {
         outputLength: Int? = nil
     ) throws -> Int {
         guard let cryptor else {
-            throw NSError("Unexpectedly attempted to update a finalized cipher")
+            throw NSError(domain: "Unexpectedly attempted to update a finalized cipher", code: 1, userInfo: nil)
         }
 
         let outputLength = outputLength ?? (output.count - offsetInOutput)
@@ -353,7 +353,7 @@ public class CipherContext {
             }
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw NSError("Unexpected result \(result)")
+            throw NSError(domain: "Unexpected result \(result)", code: 1, userInfo: nil)
         }
         return actualOutputLength
     }
@@ -382,7 +382,7 @@ public class CipherContext {
         outputLength: Int? = nil
     ) throws -> Int {
         guard let cryptor = cryptor else {
-            throw NSError("Unexpectedly attempted to finalize a finalized cipher")
+            throw NSError(domain: "Unexpectedly attempted to finalize a finalized cipher", code: 1, userInfo: nil)
         }
 
         defer {
@@ -401,7 +401,7 @@ public class CipherContext {
             )
         }
         guard result == CCStatus(kCCSuccess) else {
-            throw NSError("Unexpected result \(result)")
+            throw NSError(domain: "Unexpected result \(result)", code: 1, userInfo: nil)
         }
         return actualOutputLength
     }
@@ -845,12 +845,16 @@ public class ReactNativeLibsignalClientModule: Module {
             return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
         }
         Function("Aes256GcmEncrypt") { (key: Data, iv: Data, plainText: Data, aad: Data?) -> Data in
-            let gcmDec = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad)
-            try! gcmDec.encrypt(&plainText)
-        }
+             var mutablePlainText = plainText 
+             let gcmDec = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad ?? Data())
+             try! gcmDec.encrypt(&mutablePlainText)  
+             return mutablePlainText  
+         }
         Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
-            let gcmDec = try! Aes256GcmDecryption(key: key, nonce: iv, associatedData: aad)
-            try! gcmDec.decrypt(&ciphertext)
+            var mutableCiphertext = ciphertext  
+            let gcmDec = try! Aes256GcmDecryption(key: key, nonce: iv, associatedData:  aad ?? Data())
+            try! gcmDec.decrypt(&mutableCiphertext)  
+            return mutableCiphertext  
         }
         Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) -> Data in
             let cipherContext = try CipherContext(
@@ -860,7 +864,8 @@ public class ReactNativeLibsignalClientModule: Module {
                 key: key,
                 iv: iv
             )
-            return try cipherContext.update(plaintext)
+            let ciphertext = try cipherContext.update(plaintext)
+            return try cipherContext.finalize()
         }
         Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
             let cipherContext = try CipherContext(
@@ -870,16 +875,17 @@ public class ReactNativeLibsignalClientModule: Module {
                 key: key,
                 iv: iv
             )
-            return try cipherContext.update(ciphertext)
+            let plaintext = try cipherContext.update(ciphertext)
+            return try cipherContext.finalize()
         }
-        Function("HmacSHA256") {(key: Data, data: Data) -> Data? in
+        Function("HmacSHA256") { (key: Data, data: Data) -> Data? in
             do {
-                let hmac = HMAC(key: .init(data: [UInt8](key)))
+                var hmac = HMAC<SHA256>(key: .init(data: [UInt8](key)))
                 hmac.update(data: [UInt8](data))
                 let digest = hmac.finalize()
                 return Data(digest)
             } catch {
-                print("HMAC calculation error: \(error)")
+                throw NSError(domain: "HMAC calculation error: \(error)", code: 1, userInfo: nil)
                 return nil
             }
         }
