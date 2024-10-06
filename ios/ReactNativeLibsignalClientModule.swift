@@ -845,10 +845,10 @@ public class ReactNativeLibsignalClientModule: Module {
             return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
         }
         Function("Aes256GcmEncrypt") { (key: Data, iv: Data, plainText: Data, aad: Data?) -> Data in
-             var mutablePlainText = plainText 
-             let gcmDec = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad ?? Data())
-             try! gcmDec.encrypt(&mutablePlainText)  
-             return mutablePlainText  
+            var mutableCiphertext = plainText 
+            let gcmDec = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad ?? Data())
+            try! gcmDec.encrypt(&mutableCiphertext)  
+            return try Aes256GcmEncryptedData(nonce: iv, ciphertext: mutableCiphertext, authenticationTag: gcmDec.computeTag()).concatenate()
          }
         Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
             var mutableCiphertext = ciphertext  
