@@ -35,7 +35,6 @@ export class Aes256Gcm {
     nonce: Uint8Array,
     associated_data?: Uint8Array
   ): Uint8Array {
-    console.error(message, "decrypt message");
     return new Uint8Array(
       ReactNativeLibsignalClientModule.Aes256GcmDecrypt(
         this.serialized,

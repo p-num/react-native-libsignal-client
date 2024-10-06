@@ -848,13 +848,18 @@ public class ReactNativeLibsignalClientModule: Module {
             var mutableCiphertext = plainText 
             let gcmDec = try! Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad ?? Data())
             try! gcmDec.encrypt(&mutableCiphertext)  
-            return try Aes256GcmEncryptedData(nonce: iv, ciphertext: mutableCiphertext, authenticationTag: gcmDec.computeTag()).concatenate()
+            let aes256GcmEncryptedDataResult = try Aes256GcmEncryptedData(nonce: iv, ciphertext: mutableCiphertext, authenticationTag: gcmDec.computeTag())
+            var result = Data(capacity:aes256GcmEncryptedDataResult.ciphertext.count + aes256GcmEncryptedDataResult.authenticationTag.count)
+            result += aes256GcmEncryptedDataResult.ciphertext
+            result += aes256GcmEncryptedDataResult.authenticationTag
+            return result
          }
         Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
-            var mutableCiphertext = ciphertext  
-            let gcmDec = try! Aes256GcmDecryption(key: key, nonce: iv, associatedData:  aad ?? Data())
-            try! gcmDec.decrypt(&mutableCiphertext)  
-            return mutableCiphertext  
+            let finalCiphertext = ciphertext.dropLast(16)
+            let finalAuthenticationTag = ciphertext.suffix(16)
+            let aes256GcmEncryptedDataResult = try Aes256GcmEncryptedData(nonce: iv, ciphertext: finalCiphertext, authenticationTag: finalAuthenticationTag)
+            let result = try aes256GcmEncryptedDataResult.decrypt(key: key,associatedData: aad ?? Data())
+            return result
         }
         Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) -> Data in
             let cipherContext = try CipherContext(
