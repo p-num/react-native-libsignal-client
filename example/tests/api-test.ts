@@ -728,15 +728,13 @@ export const testAesGcm = () =>
       new Uint8Array(aad)
     );
 
-    console.error(ctext, "ctext");
-    console.error(Buffer.from(ctext).toString("hex"), "toString shode");
-    // assert(
-    //   deepEql(
-    //     Buffer.from(ctext).toString("hex"),
-    //     "754886b9d6a7ce57ab90c133dcb4403ee9ba9e36"
-    //   ),
-    //   `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`
-    // );
+    assert(
+      deepEql(
+        Buffer.from(ctext).toString("hex"),
+        "754886b9d6a7ce57ab90c133dcb4403ee9ba9e36"
+      ),
+      `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`
+    );
 
     const decrypted = aes_gcm.decrypt(
       ctext,
