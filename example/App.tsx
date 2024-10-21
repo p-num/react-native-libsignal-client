@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { log } from "./logger";
 import { TestFeedback } from "./TestFeedback";
 import {
-  testAesCbc,
-  testAesGcm,
+  testAesCbcWithLongInput,
+  testAesCbcWithShortInput,
+  testAesGcmWithLongInput,
+  testAesGcmWithShortInput,
   testConstantTimeEqual,
   testGenerateRegistrationId,
   testHKDF,
@@ -49,8 +51,10 @@ export default function App() {
           testMessagingUnacknowledgedSessionsExpiryWithKyber,
           testGenerateRegistrationId,
           testZkGroup,
-          testAesGcm,
-          testAesCbc,
+          testAesGcmWithShortInput,
+testAesGcmWithLongInput,
+          testAesCbcWithShortInput,
+          testAesCbcWithLongInput,
           testSignHmacSha256,
           testConstantTimeEqual
         ]);
