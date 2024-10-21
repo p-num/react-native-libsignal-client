@@ -707,7 +707,7 @@ export const testSignedPreKeyRecord = () =>
     );
   });
 
-export const testAesGcm = () =>
+export const testAesGcmWithShortInput = () =>
   test("AES-GCM test", () => {
     const key = Buffer.from(
       "0100000000000000000000000000000000000000000000000000000000000000",
@@ -748,7 +748,80 @@ export const testAesGcm = () =>
     );
   });
 
-export const testAesCbc = () =>
+  export const testAesGcmWithLongInput = () =>
+    test("AES-GCM test", () => {
+      const key = Buffer.from(
+        "0100000000000000000000000000000000000000000000000000000000000000",
+        "hex"
+      );
+  
+      const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(
+        new Uint8Array(key)
+      );
+  
+      const nonce = Buffer.from("030000000000000000000000", "hex");
+      const aad = Buffer.from("010000000000000000000000", "hex");
+      const ptext = Buffer.from("5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e", "hex");
+  
+      const ctext = aes_gcm.encrypt(
+        new Uint8Array(ptext),
+        new Uint8Array(nonce),
+        new Uint8Array(aad)
+      );
+  console.log({ctext: Buffer.from(ctext).toString("hex")})
+      assert(
+        deepEql(
+          Buffer.from(ctext).toString("hex"),
+          "2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997"
+        ),
+        `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997`
+      );
+  
+      const decrypted = aes_gcm.decrypt(
+        ctext,
+        new Uint8Array(nonce),
+        new Uint8Array(aad)
+      );
+  
+      assert(
+        deepEql(Buffer.from(decrypted).toString("hex"), "5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e"),
+        `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
+      );
+    })
+
+  export const testAesCbcWithShortInput = () =>
+    test("AES-CBC test", () => {
+      const key = Buffer.from(
+        "0100000000000000000000000000000000000000000000000000000000000000",
+        "hex"
+      );
+  
+      const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(
+        new Uint8Array(key)
+      );
+  
+      const iv = Buffer.from("03000000000000000000000000000000", "hex");
+      const ptext = Buffer.from("02000000", "hex");
+  
+      const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
+  
+      assert(
+        deepEql(
+          Buffer.from(ctext).toString("hex"),
+          "65d6c77d8edd28fdc8fcd83277e02be5"
+        ),
+        `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`
+      );
+  
+      const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
+  
+      assert(
+        deepEql(Buffer.from(decrypted).toString("hex"), "02000000"),
+        `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 02000000`
+      );
+    });
+
+export const testAesCbcWithLongInput = () =>
   test("AES-CBC test", () => {
     const key = Buffer.from(
       "0100000000000000000000000000000000000000000000000000000000000000",
@@ -760,23 +833,23 @@ export const testAesCbc = () =>
     );
 
     const iv = Buffer.from("03000000000000000000000000000000", "hex");
-    const ptext = Buffer.from("02000000", "hex");
+    const ptext = Buffer.from("5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e", "hex");
 
     const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
 
     assert(
       deepEql(
         Buffer.from(ctext).toString("hex"),
-        "65d6c77d8edd28fdc8fcd83277e02be5"
+        "99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407"
       ),
-      `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`
+      `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407`
     );
 
     const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
 
     assert(
-      deepEql(Buffer.from(decrypted).toString("hex"), "02000000"),
-      `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 02000000`
+      deepEql(Buffer.from(decrypted).toString("hex"), "5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e"),
+      `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
     );
   });
 

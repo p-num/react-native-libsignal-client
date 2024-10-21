@@ -869,8 +869,9 @@ public class ReactNativeLibsignalClientModule: Module {
                 key: key,
                 iv: iv
             )
-            let ciphertext = try cipherContext.update(plaintext)
-            return try cipherContext.finalize()
+            let ciphertextPart1 = try cipherContext.update(plaintext)
+            let ciphertextPart2 = try cipherContext.finalize()
+            return ciphertextPart1 + ciphertextPart2
         }
         Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
             let cipherContext = try CipherContext(
@@ -880,8 +881,9 @@ public class ReactNativeLibsignalClientModule: Module {
                 key: key,
                 iv: iv
             )
-            let plaintext = try cipherContext.update(ciphertext)
-            return try cipherContext.finalize()
+            let plaintextPart1 = try cipherContext.update(ciphertext)
+            let plaintextPart2 = try cipherContext.finalize()
+            return plaintextPart1 + plaintextPart2
         }
         Function("HmacSHA256") { (key: Data, data: Data) -> Data? in
             do {
