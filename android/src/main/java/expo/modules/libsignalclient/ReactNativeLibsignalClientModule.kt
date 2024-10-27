@@ -1,7 +1,10 @@
 package expo.modules.libsignalclient
 
+import android.app.Service
 import android.app.slice.Slice
+import android.provider.Settings.Secure
 import android.util.Base64
+import android.view.accessibility.AccessibilityNodeInfo.CollectionInfo
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -57,6 +60,10 @@ import org.signal.libsignal.zkgroup.groups.GroupPublicParams
 import org.signal.libsignal.zkgroup.groups.GroupSecretParams
 import org.signal.libsignal.zkgroup.groups.ProfileKeyCiphertext
 import org.signal.libsignal.zkgroup.groups.UuidCiphertext
+import org.signal.libsignal.zkgroup.groupsend.GroupSendDerivedKeyPair
+import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsement
+import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsementsResponse
+import org.signal.libsignal.zkgroup.groupsend.GroupSendFullToken
 import org.signal.libsignal.zkgroup.internal.Constants
 import org.signal.libsignal.zkgroup.profiles.ClientZkProfileOperations
 import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredential
@@ -278,6 +285,17 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("Aes256CbcDecrypt", this@ReactNativeLibsignalClientModule::Aes256CbcDecrypt)
     Function("HmacSHA256", this@ReactNativeLibsignalClientModule::HmacSHA256)
     Function("ConstantTimeEqual", this@ReactNativeLibsignalClientModule::ConstantTimeEqual)
+    Function("groupSendFullTokenGetExpiration", this@ReactNativeLibsignalClientModule::groupSendFullTokenGetExpiration)
+    Function("groupSendFullTokenVerify", this@ReactNativeLibsignalClientModule::groupSendFullTokenVerify)
+    Function("groupSendTokenToFullToken", this@ReactNativeLibsignalClientModule::groupSendTokenToFullToken)
+    Function("groupSendDerivedKeyPairForExpiration", this@ReactNativeLibsignalClientModule::groupSendDerivedKeyPairForExpiration)
+    Function("groupSendEndorsementCombine", this@ReactNativeLibsignalClientModule::groupSendEndorsementCombine)
+    Function("groupSendEndorsementRemove", this@ReactNativeLibsignalClientModule::groupSendEndorsementRemove)
+    Function("groupSendEndorsementToToken", this@ReactNativeLibsignalClientModule::groupSendEndorsementToToken)
+    Function("groupSendEndorsementsResponseIssueDeterministic", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseIssueDeterministic)
+    Function("groupSendEndorsementsResponseGetExpiration", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseGetExpiration)
+    Function("groupSendEndorsementsResponseReceiveAndCombineWithServiceIds", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithServiceIds)
+    Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1318,4 +1336,110 @@ class ReactNativeLibsignalClientModule : Module() {
 
 
     
+    private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Number {
+        val gpFullToken = GroupSendFullToken(sgpfulltoken)
+
+        return gpFullToken.expiration.epochSecond
+    }
+
+    private fun groupSendFullTokenVerify(sgpfulltoken: ByteArray, fixedWidthIds: ByteArray, time: Long, gpsenddrivedkp: ByteArray) {
+        val gpFullToken = GroupSendFullToken(sgpfulltoken)
+        val serviceIds = parseFixedWidthServiceIds(fixedWidthIds)
+        val groupSendKeyPair = GroupSendDerivedKeyPair(gpsenddrivedkp)
+
+        gpFullToken.verify(serviceIds, Instant.ofEpochMilli(time), groupSendKeyPair)
+    }
+
+    private fun groupSendTokenToFullToken(sgpsendtoken: ByteArray, expTime: Long): ByteArray {
+        val groupSendToken = GroupSendEndorsement.Token(sgpsendtoken)
+
+        return groupSendToken.toFullToken(Instant.ofEpochMilli(expTime)).serialize()
+    }
+
+    private fun groupSendDerivedKeyPairForExpiration(expTime: Long, svSecParams: ByteArray): ByteArray {
+        val serverSecParams = ServerSecretParams(svSecParams)
+
+        return GroupSendDerivedKeyPair.forExpiration(Instant.ofEpochMilli(expTime), serverSecParams).serialize()
+    }
+
+    private fun groupSendEndorsementCombine(sendorseMents: Array<ByteArray>): ByteArray {
+        val rr = sendorseMents.map { se -> GroupSendEndorsement(se) }
+
+        return GroupSendEndorsement.combine(rr).serialize()
+    }
+
+    private fun groupSendEndorsementRemove(sgpsendendorsement: ByteArray, toRemove: ByteArray): ByteArray {
+        val bGroupSendEndorsement = GroupSendEndorsement(sgpsendendorsement)
+        val gpseToRemove = GroupSendEndorsement(toRemove)
+
+        return bGroupSendEndorsement.byRemoving(gpseToRemove).serialize()
+    }
+
+    private fun groupSendEndorsementToToken(sgpsendendorsement: ByteArray, sGpSecParams: ByteArray): ByteArray {
+        val groupSendEndorsement = GroupSendEndorsement(sgpsendendorsement)
+
+        return groupSendEndorsement.toToken(GroupSecretParams(sGpSecParams)).serialize()
+    }
+
+    private fun groupSendEndorsementsResponseIssueDeterministic(uuidCipherTexts: ByteArray, gpsenddrivedkp: ByteArray, rndm: ByteArray): ByteArray {
+        val serviceIds = parseUuidCipherTexts(uuidCipherTexts)
+        val groupSendKeyPair = GroupSendDerivedKeyPair(gpsenddrivedkp)
+
+        return GroupSendEndorsementsResponse.issue(serviceIds, groupSendKeyPair, SecureRandom(rndm)).serialize()
+    }
+
+    private fun groupSendEndorsementsResponseGetExpiration(gpSendEndResponse: ByteArray): Long {
+        val groupSendEndResponse = GroupSendEndorsementsResponse(gpSendEndResponse)
+
+        return groupSendEndResponse.expiration.epochSecond
+    }
+
+    private fun groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(gpSendEndResponse: ByteArray, svcIds: ByteArray, userId: ByteArray, time: Long, gpSecParams: ByteArray, srvPubParams: ByteArray): List<ByteArray> {
+        val groupSendEndResponse = GroupSendEndorsementsResponse(gpSendEndResponse)
+        val serviceIds = parseFixedWidthServiceIds(svcIds)
+        val userServiceId = ServiceId.Aci.parseFromFixedWidthBinary(userId)
+        val groupSecretParams = GroupSecretParams(gpSecParams)
+        val serverPublicParams = ServerPublicParams(srvPubParams)
+
+        return groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements.map { s -> s.serialize() }
+    }
+
+    private fun groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(gpSendEndResponse: ByteArray, svcUuidIds: ByteArray, userId: ByteArray, time: Long, srvPubParams: ByteArray): List<ByteArray> {
+        val groupSendEndResponse = GroupSendEndorsementsResponse(gpSendEndResponse)
+        val serviceIds = parseUuidCipherTexts(svcUuidIds)
+        val userServiceId = UuidCiphertext(userId)
+        val serverPublicParams = ServerPublicParams(srvPubParams)
+
+        return groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements.map { s -> s.serialize() }
+    }
+}
+
+fun parseUuidCipherTexts(raw: ByteArray): MutableList<UuidCiphertext> {
+    if (raw.size % 65 != 0) {
+        throw Error("invalid uuid ciphertexts length")
+    }
+
+    val clc: MutableList<UuidCiphertext> = mutableListOf()
+    val count = raw.size / 65
+    for (i in 1..count) {
+        val cphtx = UuidCiphertext(raw.slice((i-1)*65..i*65).toByteArray())
+        clc.add(cphtx)
+    }
+
+    return clc
+}
+
+fun parseFixedWidthServiceIds(raw: ByteArray): MutableList<ServiceId> {
+    if (raw.size % 17 != 0) {
+        throw Error("invalid service ids length")
+    }
+
+    val clc: MutableList<ServiceId> = mutableListOf()
+    val count = raw.size / 17
+    for (i in 1..count) {
+        val svcid = ServiceId.parseFromFixedWidthBinary(raw.slice((i-1)*17..i*17).toByteArray())
+        clc.add(svcid)
+    }
+
+    return clc
 }

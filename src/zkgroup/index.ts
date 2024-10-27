@@ -72,8 +72,8 @@ export { default as ExpiringProfileKeyCredentialResponse } from "./profiles/Expi
 
 // Group Send
 
-// export { default as GroupSendDerivedKeyPair } from "./groupsend/GroupSendDerivedKeyPair";
-// export { default as GroupSendEndorsement } from "./groupsend/GroupSendEndorsement";
-// export { default as GroupSendEndorsementsResponse } from "./groupsend/GroupSendEndorsementsResponse";
-// export { default as GroupSendFullToken } from "./groupsend/GroupSendFullToken";
-// export { default as GroupSendToken } from "./groupsend/GroupSendToken";
+export { default as GroupSendDerivedKeyPair } from "./groupsend/GroupSendDerivedKeyPair";
+export { default as GroupSendEndorsement } from "./groupsend/GroupSendEndorsement";
+export { default as GroupSendEndorsementsResponse } from "./groupsend/GroupSendEndorsementsResponse";
+export { default as GroupSendFullToken } from "./groupsend/GroupSendFullToken";
+export { default as GroupSendToken } from "./groupsend/GroupSendToken";
