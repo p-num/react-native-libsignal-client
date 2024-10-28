@@ -25,6 +25,7 @@ import {
 export * from "./Address";
 export * from "./crypto";
 export * from "./Errors";
+export * from "./zkgroup";
 
 export class HKDF {
 	/**
