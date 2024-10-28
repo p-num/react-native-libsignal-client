@@ -1,21 +1,23 @@
 import { Buffer } from "@craftzdog/react-native-buffer";
-import { test } from "./utils";
+import { default as deepEql, default as deepEqual } from "deep-eql";
+import { assert } from "typed-assert";
 import { Aci, Pni } from "../../src";
 import {
   ClientZkAuthOperations,
   ClientZkGroupCipher,
+  ClientZkProfileOperations,
   GroupMasterKey,
   GroupSecretParams,
-  ServerZkProfileOperations,
-  ServerZkAuthOperations,
-  ServerSecretParams,
-  ClientZkProfileOperations,
+  GroupSendDerivedKeyPair,
+  GroupSendEndorsement,
+  GroupSendEndorsementsResponse,
   ProfileKey,
-  AuthCredentialWithPniResponse,
+  ServerSecretParams,
+  ServerZkAuthOperations,
+  ServerZkProfileOperations
 } from "../../src/zkgroup";
-import { assert } from "typed-assert";
-import deepEqual from "deep-eql";
 import { throwsSync } from "./extentions";
+import { test } from "./utils";
 
 const SECONDS_PER_DAY = 86400;
 
@@ -549,56 +551,91 @@ export const testZkGroup = () => {
     assert(deepEqual(uuidCiphertext.serialized, uuidCiphertextRecv.serialized));
 
     // Test expiration
-    // assert(
-    //   throwsSync(() =>
-    //     serverZkProfile.verifyProfileKeyCredentialPresentation(
-    //       groupPublicParams,
-    //       presentation,
-    //       new Date(expiration * 1000)
-    //     )
-    //   )
-    // );
+    assert(
+      throwsSync(() =>
+        serverZkProfile.verifyProfileKeyCredentialPresentation(
+          groupPublicParams,
+          presentation,
+          new Date(expiration * 1000)
+        )
+      )
+    );
 
-    // assert(
-    //   throwsSync(() =>
-    //     serverZkProfile.verifyProfileKeyCredentialPresentation(
-    //       groupPublicParams,
-    //       presentation,
-    //       new Date(expiration * 1000 + 5)
-    //     )
-    //   )
-    // );
+    assert(
+      throwsSync(() =>
+        serverZkProfile.verifyProfileKeyCredentialPresentation(
+          groupPublicParams,
+          presentation,
+          new Date(expiration * 1000 + 5)
+        )
+      )
+    );
   });
 
-  // !!!! test("Test server signatures", async () => {
-  //     const serverSecretParams =
-  //         ServerSecretParams.generateWithRandom(TEST_ARRAY_32);
-  //     const serverPublicParams = serverSecretParams.getPublicParams();
+  test("Test server signatures", async () => {
+      const serverSecretParams =
+          ServerSecretParams.generateWithRandom(TEST_ARRAY_32);
+      const serverPublicParams = serverSecretParams.getPublicParams();
 
-  //     const message = TEST_ARRAY_32_1;
+      const message = TEST_ARRAY_32_1;
 
-  //     const signature = serverSecretParams.signWithRandom(
-  //         TEST_ARRAY_32_2,
-  //         message
-  //     );
-  //     serverPublicParams.verifySignature(message, signature);
-  //     assert(deepEqual(
-  //         new Uint8Array(Buffer.from('87d354564d35ef91edba851e0815612e864c227a0471d50c270698604406d003a55473f576cf241fc6b41c6b16e5e63b333c02fe4a33858022fdd7a4ab367b06', 'base64')),
-  //         signature.serialized
-  //     ));
+      const signature = serverSecretParams.signWithRandom(
+          TEST_ARRAY_32_2,
+          message
+      );
+      serverPublicParams.verifySignature(message, signature);
+      assert(deepEqual(
+          new Uint8Array(Buffer.from('87d354564d35ef91edba851e0815612e864c227a0471d50c270698604406d003a55473f576cf241fc6b41c6b16e5e63b333c02fe4a33858022fdd7a4ab367b06', 'base64')),
+          signature.serialized,
+      ),
+      `you should have gotten
+      ${signature.serialized}
+      but you got
+      ${new Uint8Array(Buffer.from('87d354564d35ef91edba851e0815612e864c227a0471d50c270698604406d003a55473f576cf241fc6b41c6b16e5e63b333c02fe4a33858022fdd7a4ab367b06', 'base64'))}`);
+      const alteredMessage = new Uint8Array(Buffer.from(message));
+      alteredMessage[0] ^= 1;
 
-  //     const alteredMessage = new Uint8Array(Buffer.from(message));
-  //     alteredMessage[0] ^= 1;
+      assert(!deepEqual(message, alteredMessage), "Message was not altered");
 
-  //     assert(!deepEqual(message, alteredMessage));
+      assert(
+        throwsSync(() =>
+          serverPublicParams.verifySignature(alteredMessage, signature)
+        ),
+        "Altered message was verified"
+      );
+  })
 
-  //     try {
-  //         serverPublicParams.verifySignature(alteredMessage, signature);
-  //         assert(fail('signature validation should have failed!'));
-  //     } catch (error) {
-  //     // good
-  //     }
-  // })
+  test("testGroupIdentifier", () => {
+    const groupSecretParams = GroupSecretParams.generateWithRandom(TEST_ARRAY_32);
+    const groupPublicParams = groupSecretParams.getPublicParams();
+
+    assert(deepEqual(
+      new Uint8Array(Buffer.from('31f2c60f86f4c5996e9e2568355591d9', 'hex')),
+      groupPublicParams.getGroupIdentifier().contents
+    ),
+  `you should have gotten
+  ${groupPublicParams.getGroupIdentifier().contents}
+  but you got
+  ${new Uint8Array(Buffer.from('31f2c60f86f4c5996e9e2568355591d9', 'hex'))}
+  `);
+  }
+  );
+
+
+  test("testInvalidSerialized", () => {
+    const ckp = Buffer.alloc(289);
+    ckp.fill(-127);
+    assert(throwsSync(() => new GroupSecretParams(ckp)),
+    "Invalid serialized group secret params did not throw an error"
+  );
+  })
+
+  test("testWrongSizeSerialized", () => {
+    const ckp = Buffer.alloc(5);
+    ckp.fill(-127);
+    assert(throwsSync(() => new GroupSecretParams(ckp)),
+    "wrong sized serialized group secret params did not throw an error");
+  })
 
   test("Test Blob Encryption", () => {
     const groupSecretParams = GroupSecretParams.generate();
@@ -610,11 +647,250 @@ export const testZkGroup = () => {
     assert(deepEqual(plaintext, plaintext2));
   });
 
+  test("Test Blob Encription with random", () => {
+    const groupSecretParams = GroupSecretParams.generate();
+    const clientZkGroupCipher = new ClientZkGroupCipher(groupSecretParams);
+
+    const plaintext = new Uint8Array(Buffer.from([0, 1, 2, 3, 4]));
+    const ciphertext = clientZkGroupCipher.encryptBlobWithRandom(
+      TEST_ARRAY_32,
+      plaintext
+    );
+    const plaintext2 = clientZkGroupCipher.decryptBlob(ciphertext);
+    assert(deepEqual(plaintext, plaintext2));
+  })
+
   test("Test Derive Profile Key", () => {
     const expectedAccessKey = hexToBuffer("5a723acee52c5ea02b92a3a360c09595");
     const profileKey = new Uint8Array(Buffer.alloc(32, 0x02));
 
     const result = new ProfileKey(profileKey).deriveAccessKey();
     assert(deepEqual(expectedAccessKey, result));
+  })
+
+  test("GroupSendEndorsement", () => {
+      const serverSecretParams = ServerSecretParams.generateWithRandom(
+        TEST_ARRAY_32
+      );
+      const serverPublicParams = serverSecretParams.getPublicParams();
+  
+      const aliceAci = Aci.parseFromServiceIdString(
+        "9d0652a3-dcc3-4d11-975f-74d61598733f"
+      );
+      const bobAci = Aci.parseFromServiceIdString(
+        "6838237d-02f6-4098-b110-698253d15961"
+      );
+      const eveAci = Aci.parseFromServiceIdString(
+        "3f0f4734-e331-4434-bd4f-6d8f6ea6dcc7"
+      );
+      const malloryAci = Aci.parseFromServiceIdString(
+        "5d088142-6fd7-4dbd-af00-fdda1b3ce988"
+      );
+  
+      const masterKey = new GroupMasterKey(
+        TEST_ARRAY_32_1
+      );
+      const groupSecretParams = GroupSecretParams.deriveFromMasterKey(
+        masterKey
+      );
+  
+      const aliceCiphertext = new ClientZkGroupCipher(
+        groupSecretParams
+      ).encryptServiceId(aliceAci);
+      const groupCiphertexts = [aliceAci, bobAci, eveAci, malloryAci].map(
+        (next) =>
+          new ClientZkGroupCipher(
+            groupSecretParams
+          ).encryptServiceId(next)
+      );
+  
+      // Server
+      const now = Math.floor(Date.now() / 1000);
+      const startOfDay = now - (now % SECONDS_PER_DAY);
+      const expiration = startOfDay + 2 * SECONDS_PER_DAY;
+      const todaysKey = GroupSendDerivedKeyPair.forExpiration(
+        new Date(1000 * expiration),
+        serverSecretParams
+      );
+      console.log("SSSSSSSSSS", {groupCiphertexts})
+      const response = GroupSendEndorsementsResponse.issue(
+        groupCiphertexts,
+        todaysKey
+      );
+  
+      // Client
+      const receivedEndorsements = response.receiveWithServiceIds(
+        [aliceAci, bobAci, eveAci, malloryAci],
+        aliceAci,
+        groupSecretParams,
+        serverPublicParams
+      );
+      // Missing local user
+      assert(
+        throwsSync(() =>
+          response.receiveWithServiceIds(
+            [bobAci, eveAci, malloryAci],
+            aliceAci,
+            groupSecretParams,
+            serverPublicParams
+          )
+        ),
+        "Missing local user"
+      )
+      // Missing another user
+      assert(
+        throwsSync(() =>
+          response.receiveWithServiceIds(
+            [aliceAci, eveAci, malloryAci],
+            aliceAci,
+            groupSecretParams,
+            serverPublicParams
+          )
+        ),
+        "Missing another user"
+      )
+  
+      // Try the other receive too
+      {
+        const receivedEndorsementsAlternate = response.receiveWithCiphertexts(
+          groupCiphertexts,
+          aliceCiphertext,
+          serverPublicParams
+        );
+        assert(
+          deepEql(
+            receivedEndorsements.combinedEndorsement.serialized,
+            receivedEndorsementsAlternate.combinedEndorsement.serialized
+          ),
+        )
+  
+        // Missing local user
+        assert(
+          throwsSync(() =>
+            response.receiveWithCiphertexts(
+              groupCiphertexts.slice(1),
+              aliceCiphertext,
+              serverPublicParams
+            )
+          ),
+          "Missing local user"
+        )
+        // Missing another user
+        assert(
+          throwsSync(() =>
+            response.receiveWithCiphertexts(
+              groupCiphertexts.slice(0, -1),
+              aliceCiphertext,
+              serverPublicParams
+            )
+          ),
+          "Missing another user"
+        )
+      }
+
+    const combinedToken =
+      receivedEndorsements.combinedEndorsement.toToken(groupSecretParams);
+    const fullCombinedToken = combinedToken.toFullToken(
+      response.getExpiration()
+    );
+
+    // SERVER
+    // Verify token
+    const verifyKey = GroupSendDerivedKeyPair.forExpiration(
+      fullCombinedToken.getExpiration(),
+      serverSecretParams
+    );
+
+    fullCombinedToken.verify([bobAci, eveAci, malloryAci], verifyKey);
+    fullCombinedToken.verify(
+      [bobAci, eveAci, malloryAci],
+      verifyKey,
+      new Date(1000 * (now + 60 * 60))
+    ); // one hour from now
+
+    // Included extra user
+    assert(throwsSync(() =>
+      fullCombinedToken.verify(
+        [aliceAci, bobAci, eveAci, malloryAci],
+        verifyKey
+      )
+    ), "Included extra user");
+    // Missing user
+
+    assert(throwsSync(() =>
+      fullCombinedToken.verify([eveAci, malloryAci], verifyKey)
+    ), "Missing user");
+    // Expired
+    assert(throwsSync(() =>
+      fullCombinedToken.verify(
+        [bobAci, eveAci, malloryAci],
+        verifyKey,
+        new Date(1000 * (expiration + 1))
+      )
+    ), "Expired");
+
+    // Excluding a user
+    {
+      // CLIENT
+      const everybodyButMallory =
+        receivedEndorsements.combinedEndorsement.byRemoving(
+          receivedEndorsements.endorsements[3]
+        );
+      const fullEverybodyButMalloryToken = everybodyButMallory.toFullToken(
+        groupSecretParams,
+        response.getExpiration()
+      );
+
+      // SERVER
+      const everybodyButMalloryKey = GroupSendDerivedKeyPair.forExpiration(
+        fullEverybodyButMalloryToken.getExpiration(),
+        serverSecretParams
+      );
+
+      fullEverybodyButMalloryToken.verify(
+        [bobAci, eveAci],
+        everybodyButMalloryKey
+      );
+
+      // Custom combine
+      {
+        // CLIENT
+        const bobAndEve = GroupSendEndorsement.combine([
+          receivedEndorsements.endorsements[1],
+          receivedEndorsements.endorsements[2],
+        ]);
+        const fullBobAndEveToken = bobAndEve.toFullToken(
+          groupSecretParams,
+          response.getExpiration()
+        );
+
+        // SERVER
+        const bobAndEveKey = GroupSendDerivedKeyPair.forExpiration(
+          fullBobAndEveToken.getExpiration(),
+          serverSecretParams
+        );
+
+        fullBobAndEveToken.verify([bobAci, eveAci], bobAndEveKey);
+      }
+
+      // Single-user
+      {
+        // CLIENT
+        const bobEndorsement = receivedEndorsements.endorsements[1];
+        const fullBobToken = bobEndorsement.toFullToken(
+          groupSecretParams,
+          response.getExpiration()
+        );
+
+        // SERVER
+        const bobKey = GroupSendDerivedKeyPair.forExpiration(
+          fullBobToken.getExpiration(),
+          serverSecretParams
+        );
+
+        fullBobToken.verify([bobAci], bobKey);
+      }
+    }
   });
-};
+}
+
