@@ -552,7 +552,7 @@ class ReactNativeLibsignalClientModule : Module() {
         }
         val sessionCipher = SessionCipher(store, remoteProtoAddress)
         val msg = Base64.decode(base64Message, Base64.NO_WRAP)
-        val cipher = sessionCipher.encrypt(msg, Instant.ofEpochMilli(now))
+                val cipher = sessionCipher.encrypt(msg, Instant.ofEpochMilli(now))
         val updatedInMemorySessionStore = updateSessionStoreStateFromInMemoryProtocolStore(store, remoteProtoAddress)
         val updatedInMemoryIdentityStore = updateIdentityStoreStateFromInMemoryProtocolStore(store, remoteProtoAddress)
         return Pair(Pair(cipher.serialize(), cipher.type), Pair(updatedInMemorySessionStore, updatedInMemoryIdentityStore))
@@ -1347,19 +1347,19 @@ class ReactNativeLibsignalClientModule : Module() {
         val serviceIds = parseFixedWidthServiceIds(fixedWidthIds)
         val groupSendKeyPair = GroupSendDerivedKeyPair(gpsenddrivedkp)
 
-        gpFullToken.verify(serviceIds, Instant.ofEpochMilli(time), groupSendKeyPair)
+        gpFullToken.verify(serviceIds, Instant.ofEpochSecond(time), groupSendKeyPair)
     }
 
     private fun groupSendTokenToFullToken(sgpsendtoken: ByteArray, expTime: Long): ByteArray {
         val groupSendToken = GroupSendEndorsement.Token(sgpsendtoken)
 
-        return groupSendToken.toFullToken(Instant.ofEpochMilli(expTime)).serialize()
+        return groupSendToken.toFullToken(Instant.ofEpochSecond(expTime)).serialize()
     }
 
     private fun groupSendDerivedKeyPairForExpiration(expTime: Long, svSecParams: ByteArray): ByteArray {
         val serverSecParams = ServerSecretParams(svSecParams)
 
-        return GroupSendDerivedKeyPair.forExpiration(Instant.ofEpochMilli(expTime), serverSecParams).serialize()
+        return GroupSendDerivedKeyPair.forExpiration(Instant.ofEpochSecond(expTime), serverSecParams).serialize()
     }
 
     private fun groupSendEndorsementCombine(sendorseMents: Array<ByteArray>): ByteArray {
@@ -1397,7 +1397,7 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(gpSendEndResponse: ByteArray, svcIds: ByteArray, userId: ByteArray, time: Long, gpSecParams: ByteArray, srvPubParams: ByteArray): List<ByteArray> {
         val groupSendEndResponse = GroupSendEndorsementsResponse(gpSendEndResponse)
         val serviceIds = parseFixedWidthServiceIds(svcIds)
-        val userServiceId = ServiceId.Aci.parseFromFixedWidthBinary(userId)
+        val userServiceId = Aci.parseFromFixedWidthBinary(userId)
         val groupSecretParams = GroupSecretParams(gpSecParams)
         val serverPublicParams = ServerPublicParams(srvPubParams)
 
@@ -1437,7 +1437,7 @@ fun parseFixedWidthServiceIds(raw: ByteArray): MutableList<ServiceId> {
     val clc: MutableList<ServiceId> = mutableListOf()
     val count = raw.size / 17
     for (i in 1..count) {
-        val svcid = ServiceId.parseFromFixedWidthBinary(raw.slice((i-1)*17..i*17).toByteArray())
+        val svcid = ServiceId.parseFromFixedWidthBinary(raw.slice((i-1)*17..(i*17)-1).toByteArray())
         clc.add(svcid)
     }
 
