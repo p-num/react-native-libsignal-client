@@ -1422,7 +1422,7 @@ fun parseUuidCipherTexts(raw: ByteArray): MutableList<UuidCiphertext> {
     val clc: MutableList<UuidCiphertext> = mutableListOf()
     val count = raw.size / 65
     for (i in 1..count) {
-        val cphtx = UuidCiphertext(raw.slice((i-1)*65..i*65).toByteArray())
+        val cphtx = UuidCiphertext(raw.slice((i-1)*65..(i*65)-1).toByteArray())
         clc.add(cphtx)
     }
 
