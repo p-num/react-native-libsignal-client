@@ -1398,10 +1398,15 @@ class ReactNativeLibsignalClientModule : Module() {
         val groupSendEndResponse = GroupSendEndorsementsResponse(gpSendEndResponse)
         val serviceIds = parseFixedWidthServiceIds(svcIds)
         val userServiceId = Aci.parseFromFixedWidthBinary(userId)
+        val localUserIndex = serviceIds.indexOf(userServiceId)
+        if (localUserIndex == -1) {
+            throw Error("local user not present in the memebers service ids list")
+        }
+
         val groupSecretParams = GroupSecretParams(gpSecParams)
         val serverPublicParams = ServerPublicParams(srvPubParams)
         val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements;
-        val combined = GroupSendEndorsement.combine(endorsements).serialize()
+        val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
     }
@@ -1411,8 +1416,13 @@ class ReactNativeLibsignalClientModule : Module() {
         val serviceIds = parseUuidCipherTexts(svcUuidIds)
         val userServiceId = UuidCiphertext(userId)
         val serverPublicParams = ServerPublicParams(srvPubParams)
+        val localUserIndex = serviceIds.indexOf(userServiceId)
+        if (localUserIndex == -1) {
+            throw Error("local user not present in the memebers service ids list")
+        }
+
         val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements;
-        val combined = GroupSendEndorsement.combine(endorsements).serialize()
+        val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
     }
