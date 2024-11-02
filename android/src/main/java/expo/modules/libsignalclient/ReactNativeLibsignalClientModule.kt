@@ -1400,8 +1400,10 @@ class ReactNativeLibsignalClientModule : Module() {
         val userServiceId = Aci.parseFromFixedWidthBinary(userId)
         val groupSecretParams = GroupSecretParams(gpSecParams)
         val serverPublicParams = ServerPublicParams(srvPubParams)
+        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements;
+        val combined = GroupSendEndorsement.combine(endorsements).serialize()
 
-        return groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements.map { s -> s.serialize() }
+        return endorsements.map { end -> end.serialize() }.plus(combined)
     }
 
     private fun groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(gpSendEndResponse: ByteArray, svcUuidIds: ByteArray, userId: ByteArray, time: Long, srvPubParams: ByteArray): List<ByteArray> {
@@ -1409,8 +1411,10 @@ class ReactNativeLibsignalClientModule : Module() {
         val serviceIds = parseUuidCipherTexts(svcUuidIds)
         val userServiceId = UuidCiphertext(userId)
         val serverPublicParams = ServerPublicParams(srvPubParams)
+        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements;
+        val combined = GroupSendEndorsement.combine(endorsements).serialize()
 
-        return groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements.map { s -> s.serialize() }
+        return endorsements.map { end -> end.serialize() }.plus(combined)
     }
 }
 
