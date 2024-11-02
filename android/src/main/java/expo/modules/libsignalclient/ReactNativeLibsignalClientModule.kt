@@ -1362,7 +1362,7 @@ class ReactNativeLibsignalClientModule : Module() {
         return GroupSendDerivedKeyPair.forExpiration(Instant.ofEpochSecond(expTime), serverSecParams).serialize()
     }
 
-    private fun groupSendEndorsementCombine(sendorseMents: Array<ByteArray>): ByteArray {
+    private fun groupSendEndorsementCombine(sendorseMents: List<ByteArray>): ByteArray {
         val rr = sendorseMents.map { se -> GroupSendEndorsement(se) }
 
         return GroupSendEndorsement.combine(rr).serialize()
