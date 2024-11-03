@@ -1,13 +1,14 @@
-import GroupSecretParams from '../groups/GroupSecretParams';
-import GroupSendFullToken from './GroupSendFullToken';
-import GroupSendToken from './GroupSendToken';
+import GroupSecretParams from "../groups/GroupSecretParams";
+import GroupSendFullToken from "./GroupSendFullToken";
+import GroupSendToken from "./GroupSendToken";
+import { fromByteArray } from "react-native-quick-base64";
 
 // For docs
 import type {
   default as GroupSendEndorsementsResponse,
   ReceivedEndorsements,
-} from './GroupSendEndorsementsResponse';
-import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+} from "./GroupSendEndorsementsResponse";
+import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
 
 /**
  * An endorsement for a user or set of users in a group.
@@ -37,7 +38,7 @@ import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientMo
  * it's still cheaper than a usual zkgroup presentation.)
  */
 export default class GroupSendEndorsement {
-    readonly serialized: Uint8Array;
+  readonly serialized: Uint8Array;
 
   constructor(contents: Uint8Array) {
     this.serialized = contents;
@@ -53,7 +54,7 @@ export default class GroupSendEndorsement {
     return new GroupSendEndorsement(
       new Uint8Array(
         ReactNativeLibsignalClientModule.groupSendEndorsementCombine(
-          endorsements.map((next) => next.serialized)
+          endorsements.map((next) => fromByteArray(next.serialized))
         )
       )
     );
@@ -68,7 +69,10 @@ export default class GroupSendEndorsement {
   byRemoving(toRemove: GroupSendEndorsement): GroupSendEndorsement {
     return new GroupSendEndorsement(
       new Uint8Array(
-        ReactNativeLibsignalClientModule.groupSendEndorsementRemove(this.serialized, toRemove.serialized)
+        ReactNativeLibsignalClientModule.groupSendEndorsementRemove(
+          this.serialized,
+          toRemove.serialized
+        )
       )
     );
   }
@@ -78,14 +82,17 @@ export default class GroupSendEndorsement {
    *
    * The token is no longer associated with the group; it merely identifies the user or set of users
    * referenced by this endorsement. (Of course, a set of users is a pretty good stand-in for a
-   * group.)      
+   * group.)
    *
    * @see {@link GroupSendToken}
    */
   toToken(groupParams: GroupSecretParams): GroupSendToken {
     return new GroupSendToken(
       new Uint8Array(
-        ReactNativeLibsignalClientModule.groupSendEndorsementToToken(this.serialized, groupParams.serialized)
+        ReactNativeLibsignalClientModule.groupSendEndorsementToToken(
+          this.serialized,
+          groupParams.serialized
+        )
       )
     );
   }

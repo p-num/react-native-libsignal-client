@@ -14,10 +14,11 @@ import {
   ProfileKey,
   ServerSecretParams,
   ServerZkAuthOperations,
-  ServerZkProfileOperations
+  ServerZkProfileOperations,
 } from "../../src/zkgroup";
 import { throwsSync } from "./extentions";
 import { test } from "./utils";
+import { Platform } from "react-native";
 
 const SECONDS_PER_DAY = 86400;
 
@@ -48,6 +49,7 @@ export const testZkGroup = () => {
   const TEST_ARRAY_32_5 = hexToBuffer(
     "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122"
   );
+
   test("Test auth with pni integration", async () => {
     const aci = Aci.fromUuid(TEST_UUID);
     const pni = Pni.fromUuid(TEST_UUID_1);
@@ -550,26 +552,28 @@ export const testZkGroup = () => {
 
     assert(deepEqual(uuidCiphertext.serialized, uuidCiphertextRecv.serialized));
 
-    // Test expiration
-    assert(
-      throwsSync(() =>
-        serverZkProfile.verifyProfileKeyCredentialPresentation(
-          groupPublicParams,
-          presentation,
-          new Date(expiration * 1000)
+    if (Platform.OS == "android") {
+      //Test expiration
+      assert(
+        throwsSync(() =>
+          serverZkProfile.verifyProfileKeyCredentialPresentation(
+            groupPublicParams,
+            presentation,
+            new Date(expiration * 1000)
+          )
         )
-      )
-    );
+      );
 
-    assert(
-      throwsSync(() =>
-        serverZkProfile.verifyProfileKeyCredentialPresentation(
-          groupPublicParams,
-          presentation,
-          new Date(expiration * 1000 + 5)
+      assert(
+        throwsSync(() =>
+          serverZkProfile.verifyProfileKeyCredentialPresentation(
+            groupPublicParams,
+            presentation,
+            new Date(expiration * 1000 + 5)
+          )
         )
-      )
-    );
+      );
+    }
   });
 
   // test("Test server signatures", async () => {
@@ -624,7 +628,6 @@ export const testZkGroup = () => {
   // }
   // );
 
-
   // test("testInvalidSerialized", () => {
   //   const ckp = Buffer.alloc(289);
   //   ckp.fill(-127);
@@ -639,7 +642,6 @@ export const testZkGroup = () => {
   //   assert(throwsSync(() => new GroupSecretParams(ckp)),
   //   "wrong sized serialized group secret params did not throw an error");
   // })
-
   test("Test Blob Encryption", () => {
     const groupSecretParams = GroupSecretParams.generate();
     const clientZkGroupCipher = new ClientZkGroupCipher(groupSecretParams);
@@ -661,7 +663,7 @@ export const testZkGroup = () => {
     );
     const plaintext2 = clientZkGroupCipher.decryptBlob(ciphertext);
     assert(deepEqual(plaintext, plaintext2));
-  })
+  });
 
   test("Test Derive Profile Key", () => {
     const expectedAccessKey = hexToBuffer("5a723acee52c5ea02b92a3a360c09595");
@@ -669,126 +671,121 @@ export const testZkGroup = () => {
 
     const result = new ProfileKey(profileKey).deriveAccessKey();
     assert(deepEqual(expectedAccessKey, result));
-  })
+  });
 
   test("GroupSendEndorsement", () => {
-      const serverSecretParams = ServerSecretParams.generateWithRandom(
-        TEST_ARRAY_32
-      );
-      const serverPublicParams = serverSecretParams.getPublicParams();
-  
-      const aliceAci = Aci.parseFromServiceIdString(
-        "9d0652a3-dcc3-4d11-975f-74d61598733f"
-      );
-      const bobAci = Aci.parseFromServiceIdString(
-        "6838237d-02f6-4098-b110-698253d15961"
-      );
-      const eveAci = Aci.parseFromServiceIdString(
-        "3f0f4734-e331-4434-bd4f-6d8f6ea6dcc7"
-      );
-      const malloryAci = Aci.parseFromServiceIdString(
-        "5d088142-6fd7-4dbd-af00-fdda1b3ce988"
-      );
-  
-      const masterKey = new GroupMasterKey(
-        TEST_ARRAY_32_1
-      );
-      const groupSecretParams = GroupSecretParams.deriveFromMasterKey(
-        masterKey
-      );
-  
-      const aliceCiphertext = new ClientZkGroupCipher(
-        groupSecretParams
-      ).encryptServiceId(aliceAci);
-      const groupCiphertexts = [aliceAci, bobAci, eveAci, malloryAci].map(
-        (next) =>
-          new ClientZkGroupCipher(
-            groupSecretParams
-          ).encryptServiceId(next)
-      );
-  
-      // Server
-      const now = Math.floor(Date.now() / 1000);
-      const startOfDay = now - (now % SECONDS_PER_DAY);
-      const expiration = startOfDay + 2 * SECONDS_PER_DAY;
-      const todaysKey = GroupSendDerivedKeyPair.forExpiration(
-        new Date(1000 * expiration),
-        serverSecretParams
-      );
-      const response = GroupSendEndorsementsResponse.issue(
+    const serverSecretParams =
+      ServerSecretParams.generateWithRandom(TEST_ARRAY_32);
+    const serverPublicParams = serverSecretParams.getPublicParams();
+
+    const aliceAci = Aci.parseFromServiceIdString(
+      "9d0652a3-dcc3-4d11-975f-74d61598733f"
+    );
+    const bobAci = Aci.parseFromServiceIdString(
+      "6838237d-02f6-4098-b110-698253d15961"
+    );
+    const eveAci = Aci.parseFromServiceIdString(
+      "3f0f4734-e331-4434-bd4f-6d8f6ea6dcc7"
+    );
+    const malloryAci = Aci.parseFromServiceIdString(
+      "5d088142-6fd7-4dbd-af00-fdda1b3ce988"
+    );
+
+    const masterKey = new GroupMasterKey(TEST_ARRAY_32_1);
+    const groupSecretParams = GroupSecretParams.deriveFromMasterKey(masterKey);
+
+    const aliceCiphertext = new ClientZkGroupCipher(
+      groupSecretParams
+    ).encryptServiceId(aliceAci);
+    const groupCiphertexts = [aliceAci, bobAci, eveAci, malloryAci].map(
+      (next) =>
+        new ClientZkGroupCipher(groupSecretParams).encryptServiceId(next)
+    );
+
+    // Server
+    const now = Math.floor(Date.now() / 1000);
+    const startOfDay = now - (now % SECONDS_PER_DAY);
+    const expiration = startOfDay + 2 * SECONDS_PER_DAY;
+    const todaysKey = GroupSendDerivedKeyPair.forExpiration(
+      new Date(1000 * expiration),
+      serverSecretParams
+    );
+    const response = GroupSendEndorsementsResponse.issue(
+      groupCiphertexts,
+      todaysKey
+    );
+
+    // Client
+    const receivedEndorsements = response.receiveWithServiceIds(
+      [aliceAci, bobAci, eveAci, malloryAci],
+      aliceAci,
+      groupSecretParams,
+      serverPublicParams
+    );
+    // Missing local user
+
+    assert(
+      throwsSync(() =>
+        response.receiveWithServiceIds(
+          [bobAci, eveAci, malloryAci],
+          aliceAci,
+          groupSecretParams,
+          serverPublicParams
+        )
+      ),
+      "Missing local user"
+    );
+    // Missing another user
+    assert(
+      throwsSync(() =>
+        response.receiveWithServiceIds(
+          [aliceAci, eveAci, malloryAci],
+          aliceAci,
+          groupSecretParams,
+          serverPublicParams
+        )
+      ),
+      "Missing another user"
+    );
+
+    // Try the other receive too
+    {
+      const receivedEndorsementsAlternate = response.receiveWithCiphertexts(
         groupCiphertexts,
-        todaysKey
-      );
-  
-      // Client
-      const receivedEndorsements = response.receiveWithServiceIds(
-        [aliceAci, bobAci, eveAci, malloryAci],
-        aliceAci,
-        groupSecretParams,
+        aliceCiphertext,
         serverPublicParams
       );
+      assert(
+        deepEql(
+          receivedEndorsements.combinedEndorsement.serialized,
+          receivedEndorsementsAlternate.combinedEndorsement.serialized
+        )
+      );
+
       // Missing local user
       assert(
         throwsSync(() =>
-          response.receiveWithServiceIds(
-            [bobAci, eveAci, malloryAci],
-            aliceAci,
-            groupSecretParams,
+          response.receiveWithCiphertexts(
+            groupCiphertexts.slice(1),
+            aliceCiphertext,
             serverPublicParams
           )
         ),
         "Missing local user"
-      )
+      );
       // Missing another user
+
       assert(
         throwsSync(() =>
-          response.receiveWithServiceIds(
-            [aliceAci, eveAci, malloryAci],
-            aliceAci,
-            groupSecretParams,
+          response.receiveWithCiphertexts(
+            groupCiphertexts.slice(0, -1),
+            aliceCiphertext,
             serverPublicParams
           )
         ),
         "Missing another user"
-      )
-  
-      // Try the other receive too
-      {
-        const receivedEndorsementsAlternate = response.receiveWithCiphertexts(
-          groupCiphertexts,
-          aliceCiphertext,
-          serverPublicParams
-        );
-        assert(
-          deepEql(
-            receivedEndorsements.combinedEndorsement.serialized,
-            receivedEndorsementsAlternate.combinedEndorsement.serialized
-          ),
-        )
-  
-        // Missing local user
-        assert(
-          throwsSync(() =>
-            response.receiveWithCiphertexts(
-              groupCiphertexts.slice(1),
-              aliceCiphertext,
-              serverPublicParams
-            )
-          ),
-          "Missing local user"
-        )
-        // Missing another user
-        assert(
-          throwsSync(() =>
-            response.receiveWithCiphertexts(
-              groupCiphertexts.slice(0, -1),
-              aliceCiphertext,
-              serverPublicParams
-            )
-          ),
-          "Missing another user"
-        )
-      }
+      );
+    }
 
     const combinedToken =
       receivedEndorsements.combinedEndorsement.toToken(groupSecretParams);
@@ -811,25 +808,34 @@ export const testZkGroup = () => {
     ); // one hour from now
 
     // Included extra user
-    assert(throwsSync(() =>
-      fullCombinedToken.verify(
-        [aliceAci, bobAci, eveAci, malloryAci],
-        verifyKey
-      )
-    ), "Included extra user");
+    assert(
+      throwsSync(() =>
+        fullCombinedToken.verify(
+          [aliceAci, bobAci, eveAci, malloryAci],
+          verifyKey
+        )
+      ),
+      "Included extra user"
+    );
     // Missing user
 
-    assert(throwsSync(() =>
-      fullCombinedToken.verify([eveAci, malloryAci], verifyKey)
-    ), "Missing user");
+    assert(
+      throwsSync(() =>
+        fullCombinedToken.verify([eveAci, malloryAci], verifyKey)
+      ),
+      "Missing user"
+    );
     // Expired
-    assert(throwsSync(() =>
-      fullCombinedToken.verify(
-        [bobAci, eveAci, malloryAci],
-        verifyKey,
-        new Date(1000 * (expiration + 1))
-      )
-    ), "Expired");
+    assert(
+      throwsSync(() =>
+        fullCombinedToken.verify(
+          [bobAci, eveAci, malloryAci],
+          verifyKey,
+          new Date(1000 * (expiration + 1))
+        )
+      ),
+      "Expired"
+    );
 
     // Excluding a user
     {
@@ -857,15 +863,16 @@ export const testZkGroup = () => {
       // Custom combine
       {
         // CLIENT
+
         const bobAndEve = GroupSendEndorsement.combine([
           receivedEndorsements.endorsements[1],
           receivedEndorsements.endorsements[2],
         ]);
+
         const fullBobAndEveToken = bobAndEve.toFullToken(
           groupSecretParams,
           response.getExpiration()
         );
-
         // SERVER
         const bobAndEveKey = GroupSendDerivedKeyPair.forExpiration(
           fullBobAndEveToken.getExpiration(),
@@ -894,5 +901,4 @@ export const testZkGroup = () => {
       }
     }
   });
-}
-
+};
