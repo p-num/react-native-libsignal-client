@@ -885,6 +885,112 @@ public class ReactNativeLibsignalClientModule: Module {
             let plaintextPart2 = try cipherContext.finalize()
             return plaintextPart1 + plaintextPart2
         }
+        Function("groupSendFullTokenGetExpiration") { (sgpfulltoken: Data) -> UInt64 in
+            let gpFullToken = try GroupSendFullToken(contents: [UInt8](sgpfulltoken))
+            return UInt64(gpFullToken.expiration.timeIntervalSince1970)
+        }
+
+        Function("groupSendFullTokenVerify") { (sgpfulltoken: Data, fixedWidthIds: Data, time: UInt64, gpsenddrivedkp: Data) throws in
+            let gpFullToken = try GroupSendFullToken(contents: [UInt8](sgpfulltoken))
+            let serviceIds = try parseFixedWidthServiceIds(raw: [UInt8](fixedWidthIds))
+            let groupSendKeyPair = try GroupSendDerivedKeyPair(contents: [UInt8](gpsenddrivedkp))
+            try gpFullToken.verify(userIds: serviceIds, now: Date(timeIntervalSince1970: TimeInterval(time)), keyPair: groupSendKeyPair)
+        }
+
+        Function("groupSendTokenToFullToken") { (sgpsendtoken: Data, expTime: UInt64) -> Data in
+            let groupSendToken = try GroupSendEndorsement.Token(contents: [UInt8](sgpsendtoken))
+            return Data(groupSendToken.toFullToken(expiration: Date(timeIntervalSince1970: TimeInterval(expTime))).serialize())
+        }
+
+        Function("groupSendDerivedKeyPairForExpiration") { (expTime: UInt64, svSecParams: Data) -> Data in
+            let serverSecParams = try ServerSecretParams(contents: [UInt8](svSecParams))
+            return Data(GroupSendDerivedKeyPair.forExpiration(Date(timeIntervalSince1970: TimeInterval(expTime)), params: serverSecParams).serialize())
+        }
+
+        Function("groupSendEndorsementCombine") { (sendorsements: [String]) -> Data in
+            
+            let endorsements = try sendorsements.map { base64String in
+                        guard let decodedData = Data(base64Encoded: base64String) else {
+                            throw NSError(domain: "DecodingError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 string"])
+                        }
+                        return try GroupSendEndorsement(contents: [UInt8](decodedData))
+            }
+        
+            return try Data(GroupSendEndorsement.combine(endorsements).serialize())
+        }
+
+        Function("groupSendEndorsementRemove") { (sgpsendendorsement: Data, toRemove: Data) -> Data in
+            let endorsement = try GroupSendEndorsement(contents: [UInt8](sgpsendendorsement))
+            let toRemoveEndorsement = try GroupSendEndorsement(contents: [UInt8](toRemove))
+            return Data(endorsement.byRemoving(toRemoveEndorsement).serialize())
+        }
+
+        Function("groupSendEndorsementToToken") { (sgpsendendorsement: Data, sGpSecParams: Data) -> Data in
+            let endorsement = try GroupSendEndorsement(contents: [UInt8](sgpsendendorsement))
+            let params = try GroupSecretParams(contents: [UInt8](sGpSecParams))
+            return Data(endorsement.toToken(groupParams: params).serialize())
+        }
+
+        Function("groupSendEndorsementsResponseIssueDeterministic") { (uuidCipherTexts: Data, gpsenddrivedkp: Data, rndm: Data) throws -> Data in
+            let serviceIds = try parseUuidCipherTexts(raw: [UInt8](uuidCipherTexts))
+            let keyPair = try GroupSendDerivedKeyPair(contents: [UInt8](gpsenddrivedkp))
+            return Data(try GroupSendEndorsementsResponse.issue(groupMembers: serviceIds, keyPair: keyPair).serialize())
+        }
+
+        Function("groupSendEndorsementsResponseGetExpiration") { (gpSendEndResponse: Data) -> UInt64 in
+            let response = try GroupSendEndorsementsResponse(contents: [UInt8](gpSendEndResponse))
+            return UInt64(response.expiration.timeIntervalSince1970)
+        }
+
+        Function("groupSendEndorsementsResponseReceiveAndCombineWithServiceIds") { (gpSendEndResponse: Data, svcIds: Data, userId: Data, time: UInt64, gpSecParams: Data, srvPubParams: Data) throws -> [Data] in
+            let response = try GroupSendEndorsementsResponse(contents: [UInt8](gpSendEndResponse))
+            let serviceIds = try parseFixedWidthServiceIds(raw: [UInt8](svcIds))
+            var bytes = convertDataToServiceIdStorage(data: userId)
+            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+            let uuid = UUID(uuid: (
+                byteArray[0], byteArray[1], byteArray[2], byteArray[3], 
+                byteArray[4], byteArray[5], byteArray[6], byteArray[7], 
+                byteArray[8], byteArray[9], byteArray[10], byteArray[11], 
+                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+            ))
+                
+            let userServiceId = Aci(fromUUID: uuid) 
+            let userServiceBinary = byteArray
+
+            guard let localUserIndex = serviceIds.firstIndex(where: { $0.serviceIdBinary == userServiceBinary }) else {
+                throw NSError(domain: "Error", code: 1, userInfo: [NSLocalizedDescriptionKey: "Local user not present in the members' service IDs list"])
+            }
+            let params = try GroupSecretParams(contents: [UInt8](gpSecParams))
+            let publicParams = try ServerPublicParams(contents: [UInt8](srvPubParams))
+            let endorsements = try response.receive(groupMembers: serviceIds, localUser: userServiceId, groupParams: params, serverParams: publicParams).endorsements
+
+            let combined = Data(try GroupSendEndorsement.combine(
+                endorsements[..<localUserIndex] + endorsements[(localUserIndex + 1)...]
+            ).serialize())
+            
+            return endorsements.map { Data(try! $0.serialize()) } + [combined]
+        }
+
+        Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts") { (gpSendEndResponse: Data, svcUuidIds: Data, userId: Data, time: UInt64, srvPubParams: Data) throws -> [Data] in
+            let response = try GroupSendEndorsementsResponse(contents: [UInt8](gpSendEndResponse))
+            let serviceIds = try parseUuidCipherTexts(raw: [UInt8](svcUuidIds))
+            let userServiceId = try UuidCiphertext(contents: [UInt8](userId))
+            let publicParams = try ServerPublicParams(contents: [UInt8](srvPubParams))
+
+            guard let localUserIndex = serviceIds.firstIndex(where: { $0.serialize() == userServiceId.serialize() }) else {
+                throw NSError(domain: "Error", code: 1, userInfo: [NSLocalizedDescriptionKey: "Local user not present in the members' service IDs list"])
+            }
+            
+            let endorsements = try response.receive(groupMembers: serviceIds, localUser: userServiceId, serverParams: publicParams).endorsements
+            
+            let combined = Data(try GroupSendEndorsement.combine(
+                Array(endorsements[..<localUserIndex]) + Array(endorsements[(localUserIndex + 1)...])
+            ).serialize())
+            return endorsements.map { Data(try! $0.serialize()) } + [combined]
+        }
+
+
+
         Function("HmacSHA256") { (key: Data, data: Data) -> Data? in
             do {
                 var hmac = HMAC<SHA256>(key: .init(data: [UInt8](key)))
@@ -969,6 +1075,41 @@ public class ReactNativeLibsignalClientModule: Module {
         let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniAsServiceId(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTimeUInt64)
         
         return authCredPniResp.serialize()
+    }
+    func parseUuidCipherTexts(raw: [UInt8]) throws -> [UuidCiphertext] {
+        guard raw.count % 65 == 0 else {
+            throw NSError(domain: "Invalid UUID ciphertexts length", code: 1, userInfo: nil)
+        }
+
+        var clc: [UuidCiphertext] = []
+        let count = raw.count / 65
+        for i in 0..<count {
+            let start = i * 65
+            let end = start + 65
+            let cphtx = try UuidCiphertext(contents: Array(raw[start..<end]))
+            clc.append(cphtx)
+        }
+ 
+        return clc
+    }
+
+    func parseFixedWidthServiceIds(raw: [UInt8]) throws -> [ServiceId] {
+        guard raw.count % 17 == 0 else {
+            throw NSError(domain: "Invalid service ids length", code: 1, userInfo: nil)
+        }
+        
+        return try stride(from: 0, to: raw.count, by: 17).map { i in  
+            let slice = Data(raw[i..<(i + 17)])
+            var bytes = convertDataToServiceIdStorage(data: slice)
+            let byteArray = try signalServiceIdServiceIdBinary(value: &bytes)
+            let uuid = UUID(uuid: (
+                byteArray[0], byteArray[1], byteArray[2], byteArray[3],
+                byteArray[4], byteArray[5], byteArray[6], byteArray[7],
+                byteArray[8], byteArray[9], byteArray[10], byteArray[11],
+                byteArray[12], byteArray[13], byteArray[14], byteArray[15]
+            ))
+            return Aci(fromUUID: uuid)
+        }
     }
     private func serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) throws -> [UInt8] {
         let srvSecParams = try ServerSecretParams(contents: [UInt8](sSrvSecParams))

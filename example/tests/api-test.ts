@@ -768,7 +768,7 @@ export const testAesGcmWithShortInput = () =>
         new Uint8Array(nonce),
         new Uint8Array(aad)
       );
-  console.log({ctext: Buffer.from(ctext).toString("hex")})
+
       assert(
         deepEql(
           Buffer.from(ctext).toString("hex"),

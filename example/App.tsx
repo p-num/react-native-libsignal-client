@@ -52,11 +52,11 @@ export default function App() {
           testGenerateRegistrationId,
           testZkGroup,
           testAesGcmWithShortInput,
-testAesGcmWithLongInput,
+          testAesGcmWithLongInput,
           testAesCbcWithShortInput,
           testAesCbcWithLongInput,
           testSignHmacSha256,
-          testConstantTimeEqual
+          testConstantTimeEqual,
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {
