@@ -552,6 +552,8 @@ export const testZkGroup = () => {
 
     assert(deepEqual(uuidCiphertext.serialized, uuidCiphertextRecv.serialized));
 
+    //    the important thing is that these test were commented by me weeks ago because they expect to be failed which is OK in ios , but the failure cause crash which can not be caught by try catch
+    // so i make them conditional by Platform.OS
     if (Platform.OS == "android") {
       //Test expiration
       assert(
