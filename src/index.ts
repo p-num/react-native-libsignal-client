@@ -725,12 +725,19 @@ export class UnidentifiedSenderMessageContent {
 		serialized: Uint8Array,
 	): UnidentifiedSenderMessageContent {
 		return new UnidentifiedSenderMessageContent(serialized);
-	}
+	}		
 
-	static new(): UnidentifiedSenderMessageContent { // groupId: Uint8Array | null // contentHint: number, // sender: SenderCertificate, // message: CiphertextMessage,
-		// TODO: find a solution for this!
-		throw new Error(
-			"Not implemented because we can't initialize a new CiphertextMessage on java side",
+	static new(groupId: Uint8Array | null, contentHint: number, sender: SenderCertificate, message: CipherTextMessage): UnidentifiedSenderMessageContent {
+		return new UnidentifiedSenderMessageContent(
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
+					message.serialized,
+					message.type(),
+					sender,
+					contentHint,
+					groupId
+				)
+			)
 		);
 	}
 
