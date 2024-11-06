@@ -732,8 +732,8 @@ export class UnidentifiedSenderMessageContent {
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
 					message.serialized,
-					message.type(),
-					sender,
+					message.type() as number,
+					sender.serialized,
 					contentHint,
 					groupId
 				)
