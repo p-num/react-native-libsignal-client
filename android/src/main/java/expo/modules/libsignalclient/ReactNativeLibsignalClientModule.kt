@@ -5,6 +5,7 @@ import android.app.slice.Slice
 import android.provider.Settings.Secure
 import android.util.Base64
 import android.view.accessibility.AccessibilityNodeInfo.CollectionInfo
+import android.webkit.WebHistoryItem
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -33,6 +34,7 @@ import org.signal.libsignal.protocol.kdf.HKDF
 import org.signal.libsignal.protocol.kem.KEMKeyPair
 import org.signal.libsignal.protocol.kem.KEMKeyType
 import org.signal.libsignal.protocol.kem.KEMPublicKey
+import org.signal.libsignal.protocol.message.CiphertextMessage
 import org.signal.libsignal.protocol.message.DecryptionErrorMessage
 import org.signal.libsignal.protocol.message.PlaintextContent
 import org.signal.libsignal.protocol.message.PreKeySignalMessage
@@ -78,6 +80,7 @@ import java.security.SecureRandom
 import java.security.Security
 import java.time.Instant
 import java.util.ArrayList
+import java.util.Optional
 import java.util.UUID
 import kotlin.random.Random
 import javax.crypto.Cipher
@@ -296,6 +299,7 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("groupSendEndorsementsResponseGetExpiration", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseGetExpiration)
     Function("groupSendEndorsementsResponseReceiveAndCombineWithServiceIds", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithServiceIds)
     Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts)
+    Function("unidentifiedSenderMessageContentNew", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentNew)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1425,6 +1429,23 @@ class ReactNativeLibsignalClientModule : Module() {
         val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
+    }
+
+    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Number, sSenderCertificate: ByteArray, contentHint: Int, groupId: Optional<ByteArray>): ByteArray {
+        val senderCertificate = SenderCertificate(sSenderCertificate)
+        val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
+
+        return UnidentifiedSenderMessageContent(ciphertextMessage, senderCertificate, contentHint, groupId).serialized
+    }
+}
+
+fun parseCiphertext(msg: ByteArray, msgType: Number): CiphertextMessage {
+    return when (msgType) {
+        2 -> SignalMessage(msg)
+        3 -> PreKeySignalMessage(msg)
+        7 -> SenderKeyMessage(msg)
+        8 -> PlaintextContent(msg)
+        else -> throw Error("invalid ciphertext type")
     }
 }
 
