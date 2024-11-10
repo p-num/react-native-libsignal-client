@@ -27,6 +27,7 @@ import org.signal.libsignal.protocol.SignalProtocolAddress
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
 import org.signal.libsignal.protocol.ecc.ECPublicKey
+import org.signal.libsignal.protocol.groups.GroupCipher
 import org.signal.libsignal.protocol.groups.GroupSessionBuilder
 import org.signal.libsignal.protocol.groups.state.InMemorySenderKeyStore
 import org.signal.libsignal.protocol.groups.state.SenderKeyRecord
@@ -300,6 +301,8 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("groupSendEndorsementsResponseReceiveAndCombineWithServiceIds", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithServiceIds)
     Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts)
     Function("unidentifiedSenderMessageContentNew", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentNew)
+    Function("groupCipherEncryptMessage", this@ReactNativeLibsignalClientModule::groupCipherEncryptMessage)
+    Function("groupCipherDecryptMessage", this@ReactNativeLibsignalClientModule::groupCipherDecryptMessage)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1436,6 +1439,40 @@ class ReactNativeLibsignalClientModule : Module() {
         val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
 
         return UnidentifiedSenderMessageContent(ciphertextMessage, senderCertificate, contentHint, groupId).serialized
+    }
+
+    private fun groupCipherEncryptMessage(senderAddress: String, sDistId: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<Pair<ByteArray, Int>, ByteArray> {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
+        val distId = UUID.fromString(sDistId)
+
+        val senderKeyStore = InMemorySenderKeyStore()
+        senderKeyStore.storeSenderKey(protoAddress, distId,  sndKeyRec)
+
+        val gpCipher = GroupCipher(senderKeyStore, protoAddress)
+        val cipherText = gpCipher.encrypt(distId, msg)
+
+        val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, distId)
+
+        return Pair(Pair(cipherText.serialize(), cipherText.type), newSenderKeyRecord.serialize())
+    }
+
+    private fun groupCipherDecryptMessage(senderAddress: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<ByteArray, ByteArray> {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
+        val senderKeyMessage = SenderKeyMessage(msg)
+
+        val senderKeyStore = InMemorySenderKeyStore()
+        senderKeyStore.storeSenderKey(protoAddress, senderKeyMessage.distributionId,  sndKeyRec)
+
+        val gpCipher = GroupCipher(senderKeyStore, protoAddress)
+        val cipherText = gpCipher.decrypt(msg)
+
+        val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, senderKeyMessage.distributionId)
+
+        return Pair(cipherText, newSenderKeyRecord.serialize())
     }
 }
 

@@ -1,12 +1,14 @@
 import "react-native-get-random-values";
 import { fromByteArray } from "react-native-quick-base64";
 import * as uuid from "uuid";
+import {v4 as uuidV4} from "uuid";
 import { Aci, ProtocolAddress, ServiceId } from "./Address";
 import type * as Native from "./Native";
 import {
 	CiphertextMessageType,
 	ContentHint,
 	Direction,
+	Uuid,
 } from "./ReactNativeLibsignalClient.types";
 import ReactNativeLibsignalClientModule from "./ReactNativeLibsignalClientModule";
 import {
@@ -727,7 +729,7 @@ export class UnidentifiedSenderMessageContent {
 		return new UnidentifiedSenderMessageContent(serialized);
 	}		
 
-	static new(groupId: Uint8Array | null, contentHint: number, sender: SenderCertificate, message: CipherTextMessage): UnidentifiedSenderMessageContent {
+	static new(message: CipherTextMessage, sender: SenderCertificate, contentHint: number, groupId: Uint8Array | null): UnidentifiedSenderMessageContent {
 		return new UnidentifiedSenderMessageContent(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
@@ -1555,3 +1557,37 @@ export function generateRegistrationID(): number {
 }
 
 export { CiphertextMessageType, ContentHint, Direction };
+
+export async function groupEncrypt(
+	sender: ProtocolAddress,
+	distributionId: Uuid,
+	store: SenderKeyStore,
+	message: Uint8Array
+): Promise<CipherTextMessage> {
+	let senderKeyRecord = await store.getSenderKey(sender, distributionId)
+	const [[msgRaw, type], newSenderKeyRecord] = await ReactNativeLibsignalClientModule.groupCipherEncryptMessage(
+			sender.toString(),
+			distributionId.toString(),
+			message,
+			senderKeyRecord?.serialized
+		)
+	const newRecord = SenderKeyRecord._fromSerialized(newSenderKeyRecord)
+	await store.saveSenderKey(sender, distributionId, newRecord)
+
+	return bufferToCipherText(msgRaw, type)
+}
+
+export async function groupDecrypt(
+	sender: ProtocolAddress,
+	store: SenderKeyStore,
+	message: Uint8Array
+): Promise<Uint8Array> {
+	let msg = SenderKeyMessage._fromSerialized(message)
+	let senderKeyRecord = await store.getSenderKey(sender, msg.distributionId())
+	let [decrypted, rawNewRecord] = ReactNativeLibsignalClientModule.groupCipherDecryptMessage(sender, message, senderKeyRecord);
+
+	const newRecord = SenderKeyRecord._fromSerialized(rawNewRecord)
+	await store.saveSenderKey(sender, msg.distributionId(), newRecord)
+
+	return decrypted
+}
