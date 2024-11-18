@@ -1343,7 +1343,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
 
     
-    private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Number {
+    private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Long {
         val gpFullToken = GroupSendFullToken(sgpfulltoken)
 
         return gpFullToken.expiration.epochSecond
@@ -1434,7 +1434,7 @@ class ReactNativeLibsignalClientModule : Module() {
         return endorsements.map { end -> end.serialize() }.plus(combined)
     }
 
-    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Number, sSenderCertificate: ByteArray, contentHint: Int, groupId: Optional<ByteArray>): ByteArray {
+    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Int, sSenderCertificate: ByteArray, contentHint: Int, groupId: Optional<ByteArray>): ByteArray {
         val senderCertificate = SenderCertificate(sSenderCertificate)
         val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
 
@@ -1476,7 +1476,7 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 }
 
-fun parseCiphertext(msg: ByteArray, msgType: Number): CiphertextMessage {
+fun parseCiphertext(msg: ByteArray, msgType: Int): CiphertextMessage {
     return when (msgType) {
         2 -> SignalMessage(msg)
         3 -> PreKeySignalMessage(msg)
