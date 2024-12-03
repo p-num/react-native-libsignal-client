@@ -4,13 +4,13 @@ import * as uuid from "uuid";
 import {v4 as uuidV4} from "uuid";
 import { Aci, ProtocolAddress, ServiceId } from "./Address";
 import type * as Native from "./Native";
-import {
+import {	
 	CiphertextMessageType,
 	ContentHint,
 	Direction,
 	Uuid,
 } from "./ReactNativeLibsignalClient.types";
-import ReactNativeLibsignalClientModule from "./ReactNativeLibsignalClientModule";
+import ReactNativeLibsignalClientModule, { addLogListener } from "./ReactNativeLibsignalClientModule";
 import {
 	type KeyObject,
 	getIdentityStoreInitializer,
@@ -737,7 +737,7 @@ export class UnidentifiedSenderMessageContent {
 					message.type() as number,
 					sender.serialized,
 					contentHint,
-					groupId
+					groupId ? groupId : new Uint8Array([])
 				)
 			)
 		);
@@ -1590,4 +1590,10 @@ export async function groupDecrypt(
 	await store.saveSenderKey(sender, msg.distributionId(), newRecord)
 
 	return decrypted
+}
+
+export function connectNativeLogger(f: (level: string, msg: string) => void) {
+	addLogListener((l) => {	
+		f(l.level, l.msg)
+	})
 }

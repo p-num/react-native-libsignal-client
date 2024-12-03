@@ -1,11 +1,6 @@
 package expo.modules.libsignalclient
 
-import android.app.Service
-import android.app.slice.Slice
-import android.provider.Settings.Secure
 import android.util.Base64
-import android.view.accessibility.AccessibilityNodeInfo.CollectionInfo
-import android.webkit.WebHistoryItem
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -67,7 +62,6 @@ import org.signal.libsignal.zkgroup.groupsend.GroupSendDerivedKeyPair
 import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsement
 import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsementsResponse
 import org.signal.libsignal.zkgroup.groupsend.GroupSendFullToken
-import org.signal.libsignal.zkgroup.internal.Constants
 import org.signal.libsignal.zkgroup.profiles.ClientZkProfileOperations
 import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredential
 import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredentialResponse
@@ -78,12 +72,10 @@ import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequest
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
 import org.signal.libsignal.zkgroup.profiles.ServerZkProfileOperations
 import java.security.SecureRandom
-import java.security.Security
 import java.time.Instant
-import java.util.ArrayList
+import java.util.Arrays
 import java.util.Optional
 import java.util.UUID
-import kotlin.random.Random
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
@@ -142,8 +134,24 @@ fun updateKyberPreKeyStoreStateFromInMemoryProtocolStore(store: InMemorySignalPr
 }
 
 class ReactNativeLibsignalClientModule : Module() {
+    private val logListener: (ReactNativeLibsignalClientLogType) -> String = fun (l: ReactNativeLibsignalClientLogType): String {
+        val m = HashMap<String, String>()
+        m["msg"] = l.messages.contentToString()
+        m["level"] = l.level
+
+        this@ReactNativeLibsignalClientModule.sendEvent("onLogGenerated", m)
+
+        return "null"
+    }
+
   override fun definition() = ModuleDefinition {
     Name("ReactNativeLibsignalClient")
+      OnCreate {
+          ReactNativeLibsignalClientLogger.addCallback(logListener)
+          ReactNativeLibsignalClientLogger.initiate()
+      }
+      Events("onLogGenerated")
+
 
     Function("serviceIdServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdServiceIdBinary)
     Function("serviceIdServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdServiceIdString)
@@ -1021,8 +1029,6 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun groupSecretParamsGetPublicParams(gpSecParams: ByteArray) : ByteArray {
         val groupSecretParams = GroupSecretParams(gpSecParams);
         return groupSecretParams.publicParams.serialize();
-
-        return ByteArray(0);
     }
 
     private fun groupSecretParamsGetMasterKey(gpSecParams: ByteArray) : ByteArray {
@@ -1434,11 +1440,17 @@ class ReactNativeLibsignalClientModule : Module() {
         return endorsements.map { end -> end.serialize() }.plus(combined)
     }
 
-    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Int, sSenderCertificate: ByteArray, contentHint: Int, groupId: Optional<ByteArray>): ByteArray {
+    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Int, sSenderCertificate: ByteArray, contentHint: Int, groupId: ByteArray): ByteArray {
         val senderCertificate = SenderCertificate(sSenderCertificate)
         val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
 
-        return UnidentifiedSenderMessageContent(ciphertextMessage, senderCertificate, contentHint, groupId).serialized
+        val opGroupId: Optional<ByteArray> = if (groupId.isEmpty()) {
+            Optional.empty()
+        } else {
+            Optional.of(groupId)
+        }
+
+        return UnidentifiedSenderMessageContent(ciphertextMessage, senderCertificate, contentHint, opGroupId).serialized
     }
 
     private fun groupCipherEncryptMessage(senderAddress: String, sDistId: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<Pair<ByteArray, Int>, ByteArray> {
