@@ -1,10 +1,6 @@
 package expo.modules.libsignalclient
 
-import android.app.Service
-import android.app.slice.Slice
-import android.provider.Settings.Secure
 import android.util.Base64
-import android.view.accessibility.AccessibilityNodeInfo.CollectionInfo
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -26,6 +22,7 @@ import org.signal.libsignal.protocol.SignalProtocolAddress
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
 import org.signal.libsignal.protocol.ecc.ECPublicKey
+import org.signal.libsignal.protocol.groups.GroupCipher
 import org.signal.libsignal.protocol.groups.GroupSessionBuilder
 import org.signal.libsignal.protocol.groups.state.InMemorySenderKeyStore
 import org.signal.libsignal.protocol.groups.state.SenderKeyRecord
@@ -33,6 +30,7 @@ import org.signal.libsignal.protocol.kdf.HKDF
 import org.signal.libsignal.protocol.kem.KEMKeyPair
 import org.signal.libsignal.protocol.kem.KEMKeyType
 import org.signal.libsignal.protocol.kem.KEMPublicKey
+import org.signal.libsignal.protocol.message.CiphertextMessage
 import org.signal.libsignal.protocol.message.DecryptionErrorMessage
 import org.signal.libsignal.protocol.message.PlaintextContent
 import org.signal.libsignal.protocol.message.PreKeySignalMessage
@@ -64,7 +62,6 @@ import org.signal.libsignal.zkgroup.groupsend.GroupSendDerivedKeyPair
 import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsement
 import org.signal.libsignal.zkgroup.groupsend.GroupSendEndorsementsResponse
 import org.signal.libsignal.zkgroup.groupsend.GroupSendFullToken
-import org.signal.libsignal.zkgroup.internal.Constants
 import org.signal.libsignal.zkgroup.profiles.ClientZkProfileOperations
 import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredential
 import org.signal.libsignal.zkgroup.profiles.ExpiringProfileKeyCredentialResponse
@@ -75,11 +72,10 @@ import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequest
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
 import org.signal.libsignal.zkgroup.profiles.ServerZkProfileOperations
 import java.security.SecureRandom
-import java.security.Security
 import java.time.Instant
-import java.util.ArrayList
+import java.util.Arrays
+import java.util.Optional
 import java.util.UUID
-import kotlin.random.Random
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
@@ -138,8 +134,24 @@ fun updateKyberPreKeyStoreStateFromInMemoryProtocolStore(store: InMemorySignalPr
 }
 
 class ReactNativeLibsignalClientModule : Module() {
+    private val logListener: (ReactNativeLibsignalClientLogType) -> String = fun (l: ReactNativeLibsignalClientLogType): String {
+        val m = HashMap<String, String>()
+        m["msg"] = l.messages.contentToString()
+        m["level"] = l.level
+
+        this@ReactNativeLibsignalClientModule.sendEvent("onLogGenerated", m)
+
+        return "null"
+    }
+
   override fun definition() = ModuleDefinition {
     Name("ReactNativeLibsignalClient")
+      OnCreate {
+          ReactNativeLibsignalClientLogger.addCallback(logListener)
+          ReactNativeLibsignalClientLogger.initiate()
+      }
+      Events("onLogGenerated")
+
 
     Function("serviceIdServiceIdBinary", this@ReactNativeLibsignalClientModule::serviceIdServiceIdBinary)
     Function("serviceIdServiceIdString", this@ReactNativeLibsignalClientModule::serviceIdServiceIdString)
@@ -296,6 +308,9 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("groupSendEndorsementsResponseGetExpiration", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseGetExpiration)
     Function("groupSendEndorsementsResponseReceiveAndCombineWithServiceIds", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithServiceIds)
     Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts", this@ReactNativeLibsignalClientModule::groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts)
+    Function("unidentifiedSenderMessageContentNew", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentNew)
+    Function("groupCipherEncryptMessage", this@ReactNativeLibsignalClientModule::groupCipherEncryptMessage)
+    Function("groupCipherDecryptMessage", this@ReactNativeLibsignalClientModule::groupCipherDecryptMessage)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1014,8 +1029,6 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun groupSecretParamsGetPublicParams(gpSecParams: ByteArray) : ByteArray {
         val groupSecretParams = GroupSecretParams(gpSecParams);
         return groupSecretParams.publicParams.serialize();
-
-        return ByteArray(0);
     }
 
     private fun groupSecretParamsGetMasterKey(gpSecParams: ByteArray) : ByteArray {
@@ -1336,7 +1349,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
 
     
-    private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Number {
+    private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Long {
         val gpFullToken = GroupSendFullToken(sgpfulltoken)
 
         return gpFullToken.expiration.epochSecond
@@ -1425,6 +1438,63 @@ class ReactNativeLibsignalClientModule : Module() {
         val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
+    }
+
+    private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Int, sSenderCertificate: ByteArray, contentHint: Int, groupId: ByteArray): ByteArray {
+        val senderCertificate = SenderCertificate(sSenderCertificate)
+        val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
+
+        val opGroupId: Optional<ByteArray> = if (groupId.isEmpty()) {
+            Optional.empty()
+        } else {
+            Optional.of(groupId)
+        }
+
+        return UnidentifiedSenderMessageContent(ciphertextMessage, senderCertificate, contentHint, opGroupId).serialized
+    }
+
+    private fun groupCipherEncryptMessage(senderAddress: String, sDistId: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<Pair<ByteArray, Int>, ByteArray> {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
+        val distId = UUID.fromString(sDistId)
+
+        val senderKeyStore = InMemorySenderKeyStore()
+        senderKeyStore.storeSenderKey(protoAddress, distId,  sndKeyRec)
+
+        val gpCipher = GroupCipher(senderKeyStore, protoAddress)
+        val cipherText = gpCipher.encrypt(distId, msg)
+
+        val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, distId)
+
+        return Pair(Pair(cipherText.serialize(), cipherText.type), newSenderKeyRecord.serialize())
+    }
+
+    private fun groupCipherDecryptMessage(senderAddress: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<ByteArray, ByteArray> {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+        val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
+        val senderKeyMessage = SenderKeyMessage(msg)
+
+        val senderKeyStore = InMemorySenderKeyStore()
+        senderKeyStore.storeSenderKey(protoAddress, senderKeyMessage.distributionId,  sndKeyRec)
+
+        val gpCipher = GroupCipher(senderKeyStore, protoAddress)
+        val cipherText = gpCipher.decrypt(msg)
+
+        val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, senderKeyMessage.distributionId)
+
+        return Pair(cipherText, newSenderKeyRecord.serialize())
+    }
+}
+
+fun parseCiphertext(msg: ByteArray, msgType: Int): CiphertextMessage {
+    return when (msgType) {
+        2 -> SignalMessage(msg)
+        3 -> PreKeySignalMessage(msg)
+        7 -> SenderKeyMessage(msg)
+        8 -> PlaintextContent(msg)
+        else -> throw Error("invalid ciphertext type")
     }
 }
 
