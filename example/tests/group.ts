@@ -1,5 +1,6 @@
 import deepEqual from "deep-eql";
 import { assert, isInstanceOf } from "typed-assert";
+import { Buffer } from "@craftzdog/react-native-buffer";
 
 import { TestStores } from "./mockStores";
 import { test } from "./utils";
@@ -25,7 +26,7 @@ import {
 
 export const testGroup = () => {
   test("can encrypt and decrypt", async () => {
-    const sender = ProtocolAddress.new("sender:1");
+    const sender = ProtocolAddress.new("sender.1");
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
     const aSenderKeyStore = new TestStores().sender;
     const skdm = await SenderKeyDistributionMessage.create(
@@ -39,7 +40,7 @@ export const testGroup = () => {
     const bSenderKeyStore = new TestStores().sender;
     await processSenderKeyDistributionMessage(sender, skdm, bSenderKeyStore);
 
-    const message = Buffer.from("0a0b0c", "hex");
+    const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
 
     const aCtext = await groupEncrypt(
       sender,
@@ -160,7 +161,7 @@ export const testGroup = () => {
     const bSenderKeyStore = new TestStores().sender;
     await processSenderKeyDistributionMessage(aAddress, skdm, bSenderKeyStore);
 
-    const message = Buffer.from("0a0b0c", "hex");
+    const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
 
     const aCtext = await groupEncrypt(
       aAddress,
@@ -192,11 +193,11 @@ export const testGroup = () => {
       bAddress
     );
 
-    assert(deepEqual(bUsmc.senderCertificate().senderE164(), aE164));
-    assert(deepEqual(bUsmc.senderCertificate().senderUuid(), aUuid));
-    assert(deepEqual(bUsmc.senderCertificate().senderDeviceId(), aDeviceId));
-    assert(deepEqual(bUsmc.contentHint(), ContentHint.Implicit));
-    assert(deepEqual(bUsmc.groupId(), Buffer.from([42])));
+    assert(deepEqual(bUsmc.senderCertificate().senderE164(), aE164), "sender E164 an calculated certificate E164 were not equal.");
+    assert(deepEqual(bUsmc.senderCertificate().senderUuid(), aUuid), "sender certificate uuid is not equal to expected uuid");
+    assert(deepEqual(bUsmc.senderCertificate().senderDeviceId(), aDeviceId), "sender certificate device id is not equal to expected device id");
+    assert(deepEqual(bUsmc.contentHint(), ContentHint.Implicit), "decrypted content hint is not implicit");
+    assert(deepEqual(bUsmc.groupId(), new Uint8Array(Buffer.from([42]))), "group id    missmatch");
 
     const bPtext = await groupDecrypt(
       aAddress,
@@ -301,7 +302,7 @@ export const testGroup = () => {
       aSenderKeyStore
     );
 
-    const message = Buffer.from("0a0b0c", "hex");
+    const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
 
     const aCtext = await groupEncrypt(
       aAddress,
@@ -399,7 +400,7 @@ export const testGroup = () => {
       aSenderKeyStore
     );
 
-    const message = Buffer.from("0a0b0c", "hex");
+    const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
 
     const aCtext = await groupEncrypt(
       aAddress,
@@ -428,22 +429,22 @@ export const testGroup = () => {
 
     // Clients can't directly parse arbitrary SSv2 SentMessages, so just check that it contains
     // the excluded recipient service IDs followed by a device ID of 0.
-    const hexEncodedSentMessage = aSentMessage.toString();
+    const hexEncodedSentMessage = Buffer.from(aSentMessage).toString("hex"); 
 
     const indexOfE = hexEncodedSentMessage.indexOf(
-      ServiceId.parseFromServiceIdString(eUuid)
-        .getServiceIdFixedWidthBinary()
-        .toString()
+      Buffer.from(
+        ServiceId.parseFromServiceIdString(eUuid)
+        .getServiceIdFixedWidthBinary()).toString("hex")
     );
-    assert(!deepEqual(indexOfE, -1));
-    assert(deepEqual(aSentMessage[indexOfE / 2 + 17], 0));
+    assert(!deepEqual(indexOfE, -1), "1");
+    assert(deepEqual(aSentMessage[indexOfE / 2 + 17], 0), "2");
 
     const indexOfM = hexEncodedSentMessage.indexOf(
-      ServiceId.parseFromServiceIdString(mUuid)
-        .getServiceIdFixedWidthBinary()
-        .toString()
+      Buffer.from(ServiceId.parseFromServiceIdString(mUuid)
+        .getServiceIdFixedWidthBinary())
+        .toString("hex")
     );
-    assert(!deepEqual(indexOfM, -1));
-    assert(deepEqual(aSentMessage[indexOfM / 2 + 17], 0));
+    assert(!deepEqual(indexOfM, -1), "3");
+    assert(deepEqual(aSentMessage[indexOfM / 2 + 17], 0), "4");
   });
 };

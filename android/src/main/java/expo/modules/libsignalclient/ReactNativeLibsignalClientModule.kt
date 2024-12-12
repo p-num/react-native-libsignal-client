@@ -1,6 +1,7 @@
 package expo.modules.libsignalclient
 
 import android.util.Base64
+import expo.modules.core.utilities.ifNull
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -21,6 +22,7 @@ import org.signal.libsignal.protocol.SessionCipher
 import org.signal.libsignal.protocol.SignalProtocolAddress
 import org.signal.libsignal.protocol.ecc.Curve
 import org.signal.libsignal.protocol.ecc.ECKeyPair
+import org.signal.libsignal.protocol.ecc.ECPrivateKey
 import org.signal.libsignal.protocol.ecc.ECPublicKey
 import org.signal.libsignal.protocol.groups.GroupCipher
 import org.signal.libsignal.protocol.groups.GroupSessionBuilder
@@ -41,6 +43,7 @@ import org.signal.libsignal.protocol.state.KyberPreKeyRecord
 import org.signal.libsignal.protocol.state.PreKeyBundle
 import org.signal.libsignal.protocol.state.PreKeyRecord
 import org.signal.libsignal.protocol.state.SessionRecord
+import org.signal.libsignal.protocol.state.SignalProtocolStore
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord
 import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore
 import org.signal.libsignal.protocol.util.KeyHelper
@@ -72,6 +75,9 @@ import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialPresentation
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequest
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
 import org.signal.libsignal.zkgroup.profiles.ServerZkProfileOperations
+import java.lang.StackWalker.Option
+import java.lang.annotation.Native
+import java.security.PrivateKey
 import java.security.SecureRandom
 import java.time.Instant
 import java.util.Optional
@@ -313,6 +319,9 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("groupCipherDecryptMessage", this@ReactNativeLibsignalClientModule::groupCipherDecryptMessage)
     Function("senderKeyDistributionMessageCreate", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageCreate)
     Function("sealedSenderMultiRecipientEncrypt", this@ReactNativeLibsignalClientModule::sealedSenderMultiRecipientEncrypt)
+    Function("serverCertificateNew", this@ReactNativeLibsignalClientModule::serverCertificateNew)
+    Function("senderCertificateNew", this@ReactNativeLibsignalClientModule::senderCertificateNew)
+    Function("sealedSenderMultiRecipientMessageForSingleRecipient", this@ReactNativeLibsignalClientModule::sealedSenderMultiRecipientMessageForSingleRecipient)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -974,26 +983,18 @@ class ReactNativeLibsignalClientModule : Module() {
         val content = UnidentifiedSenderMessageContent(serializedContent)
         return content.contentHint
     }
-    private fun unidentifiedSenderMessageContentGetGroupId(serializedContent: ByteArray) : String {
+    private fun unidentifiedSenderMessageContentGetGroupId(serializedContent: ByteArray) : ByteArray {
         val content = UnidentifiedSenderMessageContent(serializedContent)
-        return content.groupId.toString()
+        return content.groupId.orElse(ByteArray(0))
     }
 
-    private fun sealedSenderDecryptToUsmc(base64Message: String, identityKeyState: IdentityStoreData, senderAddress: String) :Pair<ByteArray, SerializedAddressedKeys>  {
-        val message = Base64.decode(base64Message, Base64.NO_WRAP)
-        val (base64IdentityKey, ownerData) = identityKeyState
+    private fun sealedSenderDecryptToUsmc(cipherText: ByteArray, ownerData: OwnerData) : ByteArray {
         val (base64OwnerKeypair, ownerRegistrationId) = ownerData
         val ownerKeypair = IdentityKeyPair(Base64.decode(base64OwnerKeypair, Base64.NO_WRAP))
-        val identityKey = IdentityKey(Base64.decode(base64IdentityKey, Base64.NO_WRAP))
-        val store = InMemorySignalProtocolStoreWithPrekeysList(ownerKeypair, ownerRegistrationId)
-        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
-        val remoteProtoAddress = SignalProtocolAddress(serviceId, deviceId)
-        store.saveIdentity(remoteProtoAddress, identityKey)
-        val sealedSessionCipher = SealedSessionCipher(store, UUID.fromString(serviceId), serviceId, deviceId)
-        val validator = CertificateValidator(ECPublicKey(ownerKeypair.publicKey.serialize()))
-        val plaintext = sealedSessionCipher.decrypt(validator, message, Instant.now().toEpochMilli())
-        val updatedInMemorySessionStore = updateSessionStoreStateFromInMemoryProtocolStore(store, SignalProtocolAddress(serviceId, deviceId))
-        return Pair(plaintext.paddedMessage, updatedInMemorySessionStore)
+
+        val sigProtocStore = InMemorySignalProtocolStore(ownerKeypair, ownerRegistrationId)
+
+        return UnidentifiedSenderMessageContent(org.signal.libsignal.internal.Native.SealedSessionCipher_DecryptToUsmc(cipherText, sigProtocStore)).serialized
     }
 
     private fun generateRegistrationId(): Int {
@@ -1502,8 +1503,9 @@ class ReactNativeLibsignalClientModule : Module() {
         val r = GroupSessionBuilder(senderKeyStore)
         val senderKeyDistributionMessage = r.create(senderProtocolAddress, distributionId)
         val updatedRec = senderKeyStore.loadSenderKey(senderProtocolAddress, distributionId)
+        val updatedRecSer = Optional.ofNullable(updatedRec).map { v -> v.serialize() }
 
-        return Pair(senderKeyDistributionMessage.serialize(), updatedRec.serialize())
+        return Pair(senderKeyDistributionMessage.serialize(), updatedRecSer.orElse(ByteArray(0)))
     }
 
     private fun sealedSenderMultiRecipientEncrypt(ownerIdentityData: OwnerData, srecipients: List<String>, recipientSessions: List<ByteArray>, excludedRecipients: ByteArray, uidentcontent: ByteArray, identityStoreState: List<Pair<String, String>>): ByteArray {
@@ -1515,7 +1517,7 @@ class ReactNativeLibsignalClientModule : Module() {
         val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData;
         val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
         val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
-        val sigStore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
+        val sigS    tore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
         for (p in identityStoreState) {
                 val (serviceid, deviceid) = getDeviceIdAndServiceId(p.first)
                 val padd = SignalProtocolAddress(serviceid, deviceid)
@@ -1524,8 +1526,40 @@ class ReactNativeLibsignalClientModule : Module() {
         }
 
         // random uuid is generated so that we wont panic. don't worry it is not needed in encryption process
-        val gpCipher = SealedSessionCipher(sigStore, UUID.randomUUID(), null, 1)
+        val gpCipher = SealedSessionCipher(sigStore, UUID.randomUUID(), null, ownerRegistrationId)
         return gpCipher.multiRecipientEncrypt(recipients, recipientsSessions, messageContent, excludedServiceIds)
+    }
+
+    private fun serverCertificateNew(keyId: Int, serverKey: ByteArray, trustKey: ByteArray): ByteArray {
+        val trustRoot = ECPrivateKey(trustKey)
+        val serverKeyPub = ECPublicKey(serverKey)
+
+        return ServerCertificate(trustRoot, keyId, serverKeyPub).serialized
+    }
+
+    private fun senderCertificateNew(
+        localSenderUuid: String,
+        senderE164: String,
+        senderDeviceId: Int,
+        senderKey: ByteArray,
+        expiration: Long,
+        signerCert: ByteArray,
+        signerKey: ByteArray): ByteArray {
+        val senderPubKey = ECPublicKey(senderKey)
+        val signerCertif = ServerCertificate(signerCert)
+        val signerPrivKey = ECPrivateKey(signerKey)
+
+        val senderOpE164 = if (senderE164.isEmpty()) {
+            Optional.empty<String>()
+        } else {
+            Optional.of(senderE164)
+        }
+
+        return signerCertif.issue(signerPrivKey, localSenderUuid, senderOpE164, senderDeviceId, senderPubKey, expiration).serialized
+    }
+
+    private fun sealedSenderMultiRecipientMessageForSingleRecipient(msg: ByteArray): ByteArray {
+        return org.signal.libsignal.internal.Native.SealedSessionCipher_MultiRecipientMessageForSingleRecipient(msg)
     }
 }
 
