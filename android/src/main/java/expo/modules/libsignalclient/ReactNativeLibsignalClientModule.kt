@@ -42,6 +42,7 @@ import org.signal.libsignal.protocol.state.PreKeyBundle
 import org.signal.libsignal.protocol.state.PreKeyRecord
 import org.signal.libsignal.protocol.state.SessionRecord
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord
+import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore
 import org.signal.libsignal.protocol.util.KeyHelper
 import org.signal.libsignal.zkgroup.NotarySignature
 import org.signal.libsignal.zkgroup.ServerPublicParams
@@ -73,7 +74,6 @@ import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
 import org.signal.libsignal.zkgroup.profiles.ServerZkProfileOperations
 import java.security.SecureRandom
 import java.time.Instant
-import java.util.Arrays
 import java.util.Optional
 import java.util.UUID
 import javax.crypto.Cipher
@@ -144,7 +144,7 @@ class ReactNativeLibsignalClientModule : Module() {
         return "null"
     }
 
-  override fun definition() = ModuleDefinition {
+  override fun definition() = ModuleDefinition      {
     Name("ReactNativeLibsignalClient")
       OnCreate {
           ReactNativeLibsignalClientLogger.addCallback(logListener)
@@ -311,6 +311,8 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("unidentifiedSenderMessageContentNew", this@ReactNativeLibsignalClientModule::unidentifiedSenderMessageContentNew)
     Function("groupCipherEncryptMessage", this@ReactNativeLibsignalClientModule::groupCipherEncryptMessage)
     Function("groupCipherDecryptMessage", this@ReactNativeLibsignalClientModule::groupCipherDecryptMessage)
+    Function("senderKeyDistributionMessageCreate", this@ReactNativeLibsignalClientModule::senderKeyDistributionMessageCreate)
+    Function("sealedSenderMultiRecipientEncrypt", this@ReactNativeLibsignalClientModule::sealedSenderMultiRecipientEncrypt)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1443,7 +1445,6 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun unidentifiedSenderMessageContentNew(msgCiphertext: ByteArray, cipherTextType: Int, sSenderCertificate: ByteArray, contentHint: Int, groupId: ByteArray): ByteArray {
         val senderCertificate = SenderCertificate(sSenderCertificate)
         val ciphertextMessage = parseCiphertext(msgCiphertext, cipherTextType)
-
         val opGroupId: Optional<ByteArray> = if (groupId.isEmpty()) {
             Optional.empty()
         } else {
@@ -1456,11 +1457,13 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun groupCipherEncryptMessage(senderAddress: String, sDistId: String, msg: ByteArray, sSenderKeyRecord: ByteArray): Pair<Pair<ByteArray, Int>, ByteArray> {
         val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
         val protoAddress = SignalProtocolAddress(serviceId, deviceId)
-        val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
         val distId = UUID.fromString(sDistId)
 
         val senderKeyStore = InMemorySenderKeyStore()
-        senderKeyStore.storeSenderKey(protoAddress, distId,  sndKeyRec)
+        if (sSenderKeyRecord.isNotEmpty()) {
+            val sndKeyRec = SenderKeyRecord(sSenderKeyRecord)
+            senderKeyStore.storeSenderKey(protoAddress, distId,  sndKeyRec)
+        }
 
         val gpCipher = GroupCipher(senderKeyStore, protoAddress)
         val cipherText = gpCipher.encrypt(distId, msg)
@@ -1485,6 +1488,44 @@ class ReactNativeLibsignalClientModule : Module() {
         val newSenderKeyRecord = senderKeyStore.loadSenderKey(protoAddress, senderKeyMessage.distributionId)
 
         return Pair(cipherText, newSenderKeyRecord.serialize())
+    }
+
+    private fun senderKeyDistributionMessageCreate(senderAddress: String, distId: String, sKeyRecord: ByteArray): Pair<ByteArray, ByteArray> {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
+        val senderProtocolAddress = SignalProtocolAddress(serviceId, deviceId);
+        val senderKeyStore = InMemorySenderKeyStore()
+        val distributionId = UUID.fromString(distId)
+        if (sKeyRecord.isNotEmpty()) {
+            val rec = SenderKeyRecord(sKeyRecord)
+            senderKeyStore.storeSenderKey(senderProtocolAddress, distributionId, rec)
+        }
+        val r = GroupSessionBuilder(senderKeyStore)
+        val senderKeyDistributionMessage = r.create(senderProtocolAddress, distributionId)
+        val updatedRec = senderKeyStore.loadSenderKey(senderProtocolAddress, distributionId)
+
+        return Pair(senderKeyDistributionMessage.serialize(), updatedRec.serialize())
+    }
+
+    private fun sealedSenderMultiRecipientEncrypt(ownerIdentityData: OwnerData, srecipients: List<String>, recipientSessions: List<ByteArray>, excludedRecipients: ByteArray, uidentcontent: ByteArray, identityStoreState: List<Pair<String, String>>): ByteArray {
+        val messageContent = UnidentifiedSenderMessageContent(uidentcontent)
+        val recipients = srecipients.map { v -> getDeviceIdAndServiceId(v) }.map { v -> SignalProtocolAddress(v.first, v.second) }
+        val recipientsSessions = recipientSessions.map { v -> SessionRecord(v) }
+        val excludedServiceIds = parseFixedWidthServiceIds(excludedRecipients)
+
+        val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData;
+        val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
+        val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
+        val sigStore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
+        for (p in identityStoreState) {
+                val (serviceid, deviceid) = getDeviceIdAndServiceId(p.first)
+                val padd = SignalProtocolAddress(serviceid, deviceid)
+                val ident = IdentityKey(        Base64.decode(p.second, Base64.NO_WRAP))
+                sigStore.saveIdentity(padd, ident)
+        }
+
+        // random uuid is generated so that we wont panic. don't worry it is not needed in encryption process
+        val gpCipher = SealedSessionCipher(sigStore, UUID.randomUUID(), null, 1)
+        return gpCipher.multiRecipientEncrypt(recipients, recipientsSessions, messageContent, excludedServiceIds)
     }
 }
 
