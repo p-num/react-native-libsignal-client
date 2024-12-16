@@ -24,6 +24,7 @@ import {
 } from "./tests/api-test";
 import { runTests, sleep } from "./tests/utils";
 import { testZkGroup } from "./tests/zkgroup-test";
+import { testGroup } from "./tests/group";
 export type TestStatus = "IDLE" | "RUNNING" | "SUCCESS" | "ERROR";
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
           testAesCbcWithLongInput,
           testSignHmacSha256,
           testConstantTimeEqual,
+          testGroup,
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {

@@ -408,11 +408,87 @@ public class CipherContext {
 }
 
 
+
+struct ReactNativeLibsignalClientLogType {
+    let level: String
+    let messages: [String]
+}
+
+class ReactNativeLibsignalClientLogger {
+    private static var callbacks: [(ReactNativeLibsignalClientLogType) -> String] = []
+
+    static func initiate() {
+        Native.initializeLogger(level: 2, loggerClass: ReactNativeLibsignalClientLogger.self)
+    }
+
+    static func log(level: Int, message: String, additionalMessage: String? = nil) {
+        let lvl = determineLogLevel(level: level)
+        log(level: lvl, msg: message, args: additionalMessage != nil ? [additionalMessage!] : [])
+    }
+
+    private static func log(level: String, msg: String, args: [String]) {
+        let messages = [msg] + args
+        let log = ReactNativeLibsignalClientLogType(level: level, messages: messages)
+        notifyCallbacks(log: log)
+    }
+
+    static func addCallback(_ callback: @escaping (ReactNativeLibsignalClientLogType) -> String) {
+        callbacks.append(callback)
+    }
+
+    private static func notifyCallbacks(log: ReactNativeLibsignalClientLogType) {
+        for callback in callbacks {
+            _ = callback(log)
+        }
+    }
+
+    private static func determineLogLevel(level: Int) -> String {
+        switch level {
+        case 2: return "VERBOSE"
+        case 3: return "DEBUG"
+        case 4: return "INFO"
+        case 5: return "WARN"
+        case 6: return "ERROR"
+        case 7: return "ASSERT"
+        default: return "UNKNOWN"
+        }
+    }
+}
+
+class Native {
+    static func initializeLogger(level: Int, loggerClass: Any.Type) {
+        print("Logger initialized with level \(level) for class \(loggerClass)")
+    }
+}
+
 public class ReactNativeLibsignalClientModule: Module {
+    private var logListener: ((ReactNativeLibsignalClientLogType) -> String)?
+
+
     public func definition() -> ModuleDefinition {
+        
 
 
         Name("ReactNativeLibsignalClient")
+            OnCreate {
+            self.logListener = { [weak self] log in
+                guard let self = self else { return "null" }
+                var logData: [String: String] = [:]
+                logData["msg"] = log.messages.joined(separator: ", ")
+                logData["level"] = log.level
+
+                self.sendEvent("onLogGenerated", logData)
+                return "null"
+            }
+
+            if let listener = self.logListener {
+                ReactNativeLibsignalClientLogger.addCallback(listener)
+            }
+
+            ReactNativeLibsignalClientLogger.initiate()
+        }
+
+        Events("onLogGenerated")
         /*START          bridge functions definitions              START*/
         Function("serverPublicParamsVerifySignature") { (serializedSrvPubParams: Data, msg: Data, sig: Data) -> Bool in
             return try! serverPublicParamsVerifySignatureHelper(serializedSrvPubParams: serializedSrvPubParams, msg: msg, sig: sig)
@@ -987,6 +1063,110 @@ public class ReactNativeLibsignalClientModule: Module {
                 Array(endorsements[..<localUserIndex]) + Array(endorsements[(localUserIndex + 1)...])
             ).serialize())
             return endorsements.map { Data(try! $0.serialize()) } + [combined]
+        }
+
+        Function("groupCipherEncryptMessage") { (senderAddress: String, sDistId: String, msg: Data, sSenderKeyRecord: Data) throws -> ((Data, Int), Data) in
+            guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
+                throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
+            }
+            let protoAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+            
+            guard let distId = UUID(uuidString: sDistId) else {
+                throw NSError(domain: "InvalidUUIDError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid UUID format for sDistId"])
+            }
+            
+            let sndKeyRec = try SenderKeyRecord(bytes: [UInt8](sSenderKeyRecord))
+            
+    
+            let senderKeyStore = InMemorySignalProtocolStore()
+            try senderKeyStore.storeSenderKey(from: protoAddress, distributionId: distId, record: sndKeyRec, context: NullContext())
+                        
+            let cipherText = try groupEncrypt([UInt8](msg) , from:protoAddress, distributionId: distId, store: senderKeyStore ,context: NullContext())
+            
+            guard let newSenderKeyRecord = try senderKeyStore.loadSenderKey(from: protoAddress, distributionId: distId, context: NullContext()) else {
+                throw NSError(domain: "LoadSenderKeyError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to load new sender key record"])
+            }            
+            let serializedCipherText = Data(cipherText.serialize())
+            let serializedSenderKeyRecord = Data(newSenderKeyRecord.serialize())
+            let messageType = Int(cipherText.messageType.rawValue)
+
+            return ((serializedCipherText, messageType), serializedSenderKeyRecord)
+        }
+
+        Function("groupCipherDecryptMessage") { (senderAddress: String, msg: Data, sSenderKeyRecord: Data) throws -> (Data, Data) in
+    
+            guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
+                throw NSError(domain: "InvalidAddressError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid address format"])
+            }
+            let protoAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+
+            let sndKeyRec = try SenderKeyRecord(bytes: [UInt8](sSenderKeyRecord))
+            
+            let senderKeyMessage = try SenderKeyMessage(bytes: [UInt8](msg))
+            
+            let senderKeyStore = InMemorySignalProtocolStore()
+            try senderKeyStore.storeSenderKey(
+                from: protoAddress,
+                distributionId: senderKeyMessage.distributionId,
+                record: sndKeyRec,
+                context: NullContext()
+            )
+            
+            let decryptedMessage = try groupDecrypt(
+                [UInt8](msg),
+                from: protoAddress,
+                store: senderKeyStore,
+                context: NullContext()
+            )
+            
+            guard let newSenderKeyRecord = try senderKeyStore.loadSenderKey(
+                from: protoAddress,
+                distributionId: senderKeyMessage.distributionId,
+                context: NullContext()
+            ) else {
+                throw NSError(domain: "LoadSenderKeyError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to load new sender key record"])
+            }
+            
+            let serializedDecryptedMessage = Data(decryptedMessage)
+            let serializedSenderKeyRecord = Data(newSenderKeyRecord.serialize())
+            
+            return (serializedDecryptedMessage, serializedSenderKeyRecord)
+        }
+
+
+        Function("unidentifiedSenderMessageContentNew") { (msgCiphertext: Data,
+                cipherTextType: UInt32,
+                sSenderCertificate: Data,
+                contentHint: UInt32,
+                groupId: Data?) -> Data in
+
+            do {
+                let senderCertificate = try SenderCertificate(sSenderCertificate)
+                let ciphertextMessage: CiphertextMessage
+                switch cipherTextType {
+                case 2:
+                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: SignalMessage(bytes: msgCiphertext).serialize()))
+                case 3:
+                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PreKeySignalMessage(bytes: msgCiphertext).serialize())) 
+                case 7:
+                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: SenderKeyMessage(bytes: msgCiphertext).serialize())) 
+                case 8:
+                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PlaintextContent(bytes: msgCiphertext).serialize())) 
+                default:
+                    throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid ciphertext type"])
+                }
+
+                let unidentifiedContent = try UnidentifiedSenderMessageContent(
+                    ciphertextMessage,
+                    from: senderCertificate,
+                    contentHint: UnidentifiedSenderMessageContent.ContentHint(rawValue: contentHint),
+                    groupId: groupId ?? Data()
+                )
+
+                return Data(unidentifiedContent.contents)
+            } catch {
+                throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create unidentified sender message content: \(error)"])
+            }
         }
 
 
