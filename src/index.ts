@@ -714,11 +714,12 @@ export async function processSenderKeyDistributionMessage(
   store: SenderKeyStore
 ): Promise<void> {
   const distributionId = message.distributionId();
+  const keyHandle = await getCurrentKeyHandle(sender, distributionId, store)
   const newSenderKeyRecord =
     await ReactNativeLibsignalClientModule.senderKeyDistributionMessageProcess(
       sender.toString(),
       message.serialized,
-      await getCurrentKeyHandle(sender, distributionId, store) ?? new Uint8Array(),
+      keyHandle ? keyHandle : new Uint8Array(),
     );
 
   const rec = SenderKeyRecord._fromSerialized(newSenderKeyRecord);
@@ -1563,8 +1564,7 @@ export function sealedSenderMultiRecipientMessageForSingleRecipient(
 
 export async function sealedSenderDecryptToUsmc(
   message: Uint8Array,
-  identityStore: IdentityKeyStore,
-  sender: ProtocolAddress
+  identityStore: IdentityKeyStore
 ): Promise<UnidentifiedSenderMessageContent> {
   const identityStoreState = await getIdentityStoreInitializer(
     identityStore);

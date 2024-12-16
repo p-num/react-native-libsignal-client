@@ -1,7 +1,6 @@
 package expo.modules.libsignalclient
 
 import android.util.Base64
-import expo.modules.core.utilities.ifNull
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import org.signal.libsignal.metadata.SealedSessionCipher
@@ -43,7 +42,6 @@ import org.signal.libsignal.protocol.state.KyberPreKeyRecord
 import org.signal.libsignal.protocol.state.PreKeyBundle
 import org.signal.libsignal.protocol.state.PreKeyRecord
 import org.signal.libsignal.protocol.state.SessionRecord
-import org.signal.libsignal.protocol.state.SignalProtocolStore
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord
 import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore
 import org.signal.libsignal.protocol.util.KeyHelper
@@ -75,9 +73,6 @@ import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialPresentation
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequest
 import org.signal.libsignal.zkgroup.profiles.ProfileKeyCredentialRequestContext
 import org.signal.libsignal.zkgroup.profiles.ServerZkProfileOperations
-import java.lang.StackWalker.Option
-import java.lang.annotation.Native
-import java.security.PrivateKey
 import java.security.SecureRandom
 import java.time.Instant
 import java.util.Optional
@@ -102,7 +97,7 @@ fun getDeviceIdAndServiceId(address: String): Pair<String, Int> {
 }
 fun updateSessionStoreStateFromInMemoryProtocolStore(store: InMemorySignalProtocolStoreWithPrekeysList, address: SignalProtocolAddress ): SerializedAddressedKeys {
   val sessionRecords = store.loadExistingSessions(listOf(address))
-  val updatedStore = mutableMapOf<String, String>() ;
+  val updatedStore = mutableMapOf<String, String>()
   for (sessionRecord in sessionRecords) {
     updatedStore[address.toString()] =  Base64.encodeToString(sessionRecord.serialize(), Base64.NO_WRAP)
   }
@@ -110,7 +105,7 @@ fun updateSessionStoreStateFromInMemoryProtocolStore(store: InMemorySignalProtoc
 }
 fun updateIdentityStoreStateFromInMemoryProtocolStore(store: InMemorySignalProtocolStoreWithPrekeysList, address: SignalProtocolAddress): SerializedAddressedKeys {
     val identityKey = store.getIdentity(address)
-    val updatedStore = mutableMapOf<String, String>() ;
+    val updatedStore = mutableMapOf<String, String>()
     updatedStore[address.toString()] =  Base64.encodeToString(identityKey.serialize(), Base64.NO_WRAP)
     return updatedStore
 }
@@ -187,7 +182,7 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("publicKeyCompare", this@ReactNativeLibsignalClientModule::publicKeyCompare)
     Function("publicKeyGetPublicKeyBytes", this@ReactNativeLibsignalClientModule::publicKeyGetPublicKeyBytes)
     Function("publicKeyVerify", this@ReactNativeLibsignalClientModule::publicKeyVerify)
-    Function("identityKeyPairSerialize", this@ReactNativeLibsignalClientModule::identityKeyPairSerialize) 
+    Function("identityKeyPairSerialize", this@ReactNativeLibsignalClientModule::identityKeyPairSerialize)
     Function("identityKeyVerifyAlternateIdentity", this@ReactNativeLibsignalClientModule::identityKeyVerifyAlternateIdentity)
     Function("generateIdentityKeyPair", this@ReactNativeLibsignalClientModule::generateIdentityKeyPair)
     Function("generateKyberKeyPair", this@ReactNativeLibsignalClientModule::generateKyberKeyPair)
@@ -220,7 +215,7 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("decryptionErrorMessageExtractFromSerializedContent", this@ReactNativeLibsignalClientModule::decryptionErrorMessageExtractFromSerializedContent)
     Function("decryptionErrorMessageGetTimestamp", this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetTimestamp)
     Function("decryptionErrorMessageGetDeviceId", this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetDeviceId)
-    Function("decryptionErrorMessageGetRatchetKey", 
+    Function("decryptionErrorMessageGetRatchetKey",
     this@ReactNativeLibsignalClientModule::decryptionErrorMessageGetRatchetKey)
     Function("signalMessageGetBody", this@ReactNativeLibsignalClientModule::signalMessageGetBody)
     Function("signalMessageGetCounter", this@ReactNativeLibsignalClientModule::signalMessageGetCounter)
@@ -386,7 +381,7 @@ class ReactNativeLibsignalClientModule : Module() {
     return IdentityKeyPair(pubKey, privateKey).serialize()
   }
   private fun generateKyberKeyPair() : Pair<ByteArray, ByteArray>   {
-    val keypair = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
+    val keypair = KEMKeyPair.generate(KEMKeyType.KYBER_1024)
     return Pair(keypair.secretKey.serialize(), keypair.publicKey.serialize())
   }
 
@@ -429,11 +424,11 @@ class ReactNativeLibsignalClientModule : Module() {
     kyberPreKeyData: Pair<Int, String>?,
     base64KyberPreKeySignature: String?
   ) : Pair<SerializedAddressedKeys, SerializedAddressedKeys> {
-     val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData;
+     val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData
        val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
        val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
      val (address, registrationId) = registrationData
-     val (preKeyId, base64PreKeyPublic) = preKeyData;
+     val (preKeyId, base64PreKeyPublic) = preKeyData
      val (serviceId, deviceId) = getDeviceIdAndServiceId(address)
      val (signedPreKeyId, base64SignedPreKeyPublic) = signedPreKeyData
      val signedPreKeyPublic = Base64.decode(base64SignedPreKeyPublic, Base64.NO_WRAP)
@@ -448,7 +443,7 @@ class ReactNativeLibsignalClientModule : Module() {
      val sessionBuilder = SessionBuilder(store, remoteProtoAddress)
     val signedPreKeySignature = Base64.decode(base64SignedPreKeySignature, Base64.NO_WRAP)
      if (kyberPreKeyData !== null && base64KyberPreKeySignature !== null) {
-       val (keyId, base64KyberPreKeyPublic) = kyberPreKeyData;
+       val (keyId, base64KyberPreKeyPublic) = kyberPreKeyData
          val kyberPreKeyPublic = Base64.decode(base64KyberPreKeyPublic, Base64.NO_WRAP)
        val pubKey = KEMPublicKey(kyberPreKeyPublic)
        val kyberPreKeySignature = Base64.decode(base64KyberPreKeySignature, Base64.NO_WRAP)
@@ -467,7 +462,7 @@ class ReactNativeLibsignalClientModule : Module() {
        )
        sessionBuilder.process(bundle)
      } else {
-         
+
        val noKyberBundle = PreKeyBundle(
          registrationId,
          deviceId,
@@ -642,7 +637,7 @@ class ReactNativeLibsignalClientModule : Module() {
 //    prekeyStoreState,
 //    signedPrekeyStoreState,
 //    kyberPrekeyStoreState
-//    );
+//    )
 
     private fun sessionCipherDecryptSignalMessage(
         serializedMessage: ByteArray,
@@ -887,7 +882,7 @@ class ReactNativeLibsignalClientModule : Module() {
     }
     private fun senderCertificateGetServerCertificate(serializedCertificate: ByteArray) : ByteArray {
         val certificate = SenderCertificate(serializedCertificate)
-        return certificate.certificate
+        return certificate.signer.serialized
     }
     private fun senderCertificateValidate(trustRoot: ByteArray, serializedCertificate: ByteArray, timestamp: Long) : Boolean {
         val certificate = SenderCertificate(serializedCertificate)
@@ -940,14 +935,14 @@ class ReactNativeLibsignalClientModule : Module() {
 //    message: SenderKeyDistributionMessage,
 //    store: SenderKeyStore
 //    ): Promise<void> {
-//        const distributionId = message.distributionId();
+//        const distributionId = message.distributionId()
 //        const newSenderKeyRecord =
 //        await ReactNativeLibsignalClientModule.senderKeyDistributionMessageProcess(
 //                sender.toString(),
 //        message.serialized,
 //        await getCurrentKeyHandle(sender, distributionId, store)
-//        );
-//        store.saveSenderKey(sender, distributionId, newSenderKeyRecord);
+//        )
+//        store.saveSenderKey(sender, distributionId, newSenderKeyRecord)
 //    }
     private fun senderKeyDistributionMessageProcess(
         senderAddress: String,
@@ -1002,11 +997,11 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
     private fun serverPublicParamsVerifySignature(serializedSrvPubParams: ByteArray, msg: ByteArray, sig: ByteArray) : Boolean {
-        val svpublicParams = ServerPublicParams(serializedSrvPubParams);
-        val signature = NotarySignature(sig);
+        val svpublicParams = ServerPublicParams(serializedSrvPubParams)
+        val signature = NotarySignature(sig)
 
         try {
-            svpublicParams.verifySignature(msg, signature);
+            svpublicParams.verifySignature(msg, signature)
             return true
         } catch (e: VerificationFailedException) {
             return false
@@ -1014,199 +1009,199 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
     private fun groupPublicParamsGetGroupIdentifier(serializedGpPubParams: ByteArray) : ByteArray {
-        val groupPublicParams = GroupPublicParams(serializedGpPubParams);
+        val groupPublicParams = GroupPublicParams(serializedGpPubParams)
         return groupPublicParams.groupIdentifier.serialize()
     }
 
     private fun groupSecretParamsGenerateDeterministic(rand: ByteArray) : ByteArray {
-        val groupSecretParams = GroupSecretParams.generate(SecureRandom(rand));
+        val groupSecretParams = GroupSecretParams.generate(SecureRandom(rand))
 
-        return groupSecretParams.serialize();
+        return groupSecretParams.serialize()
     }
 
     private fun groupSecretParamsDeriveFromMasterKey(serializedGpMasterKey: ByteArray) : ByteArray {
-        val masterKey = GroupMasterKey(serializedGpMasterKey);
-        return GroupSecretParams.deriveFromMasterKey(masterKey).serialize();
+        val masterKey = GroupMasterKey(serializedGpMasterKey)
+        return GroupSecretParams.deriveFromMasterKey(masterKey).serialize()
     }
 
     private fun groupSecretParamsGetPublicParams(gpSecParams: ByteArray) : ByteArray {
-        val groupSecretParams = GroupSecretParams(gpSecParams);
-        return groupSecretParams.publicParams.serialize();
+        val groupSecretParams = GroupSecretParams(gpSecParams)
+        return groupSecretParams.publicParams.serialize()
     }
 
     private fun groupSecretParamsGetMasterKey(gpSecParams: ByteArray) : ByteArray {
-        val groupSecretParams = GroupSecretParams(gpSecParams);
-        return groupSecretParams.masterKey.serialize();
+        val groupSecretParams = GroupSecretParams(gpSecParams)
+        return groupSecretParams.masterKey.serialize()
     }
 
     private fun generateRandomBytes(len: Int) : ByteArray {
-        val srandom = SecureRandom();
+        val srandom = SecureRandom()
         val random = ByteArray(len)
 
-        srandom.nextBytes(random);
+        srandom.nextBytes(random)
 
-        return random;
+        return random
     }
 
     private fun profileKeyGetCommitment(serializedProfileKey: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
-        val pk = ProfileKey(serializedProfileKey);
-        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+        val pk = ProfileKey(serializedProfileKey)
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
 
-        return pk.getCommitment(aci).serialize();
+        return pk.getCommitment(aci).serialize()
     }
 
     private fun profileKeyGetVersion(serializedProfileKey: ByteArray, fixedWidthAci: ByteArray) : String {
-        val pk = ProfileKey(serializedProfileKey);
-        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
+        val pk = ProfileKey(serializedProfileKey)
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
 
-        return pk.getProfileKeyVersion(aci).serialize();
+        return pk.getProfileKeyVersion(aci).serialize()
     }
 
     private fun profileKeyDeriveAccessKey(serializedProfileKey: ByteArray) : ByteArray {
-        val pk = ProfileKey(serializedProfileKey);
+        val pk = ProfileKey(serializedProfileKey)
 
         return pk.deriveAccessKey()
     }
 
     private fun groupSecretParamsEncryptServiceId(sGroupSecretParams: ByteArray, fixedWidthServiceId: ByteArray) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val sId = ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId);
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val sId = ServiceId.parseFromFixedWidthBinary(fixedWidthServiceId)
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
-        return clZkCipher.encrypt(sId).serialize();
+        return clZkCipher.encrypt(sId).serialize()
     }
 
     private fun groupSecretParamsDecryptServiceId(sGroupSecretParams: ByteArray, rawCipherText: ByteArray) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val cipherText = UuidCiphertext(rawCipherText);
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val cipherText = UuidCiphertext(rawCipherText)
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
         return clZkCipher.decrypt(cipherText).toServiceIdFixedWidthBinary()
     }
 
     private fun groupSecretParamsEncryptProfileKey(sGroupSecretParams: ByteArray, rawProfileKey: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val pk = ProfileKey(rawProfileKey);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val pk = ProfileKey(rawProfileKey)
         val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
         return clZkCipher.encryptProfileKey(pk, aci).serialize()
     }
 
     private fun groupSecretParamsDecryptProfileKey(sGroupSecretParams: ByteArray, rawProfileKeyCipherText: ByteArray, fixedWidthAci: ByteArray) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val pkct = ProfileKeyCiphertext(rawProfileKeyCipherText);
-        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val pkct = ProfileKeyCiphertext(rawProfileKeyCipherText)
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
-        return clZkCipher.decryptProfileKey(pkct, aci).serialize();
+        return clZkCipher.decryptProfileKey(pkct, aci).serialize()
     }
 
     private fun groupSecretParamsEncryptBlobWithPaddingDeterministic(sGroupSecretParams: ByteArray, randomNess: ByteArray, plainText: ByteArray, paddingLen: Int) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
-        return clZkCipher.encryptBlob(SecureRandom(randomNess), plainText);
+        return clZkCipher.encryptBlob(SecureRandom(randomNess), plainText)
     }
 
     private fun groupSecretParamsDecryptBlobWithPadding(sGroupSecretParams: ByteArray, blobCipherText: ByteArray) : ByteArray {
-        val gsp = GroupSecretParams(sGroupSecretParams);
-        val clZkCipher = ClientZkGroupCipher(gsp);
+        val gsp = GroupSecretParams(sGroupSecretParams)
+        val clZkCipher = ClientZkGroupCipher(gsp)
 
-        return clZkCipher.decryptBlob(blobCipherText);
+        return clZkCipher.decryptBlob(blobCipherText)
     }
 
     private fun expiringProfileKeyCredentialGetExpirationTime(sExpiringProfileKeyCredential: ByteArray) : Long {
-        val expkc = ExpiringProfileKeyCredential(sExpiringProfileKeyCredential);
+        val expkc = ExpiringProfileKeyCredential(sExpiringProfileKeyCredential)
 
-        return expkc.expirationTime.epochSecond;
+        return expkc.expirationTime.epochSecond
     }
 
     private fun profileKeyCredentialPresentationGetUuidCiphertext(sProfileKeyCredentialPresentation: ByteArray) : ByteArray {
-        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation);
+        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation)
 
-        return pkcp.uuidCiphertext.serialize();
+        return pkcp.uuidCiphertext.serialize()
     }
 
     private fun profileKeyCredentialPresentationGetProfileKeyCiphertext(sProfileKeyCredentialPresentation: ByteArray) : ByteArray {
-        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation);
+        val pkcp = ProfileKeyCredentialPresentation(sProfileKeyCredentialPresentation)
 
-        return pkcp.profileKeyCiphertext.serialize();
+        return pkcp.profileKeyCiphertext.serialize()
     }
 
     private fun profileKeyCredentialRequestContextGetRequest(sProfileKeyCredentialRequestContext: ByteArray) : ByteArray {
-        val pkcrc = ProfileKeyCredentialRequestContext(sProfileKeyCredentialRequestContext);
+        val pkcrc = ProfileKeyCredentialRequestContext(sProfileKeyCredentialRequestContext)
 
-        return pkcrc.request.serialize();
+        return pkcrc.request.serialize()
     }
 
     private fun serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic(sServerPublicParams: ByteArray, randomness: ByteArray, fixedWidthAci: ByteArray, sProfileKey: ByteArray) : ByteArray {
-        val serverPublicParams = ServerPublicParams(sServerPublicParams);
-        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
-        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
-        val profileKey = ProfileKey(sProfileKey);
-        return clientZkProfileOperation.createProfileKeyCredentialRequestContext(SecureRandom(randomness), aci, profileKey).serialize();
+        val serverPublicParams = ServerPublicParams(sServerPublicParams)
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams)
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
+        val profileKey = ProfileKey(sProfileKey)
+        return clientZkProfileOperation.createProfileKeyCredentialRequestContext(SecureRandom(randomness), aci, profileKey).serialize()
     }
 
     private fun serverPublicParamsReceiveExpiringProfileKeyCredential(sServerPublicParams: ByteArray, sProfileKeyCredReqCtx: ByteArray, sExpProfileKeyCredResponse: ByteArray, ts: Long) : ByteArray {
-        val serverPublicParams = ServerPublicParams(sServerPublicParams);
-        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
-        val pkCredReqCtx = ProfileKeyCredentialRequestContext(sProfileKeyCredReqCtx);
-        val pkExpCredResp = ExpiringProfileKeyCredentialResponse(sExpProfileKeyCredResponse);
+        val serverPublicParams = ServerPublicParams(sServerPublicParams)
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams)
+        val pkCredReqCtx = ProfileKeyCredentialRequestContext(sProfileKeyCredReqCtx)
+        val pkExpCredResp = ExpiringProfileKeyCredentialResponse(sExpProfileKeyCredResponse)
 
-        return clientZkProfileOperation.receiveExpiringProfileKeyCredential(pkCredReqCtx, pkExpCredResp).serialize();
+        return clientZkProfileOperation.receiveExpiringProfileKeyCredential(pkCredReqCtx, pkExpCredResp).serialize()
     }
 
     private fun serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic(sServerPublicParams: ByteArray, randomness: ByteArray, sGpSecParams: ByteArray, sExpProfKeyCred: ByteArray) : ByteArray {
-        val serverPublicParams = ServerPublicParams(sServerPublicParams);
-        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams);
-        val groupSecretParams = GroupSecretParams(sGpSecParams);
-        val expProfKeyCredential = ExpiringProfileKeyCredential(sExpProfKeyCred);
+        val serverPublicParams = ServerPublicParams(sServerPublicParams)
+        val clientZkProfileOperation = ClientZkProfileOperations(serverPublicParams)
+        val groupSecretParams = GroupSecretParams(sGpSecParams)
+        val expProfKeyCredential = ExpiringProfileKeyCredential(sExpProfKeyCred)
 
-        return clientZkProfileOperation.createProfileKeyCredentialPresentation(SecureRandom(randomness), groupSecretParams, expProfKeyCredential).serialize();
+        return clientZkProfileOperation.createProfileKeyCredentialPresentation(SecureRandom(randomness), groupSecretParams, expProfKeyCredential).serialize()
     }
 
     private fun authCredentialPresentationGetUuidCiphertext(sAuthCredPres: ByteArray) : ByteArray {
-        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres)
 
-        return authCredPresentation.uuidCiphertext.serialize();
+        return authCredPresentation.uuidCiphertext.serialize()
     }
 
     private fun authCredentialPresentationGetPniCiphertext(sAuthCredPres: ByteArray) : ByteArray {
-        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres)
 
         return authCredPresentation.pniCiphertext.serialize()
     }
 
     private fun authCredentialPresentationGetRedemptionTime(sAuthCredPres: ByteArray) : Long {
-        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres);
+        val authCredPresentation = AuthCredentialPresentation(sAuthCredPres)
 
         return authCredPresentation.redemptionTime.epochSecond
     }
 
     private fun serverPublicParamsReceiveAuthCredentialWithPniAsServiceId(sSrvPubParams: ByteArray, fixedWidthAci: ByteArray, fixedWidthPni: ByteArray, redemptionTime: Long, authCredPniResp: ByteArray) : ByteArray {
-        val serverPublicParams = ServerPublicParams(sSrvPubParams);
-        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams);
-        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci);
-        val pni = Pni.parseFromFixedWidthBinary(fixedWidthPni);
-        val authCredentialPniResponse = AuthCredentialWithPniResponse(authCredPniResp);
+        val serverPublicParams = ServerPublicParams(sSrvPubParams)
+        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams)
+        val aci = Aci.parseFromFixedWidthBinary(fixedWidthAci)
+        val pni = Pni.parseFromFixedWidthBinary(fixedWidthPni)
+        val authCredentialPniResponse = AuthCredentialWithPniResponse(authCredPniResp)
 
-        return clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(aci, pni, redemptionTime, authCredentialPniResponse).serialize();
+        return clientZkAuthOperation.receiveAuthCredentialWithPniAsServiceId(aci, pni, redemptionTime, authCredentialPniResponse).serialize()
     }
 
     private fun serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic(sSrvPubParams: ByteArray, randomness: ByteArray, sGpSecParams: ByteArray, authCredPni: ByteArray) : ByteArray {
-        val serverPublicParams = ServerPublicParams(sSrvPubParams);
-        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams);
-        val gpSecretParams = GroupSecretParams(sGpSecParams);
-        val authCredentialPni = AuthCredentialWithPni(authCredPni);
+        val serverPublicParams = ServerPublicParams(sSrvPubParams)
+        val clientZkAuthOperation = ClientZkAuthOperations(serverPublicParams)
+        val gpSecretParams = GroupSecretParams(sGpSecParams)
+        val authCredentialPni = AuthCredentialWithPni(authCredPni)
 
-        return clientZkAuthOperation.createAuthCredentialPresentation(gpSecretParams, authCredentialPni).serialize();
+        return clientZkAuthOperation.createAuthCredentialPresentation(gpSecretParams, authCredentialPni).serialize()
     }
 
     private fun serverSecretParamsGenerateDeterministic(rndm: ByteArray) : ByteArray {
-        val srvSecParams = ServerSecretParams.generate(SecureRandom(rndm));
+        val srvSecParams = ServerSecretParams.generate(SecureRandom(rndm))
 
-        return srvSecParams.serialize();
+        return srvSecParams.serialize()
     }
 
     private fun serverSecretParamsGetPublicParams(sSrvSecParams: ByteArray) : ByteArray {
@@ -1222,29 +1217,29 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
     private fun serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic(sSrvSecParams: ByteArray, rndm: ByteArray, sAci: ByteArray, sPni: ByteArray, redemptionTime: Long): ByteArray {
-        val srvSecParams = ServerSecretParams(sSrvSecParams);
-        val serverAuthOp = ServerZkAuthOperations(srvSecParams);
-        val aci = Aci.parseFromFixedWidthBinary(sAci);
-        val pni = Pni.parseFromFixedWidthBinary(sPni);
+        val srvSecParams = ServerSecretParams(sSrvSecParams)
+        val serverAuthOp = ServerZkAuthOperations(srvSecParams)
+        val aci = Aci.parseFromFixedWidthBinary(sAci)
+        val pni = Pni.parseFromFixedWidthBinary(sPni)
         val authCredPniResp = serverAuthOp.issueAuthCredentialWithPniAsServiceId(SecureRandom(rndm), aci, pni, Instant.ofEpochSecond(redemptionTime))
 
         return authCredPniResp.serialize()
     }
 
     private fun serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic(sSrvSecParams: ByteArray, rndm: ByteArray, sAci: ByteArray, sPni: ByteArray, redemptionTime: Long): ByteArray {
-        val srvSecParams = ServerSecretParams(sSrvSecParams);
-        val serverAuthOp = ServerZkAuthOperations(srvSecParams);
-        val aci = Aci.parseFromFixedWidthBinary(sAci);
-        val pni = Pni.parseFromFixedWidthBinary(sPni);
+        val srvSecParams = ServerSecretParams(sSrvSecParams)
+        val serverAuthOp = ServerZkAuthOperations(srvSecParams)
+        val aci = Aci.parseFromFixedWidthBinary(sAci)
+        val pni = Pni.parseFromFixedWidthBinary(sPni)
         val authCredPniResp = serverAuthOp.issueAuthCredentialWithPniZkc(SecureRandom(rndm), aci, pni, Instant.ofEpochSecond(redemptionTime))
 
         return authCredPniResp.serialize()
     }
 
     private fun serverSecretParamsVerifyAuthCredentialPresentation(sSrvSecParams: ByteArray, sGpPublicParams: ByteArray, sAuthCredPresent: ByteArray, instant: Long) {
-        val srvSecParams = ServerSecretParams(sSrvSecParams);
-        val serverAuthOp = ServerZkAuthOperations(srvSecParams);
-        val gpPubParams = GroupPublicParams(sGpPublicParams);
+        val srvSecParams = ServerSecretParams(sSrvSecParams)
+        val serverAuthOp = ServerZkAuthOperations(srvSecParams)
+        val gpPubParams = GroupPublicParams(sGpPublicParams)
         val authCredPresentation = AuthCredentialPresentation(sAuthCredPresent)
 
         serverAuthOp.verifyAuthCredentialPresentation(gpPubParams, authCredPresentation, Instant.ofEpochSecond( instant))
@@ -1333,7 +1328,7 @@ class ReactNativeLibsignalClientModule : Module() {
             mac.init(secretKey)
             mac.doFinal(data)
         } catch (e: Exception) {
-            
+
             return null
         }
     }
@@ -1351,7 +1346,7 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
 
-    
+
     private fun groupSendFullTokenGetExpiration(sgpfulltoken: ByteArray): Long {
         val gpFullToken = GroupSendFullToken(sgpfulltoken)
 
@@ -1421,7 +1416,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
         val groupSecretParams = GroupSecretParams(gpSecParams)
         val serverPublicParams = ServerPublicParams(srvPubParams)
-        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements;
+        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), groupSecretParams, serverPublicParams).endorsements
         val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
@@ -1437,7 +1432,7 @@ class ReactNativeLibsignalClientModule : Module() {
             throw Error("local user not present in the memebers service ids list")
         }
 
-        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements;
+        val endorsements = groupSendEndResponse.receive(serviceIds, userServiceId, Instant.ofEpochSecond(time), serverPublicParams).endorsements
         val combined = GroupSendEndorsement.combine(endorsements.slice(0..localUserIndex-1).plus(endorsements.slice(localUserIndex+1..endorsements.size-1))).serialize()
 
         return endorsements.map { end -> end.serialize() }.plus(combined)
@@ -1493,7 +1488,7 @@ class ReactNativeLibsignalClientModule : Module() {
 
     private fun senderKeyDistributionMessageCreate(senderAddress: String, distId: String, sKeyRecord: ByteArray): Pair<ByteArray, ByteArray> {
         val (serviceId, deviceId) = getDeviceIdAndServiceId(senderAddress)
-        val senderProtocolAddress = SignalProtocolAddress(serviceId, deviceId);
+        val senderProtocolAddress = SignalProtocolAddress(serviceId, deviceId)
         val senderKeyStore = InMemorySenderKeyStore()
         val distributionId = UUID.fromString(distId)
         if (sKeyRecord.isNotEmpty()) {
@@ -1514,10 +1509,10 @@ class ReactNativeLibsignalClientModule : Module() {
         val recipientsSessions = recipientSessions.map { v -> SessionRecord(v) }
         val excludedServiceIds = parseFixedWidthServiceIds(excludedRecipients)
 
-        val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData;
+        val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData
         val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
         val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
-        val sigS    tore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
+        val sigStore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
         for (p in identityStoreState) {
                 val (serviceid, deviceid) = getDeviceIdAndServiceId(p.first)
                 val padd = SignalProtocolAddress(serviceid, deviceid)
