@@ -1,9 +1,7 @@
+import { Buffer } from "@craftzdog/react-native-buffer";
 import deepEqual from "deep-eql";
 import { assert, isInstanceOf } from "typed-assert";
-import { Buffer } from "@craftzdog/react-native-buffer";
 
-import { TestStores } from "./mockStores";
-import { test } from "./utils";
 import {
   ContentHint,
   createAndProcessPreKeyBundle,
@@ -23,9 +21,12 @@ import {
   SignedPreKeyRecord,
   UnidentifiedSenderMessageContent,
 } from "../../src";
+import { TestStores } from "./mockStores";
+import { test } from "./utils";
 
 export const testGroup = () => {
-  test("can encrypt and decrypt", async () => {
+  console.log("RRRRRRRRRRRRRRR")
+  test("can encrypt and decrypt group", async () => {
     const sender = ProtocolAddress.new("sender.1");
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
     const aSenderKeyStore = new TestStores().sender;
@@ -190,7 +191,6 @@ export const testGroup = () => {
     const bUsmc = await sealedSenderDecryptToUsmc(
       bSealedSenderMessage,
       bKeys,
-      bAddress
     );
 
     assert(deepEqual(bUsmc.senderCertificate().senderE164(), aE164), "sender E164 an calculated certificate E164 were not equal.");
@@ -224,7 +224,6 @@ export const testGroup = () => {
     const bUsmcViaOptions = await sealedSenderDecryptToUsmc(
       bSealedSenderMessageViaOptions,
       bKeys,
-      bAddress
     );
 
     assert(deepEqual(bUsmcViaOptions, bUsmc));
