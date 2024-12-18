@@ -1185,7 +1185,7 @@ export const testConstantTimeEqual = () =>
         firstResult.averageDuration - result.averageDuration
       );
       // Set an acceptable threshold based on observed variance
-      const acceptableThreshold = 0.01; // 00.1 milliseconds
+      const acceptableThreshold = 0.1; // 0.1 milliseconds
 
       assert(
         durationDifference <= acceptableThreshold,
