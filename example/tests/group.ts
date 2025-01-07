@@ -25,11 +25,12 @@ import { TestStores } from "./mockStores";
 import { test } from "./utils";
 
 export const testGroup = () => {
-  console.log("RRRRRRRRRRRRRRR")
   test("can encrypt and decrypt group", async () => {
+    const aliceStores = new TestStores();
+    const bobStores = new TestStores(); 
     const sender = ProtocolAddress.new("sender.1");
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
-    const aSenderKeyStore = new TestStores().sender;
+    const aSenderKeyStore = aliceStores.sender;
     const skdm = await SenderKeyDistributionMessage.create(
       sender,
       distributionId,
@@ -38,7 +39,7 @@ export const testGroup = () => {
     assert(deepEqual(distributionId, skdm.distributionId()));
     assert(deepEqual(0, skdm.iteration()));
 
-    const bSenderKeyStore = new TestStores().sender;
+    const bSenderKeyStore = bobStores.sender;
     await processSenderKeyDistributionMessage(sender, skdm, bSenderKeyStore);
 
     const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
@@ -68,13 +69,15 @@ export const testGroup = () => {
   });
 
   test("can encrypt/decrypt group messages", async () => {
-    const aKeys = new TestStores().identity;
-    const bKeys = new TestStores().identity;
+    const aliceStores = new TestStores();
+    const bobStores = new TestStores();
+    const aKeys = aliceStores.identity;
+    const bKeys = bobStores.identity;
 
-    const aSess = new TestStores().session;
+    const aSess = aliceStores.session;
 
-    const bPreK = new TestStores().prekey;
-    const bSPreK = new TestStores().signed;
+    const bPreK = bobStores.prekey;
+    const bSPreK = bobStores.signed;
 
     const bPreKey = PrivateKey.generate();
     const bSPreKey = PrivateKey.generate();
@@ -152,14 +155,14 @@ export const testGroup = () => {
     const aAddress = ProtocolAddress.new(`${aUuid}.${aDeviceId}`);
 
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
-    const aSenderKeyStore = new TestStores().sender;
+    const aSenderKeyStore = aliceStores.sender;
     const skdm = await SenderKeyDistributionMessage.create(
       aAddress,
       distributionId,
       aSenderKeyStore
     );
 
-    const bSenderKeyStore = new TestStores().sender;
+    const bSenderKeyStore = bobStores.sender;
     await processSenderKeyDistributionMessage(aAddress, skdm, bSenderKeyStore);
 
     const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
@@ -230,16 +233,16 @@ export const testGroup = () => {
   });
 
   test("rejects invalid registration IDs", async () => {
-    const aKeys = new TestStores().identity;
-    const bKeys = new TestStores().identity;
+    const aliceStores = new TestStores()
+    const bobStores = new TestStores()
 
-    const aSess = new TestStores().session;
+    const aSess = new TestStores();
 
     const bPreKey = PrivateKey.generate();
     const bSPreKey = PrivateKey.generate();
 
-    const aIdentityKey = await aKeys.getIdentityKey();
-    const bIdentityKey = await bKeys.getIdentityKey();
+    const aIdentityKey = await aliceStores.identity.getIdentityKey();
+    const bIdentityKey = await bobStores.identity.getIdentityKey();
 
     const aE164 = "+14151111111";
 
@@ -286,15 +289,15 @@ export const testGroup = () => {
       bSPreKey.getPublicKey(),
       bSignedPreKeySig,
       bIdentityKey.getPublicKey(),
-      aSess,
-      aKeys,
+      aliceStores.session,
+      aliceStores.identity,
       null
     );
 
     const aAddress = ProtocolAddress.new(`${aUuid}.${aDeviceId}`);
 
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
-    const aSenderKeyStore = new TestStores().sender;
+    const aSenderKeyStore = aliceStores.sender;
     await SenderKeyDistributionMessage.create(
       aAddress,
       distributionId,
@@ -318,7 +321,7 @@ export const testGroup = () => {
     );
 
     try {
-      await sealedSenderMultiRecipientEncrypt(aUsmc, [bAddress], aKeys, aSess);
+      await sealedSenderMultiRecipientEncrypt(aUsmc, [bAddress], aliceStores.identity, aliceStores.session);
       assert(fail("should have thrown"));
     } catch (e) {
       isInstanceOf(e, Error);
@@ -326,10 +329,12 @@ export const testGroup = () => {
   });
 
   test("can have excluded recipients", async () => {
-    const aKeys = new TestStores().identity;
-    const bKeys = new TestStores().identity;
+    const aliceStores = new TestStores();
+    const bobStores = new TestStores();
+    const aKeys = aliceStores.identity;
+    const bKeys = bobStores.identity;
 
-    const aSess = new TestStores().session;
+    const aSess = aliceStores.session;
 
     const bPreKey = PrivateKey.generate();
     const bSPreKey = PrivateKey.generate();
@@ -392,7 +397,7 @@ export const testGroup = () => {
     const aAddress = ProtocolAddress.new(`${aUuid}.${aDeviceId}`);
 
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
-    const aSenderKeyStore = new TestStores().sender;
+    const aSenderKeyStore = aliceStores.sender;
     await SenderKeyDistributionMessage.create(
       aAddress,
       distributionId,
