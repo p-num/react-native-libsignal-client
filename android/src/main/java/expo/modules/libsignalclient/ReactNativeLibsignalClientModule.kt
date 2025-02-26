@@ -317,6 +317,7 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("serverCertificateNew", this@ReactNativeLibsignalClientModule::serverCertificateNew)
     Function("senderCertificateNew", this@ReactNativeLibsignalClientModule::senderCertificateNew)
     Function("sealedSenderMultiRecipientMessageForSingleRecipient", this@ReactNativeLibsignalClientModule::sealedSenderMultiRecipientMessageForSingleRecipient)
+    Function("sealedSenderEncrypt", this@ReactNativeLibsignalClientModule::sealedSenderEncrypt)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -981,6 +982,25 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun unidentifiedSenderMessageContentGetGroupId(serializedContent: ByteArray) : ByteArray {
         val content = UnidentifiedSenderMessageContent(serializedContent)
         return content.groupId.orElse(ByteArray(0))
+    }
+
+    private fun sealedSenderEncrypt(destAddress: String, unidentifiedContent: ByteArray, identityKeyState: IdentityStoreData): ByteArray {
+        val (serviceId, deviceId) = getDeviceIdAndServiceId(destAddress)
+        val protoAddress = SignalProtocolAddress(serviceId, deviceId)
+
+        val (base64IdentityKey, ownerData) = identityKeyState
+        val (base64OwnerKeypair, ownerRegistrationId) = ownerData
+        val ownerKeypair = IdentityKeyPair(Base64.decode(base64OwnerKeypair, Base64.NO_WRAP))
+        val identityKey = IdentityKey(Base64.decode(base64IdentityKey, Base64.NO_WRAP))
+        val store = InMemorySignalProtocolStoreWithPrekeysList(ownerKeypair, ownerRegistrationId)
+        store.saveIdentity(protoAddress, identityKey)
+
+        val sessCipher = SealedSessionCipher(store, UUID.randomUUID(), "", 1)
+
+        val content = UnidentifiedSenderMessageContent(unidentifiedContent)
+        val enccontent = sessCipher.encrypt(protoAddress, content)
+
+        return enccontent
     }
 
     private fun sealedSenderDecryptToUsmc(cipherText: ByteArray, ownerData: OwnerData) : ByteArray {
