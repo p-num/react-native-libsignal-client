@@ -26,6 +26,7 @@ import {
   updateSignedPrekeyStoreFromObject,
   updatedPrekeyStoreFromObject,
 } from "./stores";
+import { LibSignalErrorBase } from ".";
 export * from "./Address";
 export * from "./crypto";
 export * from "./Errors";
@@ -508,8 +509,8 @@ export class SenderCertificate {
   }
   validate(trustRoot: PublicKey, time: number): boolean {
     return ReactNativeLibsignalClientModule.senderCertificateValidate(
-      this.serialized,
       trustRoot.serialized,
+      this.serialized,
       time
     );
   }
@@ -773,9 +774,9 @@ export class UnidentifiedSenderMessageContent {
   }
 
   contents(): Uint8Array {
-    return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetContents(
+    return new Uint8Array(ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetContents(
       this.serialized
-    );
+    ));
   }
 
   msgType(): number {
@@ -1473,6 +1474,30 @@ function bufferToCipherText(
   throw new Error("invalid cipher text type");
 }
 
+export async function sealedSenderEncryptMessage(
+  message: Uint8Array,
+  address: ProtocolAddress,
+  senderCert: SenderCertificate,
+  sessionStore: SessionStore,
+  identityStore: IdentityKeyStore
+): Promise<Uint8Array> {
+  const ciphertext = await signalEncrypt(
+    message,
+    address,
+    sessionStore,
+    identityStore
+  );
+  const usmc = UnidentifiedSenderMessageContent.new(
+    ciphertext,
+    senderCert,
+    ContentHint.Default,
+    null
+  );
+  return await sealedSenderEncrypt(usmc, address, identityStore);
+}
+
+
+
 export async function sealedSenderEncrypt(
   content: UnidentifiedSenderMessageContent,
   address: ProtocolAddress,
@@ -1485,6 +1510,74 @@ export async function sealedSenderEncrypt(
     content.serialized,
     identityStoreState
   ));
+}
+
+export async function sealedSenderDecryptMessage(
+  message: Uint8Array,
+  trustRoot: PublicKey,
+  timestamp: number,
+  localE164: string | null,
+  localUuid: string,
+  localDeviceId: number,
+  sessionStore: SessionStore,
+  identityStore: IdentityKeyStore,
+  prekeyStore: PreKeyStore,
+  signedPrekeyStore: SignedPreKeyStore,
+  kyberPrekeyStore: KyberPreKeyStore,
+  kyberPrekeyIds: number[],
+): Promise<SealedSenderDecryptionResult> {
+  const usmc = await sealedSenderDecryptToUsmc(message, identityStore);
+  const sender = usmc.senderCertificate();
+
+
+  if (!sender.validate(trustRoot, timestamp)) {
+    throw new Error("trust root validation error");
+  }
+
+  const senderUuid = sender.senderUuid();
+  const senderE164 = sender.senderE164();
+  const senderDeviceId = sender.senderDeviceId();
+
+  const is_local_uuid = localUuid === senderUuid;
+  const sender_e164 = senderE164;
+  const is_local_e164 = ((): boolean => {
+    if (localE164 && sender_e164) {
+        return localE164 == sender_e164
+    }
+
+    return false
+  })()
+
+  if ((is_local_e164 || is_local_uuid) && senderDeviceId == localDeviceId) {
+    throw new LibSignalErrorBase("sealed sender self send", "VerificationFailed", "sealedSenderDecryptMessage");
+  }
+
+  const senderAddress = new ProtocolAddress(senderUuid, senderDeviceId);
+  const usmcContents = usmc.contents();
+  const usmcMsgType = usmc.msgType();
+  let message_decrypted;
+  if (usmcMsgType === CiphertextMessageType.Whisper) {
+      const msg = SignalMessage._fromSerialized(usmcContents);
+
+      message_decrypted = await signalDecrypt(msg, senderAddress, sessionStore, identityStore);
+  } else if (usmcMsgType === CiphertextMessageType.PreKey) {
+      const msg = PreKeySignalMessage._fromSerialized(usmcContents);
+
+      message_decrypted = await signalDecryptPreKey(
+        msg,
+        senderAddress,
+        sessionStore,
+        identityStore,
+        prekeyStore,
+        signedPrekeyStore,
+        kyberPrekeyStore,
+        kyberPrekeyIds,
+      )
+  } else {
+    throw new Error(`unexpected message type for sealed sender decrypt: ${usmcMsgType}`);
+  }
+
+  return SealedSenderDecryptionResult._shadow(message_decrypted, senderE164, senderUuid, senderDeviceId);
 }
 
 type SealedSenderMultiRecipientEncryptOptions = {
@@ -1627,19 +1720,40 @@ export async function groupDecrypt(
 export class SealedSenderDecryptionResult {
 	readonly serialized: Uint8Array;
 
+  #message: Uint8Array | null = null;
+  #senderE164: string | null = null;
+  #uuid: string | null = null;
+  #deviceId: number | null = null;
+
 	private constructor(serialized: Uint8Array) {
 		this.serialized = serialized;
 	}
 
+  static _shadow(message: Uint8Array, e164: string | null, uuid: string, deviceId: number): SealedSenderDecryptionResult {
+    const shadow = new SealedSenderDecryptionResult(new Uint8Array([]));
+    shadow.#message = message;
+    shadow.#senderE164 = e164;
+    shadow.#uuid = uuid;
+    shadow.#deviceId = deviceId;
+
+    return shadow;
+  }
+
 	message(): Uint8Array {
-		return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultMessage(this.serialized);
+		if (this.#message) { return this.#message };
+
+    return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultMessage(this.serialized);
 	}
 
 	senderE164(): string | null {
+		if (this.#senderE164) { return this.#senderE164 };
+
 		return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultGetSenderE164(this.serialized);
 	}
 
 	senderUuid(): string {
+		if (this.#uuid) { return this.#uuid };
+
 		return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultGetSenderUuid(this.serialized);
 	}
 
@@ -1657,6 +1771,8 @@ export class SealedSenderDecryptionResult {
 	}
 
 	deviceId(): number {
+		if (this.#deviceId) { return this.#deviceId };
+
 		return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultGetDeviceId(this.serialized);
 	}
 }
