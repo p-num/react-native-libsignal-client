@@ -1473,17 +1473,18 @@ function bufferToCipherText(
   throw new Error("invalid cipher text type");
 }
 
-export function sealedSenderEncrypt(
+export async function sealedSenderEncrypt(
   content: UnidentifiedSenderMessageContent,
   address: ProtocolAddress,
   identityStore: IdentityKeyStore
 ): Promise<Uint8Array> {
-  const identityStoreState = getIdentityStoreObject(identityStore, address);
-  return ReactNativeLibsignalClientModule.sealedSenderEncrypt(
+  const identityStoreState = await getIdentityStoreObject(identityStore, address);
+  
+  return new Uint8Array(ReactNativeLibsignalClientModule.sealedSenderEncrypt(
     address.toString(),
     content.serialized,
     identityStoreState
-  );
+  ));
 }
 
 type SealedSenderMultiRecipientEncryptOptions = {
