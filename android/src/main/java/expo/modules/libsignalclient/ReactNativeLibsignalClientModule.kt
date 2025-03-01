@@ -886,8 +886,8 @@ class ReactNativeLibsignalClientModule : Module() {
         return certificate.signer.serialized
     }
     private fun senderCertificateValidate(trustRoot: ByteArray, serializedCertificate: ByteArray, timestamp: Long) : Boolean {
-        val certificate = SenderCertificate(serializedCertificate)
-        val publicKey = ECPublicKey(trustRoot)
+                    val certificate = SenderCertificate(serializedCertificate)
+            val publicKey = ECPublicKey(trustRoot)
         val certificateValidator = CertificateValidator(publicKey)
         try {
             certificateValidator.validate(certificate, timestamp)

@@ -5,19 +5,26 @@ import { assert, isInstanceOf } from "typed-assert";
 import {
   ContentHint,
   createAndProcessPreKeyBundle,
+  ErrorCode,
   groupDecrypt,
   groupEncrypt,
+  LibSignalError,
+  LibSignalErrorBase,
   PreKeyRecord,
   PrivateKey,
   processSenderKeyDistributionMessage,
   ProtocolAddress,
+  sealedSenderDecryptMessage,
   sealedSenderDecryptToUsmc,
+  sealedSenderEncrypt,
+  sealedSenderEncryptMessage,
   sealedSenderMultiRecipientEncrypt,
   sealedSenderMultiRecipientMessageForSingleRecipient,
   SenderCertificate,
   SenderKeyDistributionMessage,
   ServerCertificate,
   ServiceId,
+  signalEncrypt,
   SignedPreKeyRecord,
   UnidentifiedSenderMessageContent,
 } from "../../src";
@@ -451,4 +458,281 @@ export const testGroup = () => {
     assert(!deepEqual(indexOfM, -1), "3");
     assert(deepEqual(aSentMessage[indexOfM / 2 + 17], 0), "4");
   });
+
+  test('can encrypt/decrypt 1-1 messages', async () => {
+      const aStore = new TestStores();
+      const bStore = new TestStores();
+
+      const aKeys = aStore.identity;
+      const bKeys = bStore.identity;
+
+      const aSess = aStore.session;
+      const bSess = bStore.session;
+
+
+      const bPreK = bStore.prekey;
+      const bSPreK = bStore.signed;
+      const kyberStore = bStore.kyber;
+
+      const bPreKey = PrivateKey.generate();
+      const bSPreKey = PrivateKey.generate();
+
+      const aIdentityKey = await aKeys.getIdentityKey();
+      const bIdentityKey = await bKeys.getIdentityKey();
+
+      const aE164 = '+14151111111';
+      const bE164 = '+19192222222';
+
+      const aDeviceId = 1;
+      const bDeviceId = 3;
+
+      const aUuid = '9d0652a3-dcc3-4d11-975f-74d61598733f';
+      const bUuid = '796abedb-ca4e-4f18-8803-1fde5b921f9f';
+
+      const trustRoot = PrivateKey.generate();
+      const serverKey = PrivateKey.generate();
+
+      const serverCert = ServerCertificate.new(
+        1,
+        serverKey.getPublicKey(),
+        trustRoot
+      );
+
+      const expires = 1605722925;
+      const senderCert = SenderCertificate.new(
+        aUuid,
+        aE164,
+        aDeviceId,
+        aIdentityKey.getPublicKey(),
+        expires,
+        serverCert,
+        serverKey
+      );
+
+      const bRegistrationId = await bKeys.getLocalRegistrationId();
+      const bPreKeyId = 31337;
+      const bSignedPreKeyId = 22;
+
+      const bSignedPreKeySig = bIdentityKey.sign(
+        bSPreKey.getPublicKey().serialized
+      );
+
+      const bPreKeyRecord = PreKeyRecord.new(
+        bPreKeyId,
+        bPreKey.getPublicKey(),
+        bPreKey
+      );
+      await bPreK.savePreKey(bPreKeyId, bPreKeyRecord);
+
+      const bSPreKeyRecord = SignedPreKeyRecord.new(
+        bSignedPreKeyId,
+        42, // timestamp
+        bSPreKey.getPublicKey(),
+        bSPreKey,
+        bSignedPreKeySig
+      );
+      await bSPreK.saveSignedPreKey(bSignedPreKeyId, bSPreKeyRecord);
+
+      const bAddress = new ProtocolAddress(bUuid, bDeviceId);
+      await createAndProcessPreKeyBundle(
+        bRegistrationId,
+        bAddress,
+        bPreKeyId,
+        bPreKey.getPublicKey(),
+        bSignedPreKeyId,
+        bSPreKey.getPublicKey(),
+        bSignedPreKeySig,
+        bIdentityKey.getPublicKey(),
+        aSess,
+        aKeys,
+        null
+      );
+
+      const aPlaintext = Buffer.from('hi there', 'utf8');
+
+      const aCiphertext = await sealedSenderEncryptMessage(
+        aPlaintext,
+        bAddress,
+        senderCert,
+        aSess,
+        aKeys
+      );
+
+      const kyberKeyIds = kyberStore._getAllKyberKeyIds();
+      const bPlaintext = await sealedSenderDecryptMessage(
+        aCiphertext,
+        trustRoot.getPublicKey(),
+        43, // timestamp,
+        bE164,
+        bUuid,
+        bDeviceId,
+        bSess,
+        bKeys,
+        bPreK,
+        bSPreK,
+        kyberStore,
+        kyberKeyIds,
+      );
+
+      assert(bPlaintext != null);
+      deepEqual(bPlaintext.message(), aPlaintext);
+      deepEqual(bPlaintext.senderE164(), aE164);
+      deepEqual(bPlaintext.senderUuid(), aUuid);
+      deepEqual(bPlaintext.senderAci()?.getServiceIdString(), aUuid);
+      deepEqual(bPlaintext.deviceId(), aDeviceId);
+
+      const innerMessage = await signalEncrypt(
+        aPlaintext,
+        bAddress,
+        aSess,
+        aKeys
+      );
+
+      for (const hint of [
+        200,
+        ContentHint.Default,
+        ContentHint.Resendable,
+        ContentHint.Implicit,
+      ]) {
+        const content = UnidentifiedSenderMessageContent.new(
+          innerMessage,
+          senderCert,
+          hint,
+          null
+        );
+        const ciphertext = await sealedSenderEncrypt(
+          content,
+          bAddress,
+          aKeys
+        );
+        const decryptedContent = await sealedSenderDecryptToUsmc(
+          ciphertext,
+          bKeys
+        );
+        deepEqual(decryptedContent.contentHint(), hint);
+      }
+    })
+
+  test('rejects self-sent messages', async () => {
+      const aStore = new TestStores();
+      const bStore = new TestStores();
+      const sharedKeys = aStore.identity;
+
+      const aSess = aStore.session;
+      const bSess = bStore.session;
+
+
+      const bPreK = bStore.prekey;
+      const bSPreK = bStore.signed;
+      const kyberStore = bStore.kyber;
+
+      const bPreKey = PrivateKey.generate();
+      const bSPreKey = PrivateKey.generate();
+
+      const sharedIdentityKey = await sharedKeys.getIdentityKey();
+
+      const aE164 = '+14151111111';
+
+      const sharedDeviceId = 1;
+
+      const sharedUuid = '9d0652a3-dcc3-4d11-975f-74d61598733f';
+
+      const trustRoot = PrivateKey.generate();
+      const serverKey = PrivateKey.generate();
+
+      const serverCert = ServerCertificate.new(
+        1,
+        serverKey.getPublicKey(),
+        trustRoot
+      );
+
+      const expires = 1605722925;
+      const senderCert = SenderCertificate.new(
+        sharedUuid,
+        aE164,
+        sharedDeviceId,
+        sharedIdentityKey.getPublicKey(),
+        expires,
+        serverCert,
+        serverKey
+      );
+
+      const sharedRegistrationId = await sharedKeys.getLocalRegistrationId();
+      const bPreKeyId = 31337;
+      const bSignedPreKeyId = 22;
+
+      const bSignedPreKeySig = sharedIdentityKey.sign(
+        bSPreKey.getPublicKey().serialized
+      );
+
+      const bPreKeyRecord = PreKeyRecord.new(
+        bPreKeyId,
+        bPreKey.getPublicKey(),
+        bPreKey
+      );
+      await bPreK.savePreKey(bPreKeyId, bPreKeyRecord);
+
+      const bSPreKeyRecord = SignedPreKeyRecord.new(
+        bSignedPreKeyId,
+        42, // timestamp
+        bSPreKey.getPublicKey(),
+        bSPreKey,
+        bSignedPreKeySig
+      );
+      await bSPreK.saveSignedPreKey(bSignedPreKeyId, bSPreKeyRecord);
+
+      const sharedAddress = new ProtocolAddress(
+        sharedUuid,
+        sharedDeviceId
+      );
+      await createAndProcessPreKeyBundle(
+        sharedRegistrationId,
+        sharedAddress,
+        bPreKeyId,
+        bPreKey.getPublicKey(),
+        bSignedPreKeyId,
+        bSPreKey.getPublicKey(),
+        bSignedPreKeySig,
+        sharedIdentityKey.getPublicKey(),
+        aSess,
+        sharedKeys,
+        null,
+      );
+
+      const aPlaintext = Buffer.from('hi there', 'utf8');
+
+      const aCiphertext = await sealedSenderEncryptMessage(
+        aPlaintext,
+        sharedAddress,
+        senderCert,
+        aSess,
+        sharedKeys
+      );
+
+      try {
+        await sealedSenderDecryptMessage(
+          aCiphertext,
+          trustRoot.getPublicKey(),
+          43, // timestamp,
+          null,
+          sharedUuid,
+          sharedDeviceId,
+          bSess,
+          sharedKeys,
+          bPreK,
+          bSPreK,
+          kyberStore,
+          kyberStore._getAllKyberKeyIds(),
+        );
+        fail('should have thrown');
+      } catch (e) {
+        assert(e instanceof Error);
+        assert(e instanceof LibSignalErrorBase);
+        const err = e as LibSignalError;
+        deepEqual(err.name, 'SealedSenderSelfSend');
+        deepEqual(err.code, ErrorCode.SealedSenderSelfSend);
+        deepEqual(err.operation, 'SealedSender_DecryptMessage'); // the Rust entry point
+        assert(err.stack !== undefined); // Make sure we're still getting the benefits of Error.
+      }
+    });
 };
