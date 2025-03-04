@@ -753,8 +753,6 @@ export class UnidentifiedSenderMessageContent {
     contentHint: number,
     groupId: Uint8Array | null
   ): UnidentifiedSenderMessageContent {
-    console.info("inja1", message.type());
-
     return new UnidentifiedSenderMessageContent(
       new Uint8Array(
         ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(

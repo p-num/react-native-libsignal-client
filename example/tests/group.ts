@@ -389,16 +389,13 @@ export const testGroup = () => {
     const trustRoot = PrivateKey.generate();
     const serverKey = PrivateKey.generate();
 
-    console.info("AMIR:1");
     const serverCert = ServerCertificate.new(
       1,
       serverKey.getPublicKey(),
       trustRoot
     );
-    console.info("AMIR:2");
 
     const expires = 1605722925;
-    console.info("AMIR:3");
 
     const senderCert = SenderCertificate.new(
       aUuid,
@@ -409,7 +406,6 @@ export const testGroup = () => {
       serverCert,
       serverKey
     );
-    console.info("AMIR:4");
 
     const bPreKeyId = 31337;
     const bSignedPreKeyId = 22;
@@ -417,7 +413,6 @@ export const testGroup = () => {
     const bSignedPreKeySig = bIdentityKey.sign(
       bSPreKey.getPublicKey().serialized
     );
-    console.info("AMIR:5");
 
     const bAddress = ProtocolAddress.new(`${bUuid}.${bDeviceId}`);
     createAndProcessPreKeyBundle(
@@ -433,7 +428,6 @@ export const testGroup = () => {
       aKeys,
       null
     );
-    console.info("AMIR:6");
 
     const aAddress = ProtocolAddress.new(`${aUuid}.${aDeviceId}`);
 
@@ -446,7 +440,6 @@ export const testGroup = () => {
     );
 
     const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
-    console.info("AMIR:7");
 
     const aCtext = await groupEncrypt(
       aAddress,
@@ -454,7 +447,6 @@ export const testGroup = () => {
       aSenderKeyStore,
       new Uint8Array(message)
     );
-    console.info("AMIR:8");
 
     const aUsmc = UnidentifiedSenderMessageContent.new(
       aCtext,
@@ -462,7 +454,6 @@ export const testGroup = () => {
       ContentHint.Implicit,
       new Uint8Array(Buffer.from([42]))
     );
-    console.info("AMIR:9");
 
     const aSentMessage = await sealedSenderMultiRecipientEncrypt({
       content: aUsmc,
@@ -474,7 +465,6 @@ export const testGroup = () => {
       identityStore: aKeys,
       sessionStore: aSess,
     });
-    console.info("AMIR:10");
 
     // Clients can't directly parse arbitrary SSv2 SentMessages, so just check that it contains
     // the excluded recipient service IDs followed by a device ID of 0.

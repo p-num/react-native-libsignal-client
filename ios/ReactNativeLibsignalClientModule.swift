@@ -4,6 +4,7 @@ import SignalFfi
 import Foundation
 import CryptoKit
 import CommonCrypto
+@testable import LibSignalClient
 
 /*START        typealias +  structs  + enums          START*/
 typealias ServiceIdStorage = SignalServiceIdFixedWidthBinaryBytes
@@ -1065,7 +1066,7 @@ public class ReactNativeLibsignalClientModule: Module {
             return endorsements.map { Data(try! $0.serialize()) } + [combined]
         }
 
-        Function("groupCipherEncryptMessage") { (senderAddress: String, sDistId: String, msg: Data, sSenderKeyRecord: Data) throws -> ((Data, Int), Data) in
+        Function("groupCipherEncryptMessage") { (senderAddress: String, sDistId: String, msg: Data, sSenderKeyRecord: Data) throws -> [Any] in
             guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
                 throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
             }
@@ -1090,7 +1091,7 @@ public class ReactNativeLibsignalClientModule: Module {
             let serializedSenderKeyRecord = Data(newSenderKeyRecord.serialize())
             let messageType = Int(cipherText.messageType.rawValue)
 
-            return ((serializedCipherText, messageType), serializedSenderKeyRecord)
+            return [[serializedCipherText, messageType], serializedSenderKeyRecord]
         }
 
         Function("groupCipherDecryptMessage") { (senderAddress: String, msg: Data, sSenderKeyRecord: Data) throws -> (Data, Data) in
@@ -1139,9 +1140,11 @@ public class ReactNativeLibsignalClientModule: Module {
                 sSenderCertificate: Data,
                 contentHint: UInt32,
                 groupId: Data?) -> Data in
-
+        var step = "0";
             do {
+                step="1"
                 let senderCertificate = try SenderCertificate(sSenderCertificate)
+                step="2"
                 let ciphertextMessage: CiphertextMessage
                 switch cipherTextType {
                 case 2:
@@ -1149,23 +1152,24 @@ public class ReactNativeLibsignalClientModule: Module {
                 case 3:
                     ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PreKeySignalMessage(bytes: msgCiphertext).serialize())) 
                 case 7:
-                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: SenderKeyMessage(bytes: msgCiphertext).serialize())) 
+                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: msgCiphertext)) 
                 case 8:
                     ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PlaintextContent(bytes: msgCiphertext).serialize())) 
                 default:
                     throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid ciphertext type"])
                 }
-
+                step="3"
                 let unidentifiedContent = try UnidentifiedSenderMessageContent(
                     ciphertextMessage,
                     from: senderCertificate,
                     contentHint: UnidentifiedSenderMessageContent.ContentHint(rawValue: contentHint),
                     groupId: groupId ?? Data()
                 )
+                step="4"
 
                 return Data(unidentifiedContent.contents)
             } catch {
-                throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create unidentified sender message content: \(error)"])
+                throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: step +  "Failed to create unidentified sender message content: \(error)"])
             }
         }
 
@@ -1197,11 +1201,304 @@ public class ReactNativeLibsignalClientModule: Module {
                 rhs.withUnsafeBytes { b2 in
                     timingsafe_bcmp(b1.baseAddress, b2.baseAddress, b1.count)
                 }
-            } == 0        }
+            } == 0       
+        }
+
+
+
+        Function("sealedSenderDecryptToUsmc") { (cipherText: Data, ownerData: [Any]) throws -> Data in
+            guard let base64OwnerKeypair = ownerData[0] as? String,
+                let ownerRegistrationId = ownerData[1] as? UInt32 else {
+                throw NSError(domain: "InvalidIdentityKeyStateFormat", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid identityKeyState format"])
+            }
+            
+            guard let ownerKeypairData = Data(base64Encoded: base64OwnerKeypair) else {
+                throw NSError(domain: "Base64DecodingError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 encoding for owner keypair"])
+            }
+            
+            let ownerKeypair = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
+            let sigProtocStore = InMemorySignalProtocolStoreWithPreKeysList(identity: ownerKeypair, registrationId: ownerRegistrationId)
+            
+            let content = try UnidentifiedSenderMessageContent(
+                message: [UInt8](cipherText),
+                identityStore: sigProtocStore,
+                context: NullContext()
+            )
+            
+            return Data(try content.contents)
+        }
+
+        Function("sealedSenderMultiRecipientEncrypt") { 
+            (ownerIdentityData: [Any], srecipients: [String], recipientSessions: [Data], 
+            excludedRecipients: Data, uidentcontent: Data, identityStoreState: [[String]]) throws -> Data in
+
+
+            // Convert recipients to SignalProtocolAddress
+            let recipients = try srecipients.map { recipient in
+                guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: recipient) else {
+                    throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
+                }
+                return try ProtocolAddress(name: serviceId, deviceId: deviceId)
+            }
+
+            // Convert recipientSessions to SessionRecord
+            let recipientSessionRecords = try recipientSessions.map { session in
+                try SessionRecord(bytes: [UInt8](session))
+            }
+
+            // Convert excludedRecipients to a list of ServiceIds
+            let excludedServiceIds = try parseFixedWidthServiceIds(raw: [UInt8](excludedRecipients))
+
+            // Extract owner identity data
+            guard let base64OwnerKeypair = ownerIdentityData[0] as? String,
+                let ownerRegistrationId = ownerIdentityData[1] as? UInt32 else {
+                throw NSError(domain: "InvalidOwnerIdentityData", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid owner identity data format"])
+            }
+
+            guard let ownerKeypairData = Data(base64Encoded: base64OwnerKeypair) else {
+                throw NSError(domain: "Base64DecodingError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 encoding for owner keypair"])
+            }
+
+            let ownerIdentityKey = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
+            let sigStore = try InMemorySignalProtocolStore(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
+
+
+
+            // Convert UnidentifiedSenderMessageContent
+            let messageContent = try UnidentifiedSenderMessageContent(
+                message: [UInt8](uidentcontent),
+                identityStore: sigStore,
+                context: NullContext()
+            )
+
+            // Populate identity store
+            for identityPair in identityStoreState {
+                guard identityPair.count == 2 else { continue }
+                guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: identityPair[0]) else {
+                    throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
+                }
+                let protocolAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+                
+                guard let identityKeyData = Data(base64Encoded: identityPair[1]) else {
+                    throw NSError(domain: "Base64DecodingError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 encoding for identity key"])
+                }
+                
+                let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData))
+                try sigStore.saveIdentity(identityKey, for: protocolAddress, context: NullContext())
+            }
+
+            // Generate a random UUID
+            let randomUUID = UUID()
+
+            // Encrypt the message
+            let encryptedMessage = try sealedSenderMultiRecipientEncrypt(
+                messageContent,
+                for: recipients,
+                excludedRecipients: excludedServiceIds,        
+                identityStore: sigStore,
+                sessionStore: sigStore,
+                context: NullContext()
+            )
+
+            return Data(encryptedMessage)
+        }
+
+        Function("sealedSenderEncrypt", sealedSenderEncryptTemp)
+        Function("sealedSenderMultiRecipientMessageForSingleRecipient", sealedSenderMultiRecipientMessageForSingleRecipientImplementation)
+        Function("serverCertificateNew", serverCertificateNewTemp)
+        Function("senderCertificateNew", senderCertificateNewTemp)
+        Function("senderKeyDistributionMessageCreate", senderKeyDistributionMessageCreateTemp)
+        Function("senderKeyDistributionMessageGetDistributionId") { (serializedMessage: Data) throws -> String in
+            let message = try SenderKeyDistributionMessage(bytes: [UInt8](serializedMessage))
+            return message.distributionId.uuidString
+        }
+        Function("senderKeyDistributionMessageProcess") { 
+            (senderAddress: String, serializedMessage: Data, currentSerializedKey: Data) throws -> Data in
+
+            guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
+                throw NSError(domain: "InvalidAddressFormat", code: 1, userInfo: nil)
+            }
+            let protoAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+
+            let message = try SenderKeyDistributionMessage(bytes: [UInt8](serializedMessage))
+            let senderKey = try SenderKeyRecord(bytes: [UInt8](currentSerializedKey))
+
+            let senderKeyStore = InMemorySignalProtocolStore()
+            try senderKeyStore.storeSenderKey(from: protoAddress, distributionId: message.distributionId, record: senderKey, context: NullContext())
+
+            try! processSenderKeyDistributionMessage(
+                        message,
+                        from: protoAddress,
+                        store: senderKeyStore,
+                        context: NullContext()
+                    )
+            guard let newSenderKeyRecord = try senderKeyStore.loadSenderKey(from: protoAddress, distributionId: message.distributionId, context: NullContext()) else {
+                throw NSError(domain: "SenderKeyError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to load sender key record"])
+            }
+
+            return Data(newSenderKeyRecord.serialize())
+        }
+        Function("serverCertificateGetCertificate") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try ServerCertificate([UInt8](serializedCertificate))
+            return Data(certificate.certificateBytes)
+        }
+
+        Function("serverCertificateGetKey") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try ServerCertificate([UInt8](serializedCertificate))
+            return Data(try certificate.publicKey.serialize())
+        }
+
+        Function("serverCertificateGetKeyId") { (serializedCertificate: Data) throws -> UInt32 in
+            let certificate = try ServerCertificate([UInt8](serializedCertificate))
+            return certificate.keyId
+        }
+
+        Function("serverCertificateGetSignature") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try ServerCertificate([UInt8](serializedCertificate))
+            return Data(certificate.signatureBytes)
+        }
+
+        Function("senderKeyDistributionMessageGetChainKey") { (serializedMessage: Data) throws -> Data in
+            let message = try SenderKeyDistributionMessage(bytes: [UInt8](serializedMessage))
+            return Data(message.chainKey)
+        }
+
+        Function("senderKeyDistributionMessageGetIteration") { (serializedMessage: Data) throws -> UInt32 in
+            let message = try SenderKeyDistributionMessage(bytes: [UInt8](serializedMessage))
+            return message.iteration
+        }
+
+        Function("senderKeyDistributionMessageGetChainId") { (serializedMessage: Data) throws -> UInt32 in
+            let message = try SenderKeyDistributionMessage(bytes: [UInt8](serializedMessage))
+            return message.chainId
+        }
+        Function("senderKeyMessageGetDistributionId") { (serializedMessage: Data) throws -> String in
+            let message = try SenderKeyMessage(bytes: [UInt8](serializedMessage))
+            return message.distributionId.uuidString
+        }
+        Function("senderKeyMessageVerifySignature") { (serializedMessage: Data, serializedSenderIdentityKey: Data) -> Bool in
+            do {
+                let message = try SenderKeyMessage(bytes: [UInt8](serializedMessage))
+                let senderIdentityKey = try PublicKey([UInt8](serializedSenderIdentityKey))
+                try message.verifySignature(against: senderIdentityKey)
+                return true
+            } catch {
+                return false
+            }
+        }
+
         /*END          bridge functions definitions              END*/
     }
 
     /*START          bridge functions implementation              START*/
+    private func senderKeyDistributionMessageCreateTemp(
+        senderAddress: String,
+        distId: String,
+        sKeyRecord: Data
+    ) throws ->  [Any] {
+        
+        guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
+            throw NSError(domain: "InvalidAddressFormat", code: 1, userInfo: nil)
+        }
+        
+        let senderProtocolAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+        let senderKeyStore = InMemorySignalProtocolStore()
+        
+        guard let distributionId = UUID(uuidString: distId) else {
+            throw NSError(domain: "InvalidUUIDError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid UUID format for distId"])
+        }
+        
+        if !sKeyRecord.isEmpty {
+            let rec = try SenderKeyRecord(bytes: [UInt8](sKeyRecord))
+            try senderKeyStore.storeSenderKey(from: senderProtocolAddress, distributionId: distributionId, record: rec, context: NullContext())
+        }
+        
+        let senderKeyDistributionMessage = try! SenderKeyDistributionMessage(from: senderProtocolAddress, distributionId: distributionId, store: senderKeyStore, context: NullContext())
+
+        let updatedRec = try? senderKeyStore.loadSenderKey(from: senderProtocolAddress, distributionId: distributionId, context: NullContext())
+        let updatedRecSer = updatedRec?.serialize() ?? []
+
+        return [Data(senderKeyDistributionMessage.serialize()), Data(updatedRecSer)]
+    }
+    private func senderCertificateNewTemp(
+        localSenderUuid: String,
+        senderE164: String,
+        senderDeviceId: UInt32,
+        senderKey: Data,
+        expiration: UInt64,
+        signerCert: Data,
+        signerKey: Data
+    ) throws -> Data {
+        
+        let senderPubKey = try PublicKey([UInt8](senderKey))
+        let signerCertif = try ServerCertificate([UInt8](signerCert))
+        let signerPrivKey = try PrivateKey([UInt8](signerKey))
+
+        let senderOpE164: String? = senderE164.isEmpty ? nil : senderE164
+        let sender_addr = try! SealedSenderAddress(
+            e164: senderOpE164,
+            uuidString: localSenderUuid,
+            deviceId: senderDeviceId
+        )
+        let certificate = try SenderCertificate(
+            sender: sender_addr,
+            publicKey: senderPubKey,
+            expiration: expiration,
+            signerCertificate:signerCertif,
+            signerKey:signerPrivKey
+        )
+
+        return Data(certificate.serialize())
+    }
+    private func serverCertificateNewTemp(keyId: UInt32, serverKey: Data, trustKey: Data) throws -> Data {
+        let trustRoot = try PrivateKey([UInt8](trustKey))
+        let serverKeyPub = try PublicKey([UInt8](serverKey))
+
+        let certificate = try! ServerCertificate(keyId: keyId,publicKey: serverKeyPub, trustRoot: trustRoot )
+
+        return Data(certificate.serialize())
+    }
+    private func sealedSenderMultiRecipientMessageForSingleRecipientImplementation(message: Data) throws -> Data {
+        return try Data(LibSignalClient.sealedSenderMultiRecipientMessageForSingleRecipient([UInt8](message)))
+    }
+
+    private func sealedSenderEncryptTemp(destAddress: String, unidentifiedContent: Data, identityKeyState: [Any]) throws -> Data {
+        guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: destAddress) else {
+            throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
+        }
+        let protoAddress = try ProtocolAddress(name: serviceId, deviceId: deviceId)
+
+        guard identityKeyState.count == 2,
+            let base64IdentityKey = identityKeyState[0] as? String,
+            let ownerData = identityKeyState[1] as? [Any],
+            ownerData.count == 2,
+            let base64OwnerKeypair = ownerData[0] as? String,
+            let ownerRegistrationId = ownerData[1] as? UInt32 else {
+            throw NSError(domain: "InvalidIdentityKeyState", code: 2, userInfo: [NSLocalizedDescriptionKey: "Invalid identity key state format"])
+        }
+        guard let ownerKeypairData = Data(base64Encoded: base64OwnerKeypair),
+            let identityKeyData = Data(base64Encoded: base64IdentityKey) else {
+            throw NSError(domain: "Base64DecodingError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 encoding"])
+        }
+        let ownerKeypair = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
+        let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData))
+        let store = InMemorySignalProtocolStoreWithPreKeysList(identity: ownerKeypair, registrationId: ownerRegistrationId)
+        try store.saveIdentity(identityKey, for: protoAddress, context: NullContext())
+        let randomUUID = UUID()
+        let content = try UnidentifiedSenderMessageContent(
+            message: [UInt8](unidentifiedContent),
+            identityStore: store,
+            context: NullContext()
+        )
+        let encryptedContent = try sealedSenderEncrypt(
+            content,
+            for: protoAddress,
+            identityStore: store,
+            context: NullContext()
+        )
+
+        return Data(encryptedContent)
+    }
     private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: [UInt8]) throws -> [UInt8] {
         let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
         let clientZkCipher = ClientZkGroupCipher(groupSecretParams: groupSecretParams)
