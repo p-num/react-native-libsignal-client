@@ -38,23 +38,21 @@ export const testGroup = () => {
     const sender = ProtocolAddress.new("sender.1");
     const distributionId = "d1d1d1d1-7000-11eb-b32a-33b8a8a487a6";
     const aSenderKeyStore = aliceStores.sender;
-    console.info("LOG:1");
+
     const skdm = await SenderKeyDistributionMessage.create(
       sender,
       distributionId,
       aSenderKeyStore
     );
-    console.info("LOG:key");
+
     assert(deepEqual(distributionId, skdm.distributionId()));
-    console.info("LOG:3");
+
     assert(deepEqual(0, skdm.iteration()));
-    console.info("LOG:2");
 
     const bSenderKeyStore = bobStores.sender;
     await processSenderKeyDistributionMessage(sender, skdm, bSenderKeyStore);
 
     const message = new Uint8Array(Buffer.from("0a0b0c", "hex"));
-    console.info("LOG:3");
 
     const aCtext = await groupEncrypt(
       sender,
@@ -62,24 +60,20 @@ export const testGroup = () => {
       aSenderKeyStore,
       new Uint8Array(message)
     );
-    console.info("LOG:4");
 
     const bPtext = await groupDecrypt(
       sender,
       bSenderKeyStore,
       aCtext.serialized
     );
-    console.info("LOG:5");
 
     assert(deepEqual(message, bPtext));
-    console.info("LOG:6");
 
     const anotherSkdm = await SenderKeyDistributionMessage.create(
       sender,
       distributionId,
       aSenderKeyStore
     );
-    console.info("LOG:7");
 
     assert(deepEqual(skdm.chainId(), anotherSkdm.chainId()));
     assert(deepEqual(1, anotherSkdm.iteration()));
