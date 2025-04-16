@@ -7,7 +7,7 @@ podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties
 ENV['RCT_NEW_ARCH_ENABLED'] = podfile_properties['newArchEnabled'] == 'true' ? '1' : '0'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] = podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 
-platform :ios, podfile_properties['ios.deploymentTarget'] || '14.0'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 use_frameworks!
 
@@ -24,8 +24,8 @@ prepare_react_native_project!
 
 target 'reactnativelibsignalclientexample' do
   pod 'SignalCoreKit', git: 'https://github.com/signalapp/SignalCoreKit', testspecs: ["Tests"]
-  ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = 'd0ac82ca0afe42ca16c170e43b647cb3c24644e76b3dca83f0f9ce1baa11486d'
-  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.56.0', testspecs: ["Tests"]         
+  ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = 'e12f6f64eb0ed503c363f3b3830c4c62976cceec04122cd6deee66f5106c482d'
+  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.70.0', testspecs: ["Tests"]           
   pod 'SwiftProtobuf', ">= 1.14.0"
 
   use_expo_modules!

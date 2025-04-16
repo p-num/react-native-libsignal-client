@@ -1094,7 +1094,7 @@ public class ReactNativeLibsignalClientModule: Module {
             return [[serializedCipherText, messageType], serializedSenderKeyRecord]
         }
 
-        Function("groupCipherDecryptMessage") { (senderAddress: String, msg: Data, sSenderKeyRecord: Data) throws -> (Data, Data) in
+        Function("groupCipherDecryptMessage") { (senderAddress: String, msg: Data, sSenderKeyRecord: Data) throws -> [Any] in
     
             guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: senderAddress) else {
                 throw NSError(domain: "InvalidAddressError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid address format"])
@@ -1112,14 +1112,13 @@ public class ReactNativeLibsignalClientModule: Module {
                 record: sndKeyRec,
                 context: NullContext()
             )
-            
             let decryptedMessage = try groupDecrypt(
                 [UInt8](msg),
                 from: protoAddress,
                 store: senderKeyStore,
                 context: NullContext()
             )
-            
+
             guard let newSenderKeyRecord = try senderKeyStore.loadSenderKey(
                 from: protoAddress,
                 distributionId: senderKeyMessage.distributionId,
@@ -1131,45 +1130,41 @@ public class ReactNativeLibsignalClientModule: Module {
             let serializedDecryptedMessage = Data(decryptedMessage)
             let serializedSenderKeyRecord = Data(newSenderKeyRecord.serialize())
             
-            return (serializedDecryptedMessage, serializedSenderKeyRecord)
+            return [serializedDecryptedMessage, serializedSenderKeyRecord]
         }
 
 
         Function("unidentifiedSenderMessageContentNew") { (msgCiphertext: Data,
-                cipherTextType: UInt32,
+                cipherTextType: Int,
                 sSenderCertificate: Data,
                 contentHint: UInt32,
                 groupId: Data?) -> Data in
-        var step = "0";
             do {
-                step="1"
                 let senderCertificate = try SenderCertificate(sSenderCertificate)
-                step="2"
-                let ciphertextMessage: CiphertextMessage
+                var signalMessageType: CiphertextMessage.MessageType = .preKey
                 switch cipherTextType {
-                case 2:
-                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: SignalMessage(bytes: msgCiphertext).serialize()))
-                case 3:
-                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PreKeySignalMessage(bytes: msgCiphertext).serialize())) 
-                case 7:
-                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: msgCiphertext)) 
-                case 8:
-                    ciphertextMessage = try CiphertextMessage(PlaintextContent(bytes: PlaintextContent(bytes: msgCiphertext).serialize())) 
-                default:
-                    throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid ciphertext type"])
+                    case 2:
+                    signalMessageType = .whisper
+                    case 3:
+                    signalMessageType = .preKey
+                    case 7:
+                    signalMessageType = .senderKey
+                    case 8:
+                    signalMessageType = .plaintext
+                    default:
+                    signalMessageType = .preKey
                 }
-                step="3"
                 let unidentifiedContent = try UnidentifiedSenderMessageContent(
-                    ciphertextMessage,
+                    msgCiphertext,
+                    type: signalMessageType,
                     from: senderCertificate,
                     contentHint: UnidentifiedSenderMessageContent.ContentHint(rawValue: contentHint),
                     groupId: groupId ?? Data()
                 )
-                step="4"
 
-                return Data(unidentifiedContent.contents)
+                return Data(unidentifiedContent.serialize())
             } catch {
-                throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey: step +  "Failed to create unidentified sender message content: \(error)"])
+                throw NSError(domain: "UnidentifiedSenderError", code: 1, userInfo: [NSLocalizedDescriptionKey:  "Failed to create unidentified sender message content: \(error)"])
             }
         }
 
@@ -1225,15 +1220,37 @@ public class ReactNativeLibsignalClientModule: Module {
                 context: NullContext()
             )
             
-            return Data(try content.contents)
+            return Data(try content.serialize())
+        }
+
+
+        Function("unidentifiedSenderMessageContentGetContents"){(serializedContent: Data) in 
+            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return content.contents
+        }
+        Function("unidentifiedSenderMessageContentGetMsgType"){(serializedContent: Data) in
+            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return content.messageType.rawValue
+        }
+        Function("unidentifiedSenderMessageContentGetSenderCert"){(serializedContent: Data) in
+            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return content.senderCertificate.serialize()
+        }
+        Function("unidentifiedSenderMessageContentGetContentHint"){(serializedContent: Data) in
+            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return content.contentHint.rawValue
+        }
+        Function("unidentifiedSenderMessageContentGetGroupId"){(serializedContent: Data) in
+            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return content.groupId ?? [UInt8]()
         }
 
         Function("sealedSenderMultiRecipientEncrypt") { 
-            (ownerIdentityData: [Any], srecipients: [String], recipientSessions: [Data], 
-            excludedRecipients: Data, uidentcontent: Data, identityStoreState: [[String]]) throws -> Data in
+            (ownerIdentityData: [Any], srecipients: [String],sessionStoreState: [String: String], 
+            excludedRecipients: Data, uidentcontent: Data, identityStoreState: [[String]]) in
+            
 
 
-            // Convert recipients to SignalProtocolAddress
             let recipients = try srecipients.map { recipient in
                 guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: recipient) else {
                     throw NSError(domain: "Invalid address format", code: 1, userInfo: nil)
@@ -1241,15 +1258,9 @@ public class ReactNativeLibsignalClientModule: Module {
                 return try ProtocolAddress(name: serviceId, deviceId: deviceId)
             }
 
-            // Convert recipientSessions to SessionRecord
-            let recipientSessionRecords = try recipientSessions.map { session in
-                try SessionRecord(bytes: [UInt8](session))
-            }
 
-            // Convert excludedRecipients to a list of ServiceIds
             let excludedServiceIds = try parseFixedWidthServiceIds(raw: [UInt8](excludedRecipients))
 
-            // Extract owner identity data
             guard let base64OwnerKeypair = ownerIdentityData[0] as? String,
                 let ownerRegistrationId = ownerIdentityData[1] as? UInt32 else {
                 throw NSError(domain: "InvalidOwnerIdentityData", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid owner identity data format"])
@@ -1262,16 +1273,18 @@ public class ReactNativeLibsignalClientModule: Module {
             let ownerIdentityKey = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
             let sigStore = try InMemorySignalProtocolStore(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
 
+            let store = InMemorySignalProtocolStoreWithPreKeysList(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
+            for (key, value) in sessionStoreState {
+                guard let (inStoreName, inStoreDeviceId) = getDeviceIdAndServiceId(address: key) else {
+                    throw NSError(domain: "Invalid address format", code: 5, userInfo: nil)
+                }
+                let keyBuffer = Data(base64Encoded: value, options: .ignoreUnknownCharacters)!
+                let protoAddress = try ProtocolAddress(name: inStoreName, deviceId: UInt32(inStoreDeviceId))
+                let sessionRecord = try SessionRecord(bytes: keyBuffer)
+                try store.storeSession(sessionRecord, for: protoAddress, context: NullContext())
+            }
 
 
-            // Convert UnidentifiedSenderMessageContent
-            let messageContent = try UnidentifiedSenderMessageContent(
-                message: [UInt8](uidentcontent),
-                identityStore: sigStore,
-                context: NullContext()
-            )
-
-            // Populate identity store
             for identityPair in identityStoreState {
                 guard identityPair.count == 2 else { continue }
                 guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: identityPair[0]) else {
@@ -1283,24 +1296,36 @@ public class ReactNativeLibsignalClientModule: Module {
                     throw NSError(domain: "Base64DecodingError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid Base64 encoding for identity key"])
                 }
                 
-                let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData))
+                let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData)) 
                 try sigStore.saveIdentity(identityKey, for: protocolAddress, context: NullContext())
             }
 
-            // Generate a random UUID
+
             let randomUUID = UUID()
+            do {
+                let messageContent = try UnidentifiedSenderMessageContent(
+                    bytes: [UInt8](uidentcontent)
+                )   
 
-            // Encrypt the message
-            let encryptedMessage = try sealedSenderMultiRecipientEncrypt(
-                messageContent,
-                for: recipients,
-                excludedRecipients: excludedServiceIds,        
-                identityStore: sigStore,
-                sessionStore: sigStore,
-                context: NullContext()
-            )
+                let encryptedMessage = try sealedSenderMultiRecipientEncrypt(
+                    messageContent,
+                    for: recipients,
+                    excludedRecipients: excludedServiceIds,        
+                    identityStore: sigStore,
+                    sessionStore:store ,
+                    context: NullContext()
+                )
 
-            return Data(encryptedMessage)
+                return Data(encryptedMessage)
+            } catch {
+                throw NSError(domain: "UnidentifiedSenderMessageContent calculation error: \(error)", code: 1, userInfo: nil)
+                return Data()
+            }
+
+           
+
+
+           
         }
 
         Function("sealedSenderEncrypt", sealedSenderEncryptTemp)
@@ -1342,6 +1367,67 @@ public class ReactNativeLibsignalClientModule: Module {
             let certificate = try ServerCertificate([UInt8](serializedCertificate))
             return Data(certificate.certificateBytes)
         }
+
+                
+        Function("senderCertificateGetCertificate") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return Data(certificate.certificateBytes)
+        }
+
+        
+        Function("senderCertificateGetSignature") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return Data(certificate.signatureBytes)
+        }
+
+        
+        Function("senderCertificateGetExpiration") { (serializedCertificate: Data) throws -> UInt64 in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return UInt64(certificate.expiration)
+        }
+
+        
+        Function("senderCertificateGetKey") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return Data(try certificate.publicKey.serialize())
+        }
+
+        
+        Function("senderCertificateGetSenderE164") { (serializedCertificate: Data) throws -> String? in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return certificate.senderE164
+        }
+
+        
+        Function("senderCertificateGetSenderUuid") { (serializedCertificate: Data) throws -> String in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return certificate.senderUuid
+        }
+
+        
+        Function("senderCertificateGetDeviceId") { (serializedCertificate: Data) throws -> Int in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return Int(certificate.deviceId)
+        }
+
+        
+        Function("senderCertificateGetServerCertificate") { (serializedCertificate: Data) throws -> Data in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            return Data(try certificate.serverCertificate.serialize())
+        }
+
+        
+        Function("senderCertificateValidate") { (trustRoot: Data, serializedCertificate: Data, timestamp: UInt64) -> Bool in
+            do {
+                let certificate = try SenderCertificate([UInt8](serializedCertificate))
+                let publicKey = try PublicKey([UInt8](trustRoot))
+                try certificate.validate(trustRoot: publicKey, time: timestamp)
+                return true
+            } catch {
+                return false
+            }
+        }
+
 
         Function("serverCertificateGetKey") { (serializedCertificate: Data) throws -> Data in
             let certificate = try ServerCertificate([UInt8](serializedCertificate))
@@ -1486,9 +1572,7 @@ public class ReactNativeLibsignalClientModule: Module {
         try store.saveIdentity(identityKey, for: protoAddress, context: NullContext())
         let randomUUID = UUID()
         let content = try UnidentifiedSenderMessageContent(
-            message: [UInt8](unidentifiedContent),
-            identityStore: store,
-            context: NullContext()
+            bytes: [UInt8](unidentifiedContent)
         )
         let encryptedContent = try sealedSenderEncrypt(
             content,
@@ -1549,7 +1633,7 @@ public class ReactNativeLibsignalClientModule: Module {
             pointer.load(as: SignalRandomnessBytes.self)
         }
         let redemptionTimeUInt64: UInt64 = UInt64(redemptionTime)
-        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniAsServiceId(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTimeUInt64)
+        let authCredPniResp = try serverAuthOp.issueAuthCredentialWithPniZkc(randomness: Randomness(randomnessBytes), aci: aci, pni: pni, redemptionTime: redemptionTimeUInt64)
         
         return authCredPniResp.serialize()
     }
@@ -1898,9 +1982,7 @@ public class ReactNativeLibsignalClientModule: Module {
 
     private func authCredentialPresentationGetPniCiphertextHelper(sAuthCredPres: Data) throws -> [UInt8] {
         let authCredPresentation = try AuthCredentialPresentation(contents: [UInt8](sAuthCredPres))
-        guard let pniCiphertext = try authCredPresentation.getPniCiphertext() else {
-            throw NSError(domain: "AuthCredentialPresentationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "PniCiphertext is nil"])
-        }
+        let pniCiphertext = try authCredPresentation.getPniCiphertext()
         return pniCiphertext.serialize()
     }
 

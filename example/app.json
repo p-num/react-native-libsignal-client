@@ -32,7 +32,7 @@
           "ios": {
             "newArchEnabled": true,
             "useFrameworks": "static",
-            "deploymentTarget": "14.0"
+            "deploymentTarget": "15.1"
           },
           "android": {
             "newArchEnabled": true,
