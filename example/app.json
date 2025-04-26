@@ -1,46 +1,46 @@
 {
-  "expo": {
-    "name": "react-native-libsignal-client-example",
-    "slug": "react-native-libsignal-client-example",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.libsignalclient.example"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "expo.modules.libsignalclient.example"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "newArchEnabled": true,
-            "useFrameworks": "static",
-            "deploymentTarget": "14.0"
-          },
-          "android": {
-            "newArchEnabled": true,
-            "minSdkVersion": 26
-          }
-        }
-      ],
-      "./app.plugin.js"
-    ]
-  }
+	"expo": {
+		"name": "react-native-libsignal-client-example",
+		"slug": "react-native-libsignal-client-example",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/icon.png",
+		"userInterfaceStyle": "light",
+		"splash": {
+			"image": "./assets/splash.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#ffffff"
+		},
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "expo.modules.libsignalclient.example"
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#ffffff"
+			},
+			"package": "expo.modules.libsignalclient.example"
+		},
+		"web": {
+			"favicon": "./assets/favicon.png"
+		},
+		"plugins": [
+			[
+				"expo-build-properties",
+				{
+					"ios": {
+						"newArchEnabled": true,
+						"useFrameworks": "static",
+						"deploymentTarget": "15.5"
+					},
+					"android": {
+						"newArchEnabled": true,
+						"minSdkVersion": 26
+					}
+				}
+			],
+			"../app.plugin.js"
+		]
+	}
 }
