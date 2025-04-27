@@ -1523,26 +1523,32 @@ class ReactNativeLibsignalClientModule : Module() {
         return Pair(senderKeyDistributionMessage.serialize(), updatedRecSer.orElse(ByteArray(0)))
     }
 
-    private fun sealedSenderMultiRecipientEncrypt(ownerIdentityData: OwnerData, srecipients: List<String>, recipientSessions: List<ByteArray>, excludedRecipients: ByteArray, uidentcontent: ByteArray, identityStoreState: List<Pair<String, String>>): ByteArray {
+    private fun sealedSenderMultiRecipientEncrypt(ownerIdentityData: OwnerData, srecipients: List<String>, recipientSessions: SerializedAddressedKeys, excludedRecipients: ByteArray, uidentcontent: ByteArray, identityStoreState: List<Pair<String, String>>): ByteArray {
         val messageContent = UnidentifiedSenderMessageContent(uidentcontent)
         val recipients = srecipients.map { v -> getDeviceIdAndServiceId(v) }.map { v -> SignalProtocolAddress(v.first, v.second) }
-        val recipientsSessions = recipientSessions.map { v -> SessionRecord(v) }
         val excludedServiceIds = parseFixedWidthServiceIds(excludedRecipients)
 
         val (base64OwnerKeypair, ownerRegistrationId) = ownerIdentityData
         val ownerKeypair = Base64.decode(base64OwnerKeypair, Base64.NO_WRAP)
         val ownerIdentityKey = IdentityKeyPair(ownerKeypair)
         val sigStore = InMemorySignalProtocolStore(ownerIdentityKey, ownerRegistrationId)
-        for (p in identityStoreState) {
+                for (p in identityStoreState) {
                 val (serviceid, deviceid) = getDeviceIdAndServiceId(p.first)
                 val padd = SignalProtocolAddress(serviceid, deviceid)
                 val ident = IdentityKey(        Base64.decode(p.second, Base64.NO_WRAP))
                 sigStore.saveIdentity(padd, ident)
         }
 
+        for ((key, value) in recipientSessions) {
+            val (inStoreName, inStoreDeviceId) = getDeviceIdAndServiceId(key)
+            val keyBuffer = Base64.decode(value, Base64.NO_WRAP)
+            val protoAddress = SignalProtocolAddress(inStoreName, inStoreDeviceId)
+            sigStore.storeSession(protoAddress, SessionRecord(keyBuffer))
+        }
+
         // random uuid is generated so that we wont panic. don't worry it is not needed in encryption process
         val gpCipher = SealedSessionCipher(sigStore, UUID.randomUUID(), null, ownerRegistrationId)
-        return gpCipher.multiRecipientEncrypt(recipients, recipientsSessions, messageContent, excludedServiceIds)
+        return gpCipher.multiRecipientEncrypt(recipients, messageContent, excludedServiceIds)
     }
 
     private fun serverCertificateNew(keyId: Int, serverKey: ByteArray, trustKey: ByteArray): ByteArray {
