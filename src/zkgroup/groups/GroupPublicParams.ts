@@ -1,5 +1,5 @@
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import GroupIdentifier from "./GroupIdentifier";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import GroupIdentifier from './GroupIdentifier';
 
 export default class GroupPublicParams {
   readonly serialized: Uint8Array;

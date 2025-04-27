@@ -1,4 +1,4 @@
-import { Buffer } from "@craftzdog/react-native-buffer";
+import { Buffer } from '@craftzdog/react-native-buffer';
 
 export default class ProfileKeyVersion {
   readonly serialized: Uint8Array;
@@ -12,7 +12,7 @@ export default class ProfileKeyVersion {
     }
 
     this.serialized =
-      typeof serialized === "string"
+      typeof serialized === 'string'
         ? Uint8Array.from(
             Array.from(serialized).map((letter) => letter.charCodeAt(0))
           )
@@ -20,6 +20,6 @@ export default class ProfileKeyVersion {
   }
 
   toString(): string {
-    return Buffer.from(this.serialized).toString("utf-8");
+    return Buffer.from(this.serialized).toString('utf-8');
   }
 }

@@ -3,17 +3,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-import { RANDOM_LENGTH } from "../internal/Constants";
+import { RANDOM_LENGTH } from '../internal/Constants';
 
-import GroupPublicParams from "../groups/GroupPublicParams";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import ExpiringProfileKeyCredentialResponse from "./ExpiringProfileKeyCredentialResponse";
-import ProfileKeyCommitment from "./ProfileKeyCommitment";
-import ProfileKeyCredentialPresentation from "./ProfileKeyCredentialPresentation";
-import ProfileKeyCredentialRequest from "./ProfileKeyCredentialRequest";
-import { Aci } from "../../Address";
-import { randomBytes } from "../../randomBytes";
-import ServerSecretParams from "../ServerSecretParams";
+import type { Aci } from '../../Address';
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../../randomBytes';
+import type ServerSecretParams from '../ServerSecretParams';
+import type GroupPublicParams from '../groups/GroupPublicParams';
+import ExpiringProfileKeyCredentialResponse from './ExpiringProfileKeyCredentialResponse';
+import type ProfileKeyCommitment from './ProfileKeyCommitment';
+import type ProfileKeyCredentialPresentation from './ProfileKeyCredentialPresentation';
+import type ProfileKeyCredentialRequest from './ProfileKeyCredentialRequest';
 
 export default class ServerZkProfileOperations {
   serverSecretParams: ServerSecretParams;

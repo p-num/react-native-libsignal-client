@@ -1,11 +1,11 @@
-import GroupSecretParams from "./GroupSecretParams";
-import ProfileKeyCiphertext from "./ProfileKeyCiphertext";
-import UuidCiphertext from "./UuidCiphertext";
-import { Aci, ServiceId } from "../../Address";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import { RANDOM_LENGTH } from "../internal/Constants";
-import ProfileKey from "../profiles/ProfileKey";
-import { randomBytes } from "../../randomBytes";
+import { type Aci, ServiceId } from '../../Address';
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../../randomBytes';
+import { RANDOM_LENGTH } from '../internal/Constants';
+import ProfileKey from '../profiles/ProfileKey';
+import type GroupSecretParams from './GroupSecretParams';
+import ProfileKeyCiphertext from './ProfileKeyCiphertext';
+import UuidCiphertext from './UuidCiphertext';
 
 export default class ClientZkGroupCipher {
   groupSecretParams: GroupSecretParams;

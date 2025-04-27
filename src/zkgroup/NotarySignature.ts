@@ -4,7 +4,9 @@ export default class NotarySignature {
 
   constructor(serialized: Uint8Array) {
     if (serialized.length !== NotarySignature.SIZE) {
-      throw new Error(`Length of array supplied was ${serialized.length} expected ${NotarySignature.SIZE}`);
+      throw new Error(
+        `Length of array supplied was ${serialized.length} expected ${NotarySignature.SIZE}`
+      );
     }
 
     this.serialized = serialized;

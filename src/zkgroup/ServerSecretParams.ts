@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-import ReactNativeLibsignalClientModule from "../ReactNativeLibsignalClientModule";
-import { RANDOM_LENGTH } from "./internal/Constants";
-import ServerPublicParams from "./ServerPublicParams";
-import NotarySignature from "./NotarySignature";
-import { randomBytes } from "../randomBytes";
+import ReactNativeLibsignalClientModule from '../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../randomBytes';
+import NotarySignature from './NotarySignature';
+import ServerPublicParams from './ServerPublicParams';
+import { RANDOM_LENGTH } from './internal/Constants';
 
 export default class ServerSecretParams {
   readonly serialized: Uint8Array;

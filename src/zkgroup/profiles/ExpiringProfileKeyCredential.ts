@@ -1,4 +1,4 @@
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
 
 export default class ExpiringProfileKeyCredential {
   readonly serialized: Uint8Array;

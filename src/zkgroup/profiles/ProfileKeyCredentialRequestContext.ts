@@ -1,5 +1,5 @@
-import ProfileKeyCredentialRequest from "./ProfileKeyCredentialRequest";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import ProfileKeyCredentialRequest from './ProfileKeyCredentialRequest';
 
 export default class ProfileKeyCredentialRequestContext {
   readonly serialized: Uint8Array;

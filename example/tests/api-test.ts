@@ -1,36 +1,36 @@
-import { Buffer } from "@craftzdog/react-native-buffer";
-import deepEql from "deep-eql";
-import { getRandomBytes } from "expo-crypto";
-import { Platform } from "react-native";
-import "react-native-get-random-values";
-import { assert, isInstanceOf, isNotNull } from "typed-assert";
-import * as uuid from "uuid";
-import * as ReactNativeLibsignalClient from "../../src";
-import { Aci, Pni, ProtocolAddress, ServiceId } from "../../src/Address";
-import ReactNativeLibsignalClientModule from "../../src/ReactNativeLibsignalClientModule";
-import { isUint32, sessionVersionTestCases } from "./api-utils";
-import { noThrowSync, throwsAsync, throwsSync } from "./extentions";
-import { TestStores } from "./mockStores";
-import { test } from "./utils";
+import { Buffer } from '@craftzdog/react-native-buffer';
+import deepEql from 'deep-eql';
+import { getRandomBytes } from 'expo-crypto';
+import { Platform } from 'react-native';
+import 'react-native-get-random-values';
+import { assert, isInstanceOf, isNotNull } from 'typed-assert';
+import * as uuid from 'uuid';
+import * as ReactNativeLibsignalClient from '../../src';
+import { Aci, Pni, ProtocolAddress, ServiceId } from '../../src/Address';
+import ReactNativeLibsignalClientModule from '../../src/ReactNativeLibsignalClientModule';
+import { isUint32, sessionVersionTestCases } from './api-utils';
+import { noThrowSync, throwsAsync, throwsSync } from './extentions';
+import { TestStores } from './mockStores';
+import { test } from './utils';
 
 export const testServiceId = () =>
-  test("aci for valid/invalid args", async () => {
-    const testingUuid = "8c78cd2a-16ff-427d-83dc-1a5e36ce713d";
+  test('aci for valid/invalid args', async () => {
+    const testingUuid = '8c78cd2a-16ff-427d-83dc-1a5e36ce713d';
     const aci = Aci.fromUuid(testingUuid);
     isInstanceOf(aci, Aci);
     assert(
       aci.isEqual(Aci.fromUuidBytes(uuid.parse(testingUuid))),
-      "aci from Aci.fromUuid is not equal to aci from parsed uuid bytes"
+      'aci from Aci.fromUuid is not equal to aci from parsed uuid bytes'
     );
-    assert(!aci.isEqual(Pni.fromUuid(testingUuid)), "aci is equal to pni");
+    assert(!aci.isEqual(Pni.fromUuid(testingUuid)), 'aci is equal to pni');
 
     assert(
       deepEql(testingUuid, aci.getRawUuid()),
-      "rawUuid is not equal to uuid"
+      'rawUuid is not equal to uuid'
     );
     assert(
       deepEql(uuid.parse(testingUuid), aci.getRawUuidBytes()),
-      "rawUuidBytes is not equal to uuid"
+      'rawUuidBytes is not equal to uuid'
     );
     assert(
       deepEql(testingUuid, aci.getServiceIdString()),
@@ -38,19 +38,19 @@ export const testServiceId = () =>
     );
     assert(
       deepEql(uuid.parse(testingUuid), aci.getServiceIdBinary()),
-      "serviceIdBinary is not equal to uuid"
+      'serviceIdBinary is not equal to uuid'
     );
     assert(
       deepEql(`<ACI:${testingUuid}>`, `${aci}`),
-      "toString is not correct"
+      'toString is not correct'
     );
 
     {
       const aciServiceId = ServiceId.parseFromServiceIdString(
         aci.getServiceIdString()
       );
-      isInstanceOf(aciServiceId, Aci, "aciServiceId is not an instance of Aci");
-      assert(deepEql(aci, aciServiceId), "aci is not equal to aciServiceId");
+      isInstanceOf(aciServiceId, Aci, 'aciServiceId is not an instance of Aci');
+      assert(deepEql(aci, aciServiceId), 'aci is not equal to aciServiceId');
 
       const _: Aci = Aci.parseFromServiceIdString(aci.getServiceIdString());
     }
@@ -62,47 +62,47 @@ export const testServiceId = () =>
       isInstanceOf(
         aciServiceId,
         Aci,
-        "aciServiceId generated as ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary()) is not an instance of Aci"
+        'aciServiceId generated as ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary()) is not an instance of Aci'
       );
       assert(
         deepEql(aci, aciServiceId),
-        "Aci.fromUuid(testingUuid) is not equal to ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary())"
+        'Aci.fromUuid(testingUuid) is not equal to ServiceId.parseFromServiceIdBinary(aci.getServiceIdBinary())'
       );
 
       const _: Aci = Aci.parseFromServiceIdBinary(aci.getServiceIdBinary());
     }
     await (async () => {
-      const testingUuid = "8c78cd2a-16ff-427d-83dc-1a5e36ce713d";
+      const testingUuid = '8c78cd2a-16ff-427d-83dc-1a5e36ce713d';
       const pni = Pni.fromUuid(testingUuid);
-      isInstanceOf(pni, Pni, "Pni.fromUuid is not an instance of Pni");
+      isInstanceOf(pni, Pni, 'Pni.fromUuid is not an instance of Pni');
       assert(
         pni.isEqual(Pni.fromUuidBytes(uuid.parse(testingUuid))),
-        "pni from Pni.fromUuid is not equal to pni from parsed uuid bytes"
+        'pni from Pni.fromUuid is not equal to pni from parsed uuid bytes'
       );
-      assert(!pni.isEqual(Aci.fromUuid(testingUuid)), "pni is equal to aci");
+      assert(!pni.isEqual(Aci.fromUuid(testingUuid)), 'pni is equal to aci');
 
       assert(
         deepEql(testingUuid, pni.getRawUuid()),
-        "rawUuid is not equal to pni.getRawUuid()"
+        'rawUuid is not equal to pni.getRawUuid()'
       );
       assert(
         deepEql(uuid.parse(testingUuid), pni.getRawUuidBytes()),
-        "rawUuidBytes is not equal to pni.getRawUuidBytes()"
+        'rawUuidBytes is not equal to pni.getRawUuidBytes()'
       );
       assert(
         deepEql(`PNI:${testingUuid}`, pni.getServiceIdString()),
-        "serviceIdString is not equal to `PNI:${testingUuid}`"
+        'serviceIdString is not equal to `PNI:${testingUuid}`'
       );
       assert(
         deepEql(
           Buffer.concat([Buffer.of(0x01), pni.getRawUuidBytes()]),
           Buffer.from(pni.getServiceIdBinary())
         ),
-        "serviceIdBinary is not equal to Buffer.concat([Buffer.of(0x01), pni.getRawUuidBytes()])"
+        'serviceIdBinary is not equal to Buffer.concat([Buffer.of(0x01), pni.getRawUuidBytes()])'
       );
       assert(
         deepEql(`<PNI:${testingUuid}>`, `${pni}`),
-        "PNI toString is not correct"
+        'PNI toString is not correct'
       );
 
       {
@@ -112,7 +112,7 @@ export const testServiceId = () =>
         isInstanceOf(
           pniServiceId,
           Pni,
-          "ServiceId.parseFromServiceIdString(pni.getServiceIdString()) is not an instance of Pni"
+          'ServiceId.parseFromServiceIdString(pni.getServiceIdString()) is not an instance of Pni'
         );
         assert(deepEql(pni, pniServiceId));
 
@@ -126,11 +126,11 @@ export const testServiceId = () =>
         isInstanceOf(
           pniServiceId,
           Pni,
-          "ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not an instance of Pni"
+          'ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not an instance of Pni'
         );
         assert(
           deepEql(pni, pniServiceId),
-          "ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not equal to pniServiceId"
+          'ServiceId.parseFromServiceIdBinary(pni.getServiceIdBinary()) is not equal to pniServiceId'
         );
 
         const _: Pni = Pni.parseFromServiceIdBinary(pni.getServiceIdBinary());
@@ -138,24 +138,24 @@ export const testServiceId = () =>
     })();
     assert(
       noThrowSync(() => ServiceId.parseFromServiceIdString(uuid.NIL)),
-      "ServiceId.parseFromServiceIdString threw an error when given a nil uuid"
+      'ServiceId.parseFromServiceIdString threw an error when given a nil uuid'
     );
     assert(
       throwsSync(() => ServiceId.parseFromServiceIdBinary(Buffer.of())),
-      "ServiceId.parseFromServiceIdBinary did not throw an error when given an empty buffer"
+      'ServiceId.parseFromServiceIdBinary did not throw an error when given an empty buffer'
     );
     assert(
-      throwsSync(() => ServiceId.parseFromServiceIdString("")),
-      "ServiceId.parseFromServiceIdString did not throw an error when given an empty string"
+      throwsSync(() => ServiceId.parseFromServiceIdString('')),
+      'ServiceId.parseFromServiceIdString did not throw an error when given an empty string'
     );
   });
 
 export const testProtocolAddress = () =>
-  test("Protocol Address", () => {
+  test('Protocol Address', () => {
     assert(
       noThrowSync(() => {
-        const addr = new ProtocolAddress("name", 42);
-        assert(deepEql(addr.name, "name"));
+        const addr = new ProtocolAddress('name', 42);
+        assert(deepEql(addr.name, 'name'));
         assert(deepEql(addr.deviceId, 42));
       }),
       "Protocol Address can't hold arbitrary data"
@@ -178,18 +178,18 @@ export const testProtocolAddress = () =>
   });
 
 export const testHKDF = () =>
-  test("HKDF", async () => {
+  test('HKDF', async () => {
     const secret = new Uint8Array(
-      Buffer.from("0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B", "hex")
+      Buffer.from('0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B', 'hex')
     );
-    const empty = new Uint8Array(Buffer.from("", "hex"));
+    const empty = new Uint8Array(Buffer.from('', 'hex'));
 
     assert(
       deepEql(
         Buffer.from(
           ReactNativeLibsignalClient.hkdf(42, secret, empty, empty)
-        ).toString("hex"),
-        "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
+        ).toString('hex'),
+        '8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8'
       )
     );
 
@@ -197,36 +197,36 @@ export const testHKDF = () =>
       deepEql(
         Buffer.from(
           ReactNativeLibsignalClient.hkdf(42, secret, empty, null)
-        ).toString("hex"),
-        "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
+        ).toString('hex'),
+        '8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8'
       )
     );
 
     const salt = new Uint8Array(
-      Buffer.from("000102030405060708090A0B0C", "hex")
+      Buffer.from('000102030405060708090A0B0C', 'hex')
     );
-    const label = new Uint8Array(Buffer.from("F0F1F2F3F4F5F6F7F8F9", "hex"));
+    const label = new Uint8Array(Buffer.from('F0F1F2F3F4F5F6F7F8F9', 'hex'));
 
     assert(
       deepEql(
         Buffer.from(
           ReactNativeLibsignalClient.hkdf(42, secret, label, salt)
-        ).toString("hex"),
-        "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+        ).toString('hex'),
+        '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865'
       )
     );
   });
 
 export const testGenerateRegistrationId = () => {
-  test("GenerateRegistrationId", async () => {
+  test('GenerateRegistrationId', async () => {
     const random = ReactNativeLibsignalClientModule.generateRegistrationId();
 
     assert(
       isUint32(random),
-      "GenerateRegistrationId does not create a valid Uint32"
+      'GenerateRegistrationId does not create a valid Uint32'
     );
   });
-  test("Generate multiple valid Uint32 IDs", async () => {
+  test('Generate multiple valid Uint32 IDs', async () => {
     for (let i = 0; i < 1000; i++) {
       const random = ReactNativeLibsignalClientModule.generateRegistrationId();
       assert(
@@ -236,14 +236,14 @@ export const testGenerateRegistrationId = () => {
     }
   });
 
-  test("Check Failiure of big integer as Uint32", async () => {
+  test('Check Failiure of big integer as Uint32', async () => {
     assert(
       !isUint32(0xffffffff + 1),
-      "a number greater than Uint32 should be fail"
+      'a number greater than Uint32 should be fail'
     );
   });
 
-  test("GenerateRegistrationId does not produce negative numbers", async () => {
+  test('GenerateRegistrationId does not produce negative numbers', async () => {
     for (let i = 0; i < 1000; i++) {
       const random = ReactNativeLibsignalClientModule.generateRegistrationId();
       assert(
@@ -253,7 +253,7 @@ export const testGenerateRegistrationId = () => {
     }
   });
 
-  test("GenerateRegistrationId does not produce non-integer values", async () => {
+  test('GenerateRegistrationId does not produce non-integer values', async () => {
     for (let i = 0; i < 1000; i++) {
       const random = ReactNativeLibsignalClientModule.generateRegistrationId();
       assert(
@@ -263,7 +263,7 @@ export const testGenerateRegistrationId = () => {
     }
   });
 
-  test("GenerateRegistrationId produces values within Uint32 range", async () => {
+  test('GenerateRegistrationId produces values within Uint32 range', async () => {
     for (let i = 0; i < 1000; i++) {
       const random = ReactNativeLibsignalClientModule.generateRegistrationId();
       assert(
@@ -275,7 +275,7 @@ export const testGenerateRegistrationId = () => {
 };
 
 export const testPreKeyRecord = () =>
-  test("PreKeyRecord", async () => {
+  test('PreKeyRecord', async () => {
     const privKey = ReactNativeLibsignalClient.PrivateKey.generate();
     const pubKey = privKey.getPublicKey();
     const pkr = ReactNativeLibsignalClient.PreKeyRecord.new(
@@ -286,20 +286,20 @@ export const testPreKeyRecord = () =>
 
     assert(
       deepEql(pkr.id(), 23),
-      "id is not the same as the the one it was created with"
+      'id is not the same as the the one it was created with'
     );
     assert(
       deepEql(pkr.publicKey().serialized, pubKey.serialized),
-      "publicKey is not the same as the the one it was created with"
+      'publicKey is not the same as the the one it was created with'
     );
     assert(
       deepEql(pkr.privateKey().serialized, privKey.serialized),
-      "privateKey is not the same as the the one it was created with"
+      'privateKey is not the same as the the one it was created with'
     );
   });
 
 export const testKyberPreKeyRecord = () =>
-  test("KyberPreKeyRecord", async () => {
+  test('KyberPreKeyRecord', async () => {
     const timestamp = 9000;
     const keyId = 23;
     const privateKey = ReactNativeLibsignalClient.PrivateKey.generate();
@@ -315,19 +315,19 @@ export const testKyberPreKeyRecord = () =>
     );
     assert(
       deepEql(record.timestamp(), timestamp),
-      "timestamp is not the same as the the one it was created with"
+      'timestamp is not the same as the the one it was created with'
     );
     isInstanceOf(
       record.publicKey().serialized,
       Uint8Array,
-      "public key does not exist"
+      'public key does not exist'
     );
     isInstanceOf(
       record.secretKey().serialized,
       Uint8Array,
-      "secret key does not exist"
+      'secret key does not exist'
     );
-    isInstanceOf(record.signature(), Uint8Array, "signature does not exist");
+    isInstanceOf(record.signature(), Uint8Array, 'signature does not exist');
   });
 
 const testMessaging = (index: 0 | 1) => {
@@ -336,8 +336,8 @@ const testMessaging = (index: 0 | 1) => {
     const aliceStores = new TestStores();
     const bobStores = new TestStores();
 
-    const aAddress = new ProtocolAddress("+14151111111", 1);
-    const bAddress = new ProtocolAddress("+19192222222", 1);
+    const aAddress = new ProtocolAddress('+14151111111', 1);
+    const bAddress = new ProtocolAddress('+19192222222', 1);
 
     await testCase.makeAndProcessBundle(
       bAddress,
@@ -348,29 +348,29 @@ const testMessaging = (index: 0 | 1) => {
 
     const aSession = await aliceStores.session.getSession(bAddress);
 
-    isNotNull(aSession, "session is null");
-    assert(aSession.serialized.length > 0, "session.serialize().length <= 0");
-    if (Platform.OS === "android") {
+    isNotNull(aSession, 'session is null');
+    assert(aSession.serialized.length > 0, 'session.serialize().length <= 0');
+    if (Platform.OS === 'android') {
       assert(
         deepEql(aSession.localRegistrationId(), 5),
-        "localRegistrationId is not the same as the the one it was created with"
+        'localRegistrationId is not the same as the the one it was created with'
       );
       //TODO localRegistrationId function should be implement in the future
     }
 
     assert(
       deepEql(aSession.remoteRegistrationId(), 5),
-      "remoteRegistrationId is not the same as the the one it was created with"
+      'remoteRegistrationId is not the same as the the one it was created with'
     );
-    assert(aSession.hasCurrentState(), "session has no current state");
+    assert(aSession.hasCurrentState(), 'session has no current state');
     assert(
       !aSession.currentRatchetKeyMatches(
         ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
       ),
-      "currentRatchetKeyMatches is true"
+      'currentRatchetKeyMatches is true'
     );
 
-    const aMessage = new Uint8Array(Buffer.from("Greetings hoo-man", "utf8"));
+    const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
 
     const aCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
       aMessage,
@@ -383,7 +383,7 @@ const testMessaging = (index: 0 | 1) => {
         aCiphertext.type(),
         ReactNativeLibsignalClient.CiphertextMessageType.PreKey
       ),
-      "CiphertextMessageType of aCiphertext is not the same as the the one it was created with"
+      'CiphertextMessageType of aCiphertext is not the same as the the one it was created with'
     );
 
     const aCiphertextR =
@@ -405,8 +405,8 @@ const testMessaging = (index: 0 | 1) => {
 
     const bMessage = new Uint8Array(
       Buffer.from(
-        "Sometimes the only thing more dangerous than a question is an answer.",
-        "utf8"
+        'Sometimes the only thing more dangerous than a question is an answer.',
+        'utf8'
       )
     );
     const bCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
@@ -420,7 +420,7 @@ const testMessaging = (index: 0 | 1) => {
         bCiphertext.type(),
         ReactNativeLibsignalClient.CiphertextMessageType.Whisper
       ),
-      "CiphertextMessageType of bCiphertext is not the same as the the one it was created with"
+      'CiphertextMessageType of bCiphertext is not the same as the the one it was created with'
     );
 
     const bCiphertextR =
@@ -434,42 +434,42 @@ const testMessaging = (index: 0 | 1) => {
       aliceStores.session,
       aliceStores.identity
     );
-    assert(deepEql(aDPlaintext, bMessage), "aDPlaintext !== bMessage");
+    assert(deepEql(aDPlaintext, bMessage), 'aDPlaintext !== bMessage');
 
     const bSession = await bobStores.session.getSession(aAddress);
 
-    isNotNull(bSession, "session is null");
+    isNotNull(bSession, 'session is null');
 
-    assert(bSession.serialized.length > 0, "session.serialize().length <= 0");
+    assert(bSession.serialized.length > 0, 'session.serialize().length <= 0');
 
-    if (Platform.OS === "android") {
+    if (Platform.OS === 'android') {
       assert(
         deepEql(bSession.localRegistrationId(), 5),
-        "localRegistrationId is not the same as the the one it was created with"
+        'localRegistrationId is not the same as the the one it was created with'
       );
       //TODO localRegistrationId function should be implement in the future
     }
     assert(
       deepEql(bSession.remoteRegistrationId(), 5),
-      "remoteRegistrationId is not the same as the the one it was created with"
+      'remoteRegistrationId is not the same as the the one it was created with'
     );
-    assert(bSession.hasCurrentState(), "session has no current state");
+    assert(bSession.hasCurrentState(), 'session has no current state');
     assert(
       !bSession.currentRatchetKeyMatches(
         ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
       ),
-      "currentRatchetKeyMatches is true"
+      'currentRatchetKeyMatches is true'
     );
     bSession.archiveCurrentState();
     assert(
       !bSession.hasCurrentState(),
-      "session has current state after archiveCurrentState"
+      'session has current state after archiveCurrentState'
     );
     assert(
       !bSession.currentRatchetKeyMatches(
         ReactNativeLibsignalClient.PrivateKey.generate().getPublicKey()
       ),
-      "currentRatchetKeyMatches is true"
+      'currentRatchetKeyMatches is true'
     );
   });
 };
@@ -485,8 +485,8 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
     const bobStores = new TestStores();
     const aliceStores = new TestStores();
 
-    const aAddress = new ProtocolAddress("+14151111111", 1);
-    const bAddress = new ProtocolAddress("+19192222222", 1);
+    const aAddress = new ProtocolAddress('+14151111111', 1);
+    const bAddress = new ProtocolAddress('+19192222222', 1);
 
     await testCase.makeAndProcessBundle(
       bAddress,
@@ -495,7 +495,7 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
       aliceStores.identity
     );
 
-    const aMessage = new Uint8Array(Buffer.from("Greetings hoo-man", "utf8"));
+    const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
 
     const aCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
       aMessage,
@@ -509,7 +509,7 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
         aCiphertext.type(),
         ReactNativeLibsignalClient.CiphertextMessageType.PreKey
       ),
-      "CiphertextMessageType of aCiphertext is not the same as the the one it was created with"
+      'CiphertextMessageType of aCiphertext is not the same as the the one it was created with'
     );
 
     const aCiphertextR =
@@ -547,8 +547,8 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
     );
     const bMessage = new Uint8Array(
       Buffer.from(
-        "Sometimes the only thing more dangerous than a question is an answer.",
-        "utf8"
+        'Sometimes the only thing more dangerous than a question is an answer.',
+        'utf8'
       )
     );
 
@@ -564,7 +564,7 @@ const testMessagingDuplicate = (index: 0 | 1) => () => {
         bCiphertext.type(),
         ReactNativeLibsignalClient.CiphertextMessageType.Whisper
       ),
-      "CiphertextMessageType of bCiphertext is not the same as the the one it was created with"
+      'CiphertextMessageType of bCiphertext is not the same as the the one it was created with'
     );
 
     const bCiphertextR =
@@ -602,7 +602,7 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
     const aliceStores = new TestStores();
     const bobStores = new TestStores();
 
-    const bAddress = new ProtocolAddress("+19192222222", 1);
+    const bAddress = new ProtocolAddress('+19192222222', 1);
 
     await testCase.makeAndProcessBundle(
       bAddress,
@@ -614,22 +614,22 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
     const initialSession = await aliceStores.session.getSession(bAddress);
     assert(
       initialSession
-        ? initialSession.hasCurrentState(new Date("2020-01-01"))
+        ? initialSession.hasCurrentState(new Date('2020-01-01'))
         : false
     );
     assert(
       initialSession
-        ? initialSession.hasCurrentState(new Date("2023-01-01"))
+        ? initialSession.hasCurrentState(new Date('2023-01-01'))
         : true
     );
 
-    const aMessage = new Uint8Array(Buffer.from("Greetings hoo-man", "utf8"));
+    const aMessage = new Uint8Array(Buffer.from('Greetings hoo-man', 'utf8'));
     const aCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
       aMessage,
       bAddress,
       aliceStores.session,
       aliceStores.identity,
-      new Date("2020-01-01")
+      new Date('2020-01-01')
     );
 
     assert(
@@ -637,18 +637,18 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
         aCiphertext.type(),
         ReactNativeLibsignalClient.CiphertextMessageType.PreKey
       ),
-      "CiphertextMessageType of aCiphertext is not the same as the the one it was created with"
+      'CiphertextMessageType of aCiphertext is not the same as the the one it was created with'
     );
 
     const updatedSession = await aliceStores.session.getSession(bAddress);
     assert(
       updatedSession
-        ? updatedSession.hasCurrentState(new Date("2020-01-01"))
+        ? updatedSession.hasCurrentState(new Date('2020-01-01'))
         : false
     );
     assert(
       updatedSession
-        ? updatedSession.hasCurrentState(new Date("2023-01-01"))
+        ? updatedSession.hasCurrentState(new Date('2023-01-01'))
         : true
     );
 
@@ -658,7 +658,7 @@ const testMessagingUnacknowledgedSessionsExpiry = (index: 0 | 1) => {
         bAddress,
         aliceStores.session,
         aliceStores.identity,
-        new Date("2023-01-01")
+        new Date('2023-01-01')
       )
     );
   });
@@ -671,7 +671,7 @@ export const testMessagingUnacknowledgedSessionsExpiryWithKyber = () =>
   testMessagingUnacknowledgedSessionsExpiry(1);
 
 export const testSignedPreKeyRecord = () =>
-  test("SignedPreKeyRecord", async () => {
+  test('SignedPreKeyRecord', async () => {
     const privKey = ReactNativeLibsignalClient.PrivateKey.generate();
     const pubKey = privKey.getPublicKey();
     const timestamp = 9000;
@@ -687,40 +687,40 @@ export const testSignedPreKeyRecord = () =>
 
     assert(
       deepEql(spkr.id(), keyId),
-      "id is not the same as the the one it was created with"
+      'id is not the same as the the one it was created with'
     );
     assert(
       deepEql(spkr.timestamp(), timestamp),
-      "timestamp is not the same as the the one it was created with"
+      'timestamp is not the same as the the one it was created with'
     );
     assert(
       deepEql(spkr.publicKey().serialized, pubKey.serialized),
-      "publicKey is not the same as the the one it was created with"
+      'publicKey is not the same as the the one it was created with'
     );
     assert(
       deepEql(spkr.privateKey().serialized, privKey.serialized),
-      "privateKey is not the same as the the one it was created with"
+      'privateKey is not the same as the the one it was created with'
     );
     assert(
       deepEql(spkr.signature(), signature),
-      "signature is not the same as the the one it was created with"
+      'signature is not the same as the the one it was created with'
     );
   });
 
 export const testAesGcmWithShortInput = () =>
-  test("AES-GCM test", () => {
+  test('AES-GCM test', () => {
     const key = Buffer.from(
-      "0100000000000000000000000000000000000000000000000000000000000000",
-      "hex"
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
     );
 
     const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(
       new Uint8Array(key)
     );
 
-    const nonce = Buffer.from("030000000000000000000000", "hex");
-    const aad = Buffer.from("010000000000000000000000", "hex");
-    const ptext = Buffer.from("02000000", "hex");
+    const nonce = Buffer.from('030000000000000000000000', 'hex');
+    const aad = Buffer.from('010000000000000000000000', 'hex');
+    const ptext = Buffer.from('02000000', 'hex');
 
     const ctext = aes_gcm.encrypt(
       new Uint8Array(ptext),
@@ -730,10 +730,10 @@ export const testAesGcmWithShortInput = () =>
 
     assert(
       deepEql(
-        Buffer.from(ctext).toString("hex"),
-        "754886b9d6a7ce57ab90c133dcb4403ee9ba9e36"
+        Buffer.from(ctext).toString('hex'),
+        '754886b9d6a7ce57ab90c133dcb4403ee9ba9e36'
       ),
-      `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`
+      `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 754886b9d6a7ce57ab90c133dcb4403ee9ba9e36`
     );
 
     const decrypted = aes_gcm.decrypt(
@@ -743,118 +743,130 @@ export const testAesGcmWithShortInput = () =>
     );
 
     assert(
-      deepEql(Buffer.from(decrypted).toString("hex"), "02000000"),
-      `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 02000000`
+      deepEql(Buffer.from(decrypted).toString('hex'), '02000000'),
+      `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`
     );
   });
 
-  export const testAesGcmWithLongInput = () =>
-    test("AES-GCM test", () => {
-      const key = Buffer.from(
-        "0100000000000000000000000000000000000000000000000000000000000000",
-        "hex"
-      );
-  
-      const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(
-        new Uint8Array(key)
-      );
-  
-      const nonce = Buffer.from("030000000000000000000000", "hex");
-      const aad = Buffer.from("010000000000000000000000", "hex");
-      const ptext = Buffer.from("5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e", "hex");
-  
-      const ctext = aes_gcm.encrypt(
-        new Uint8Array(ptext),
-        new Uint8Array(nonce),
-        new Uint8Array(aad)
-      );
-
-      assert(
-        deepEql(
-          Buffer.from(ctext).toString("hex"),
-          "2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997"
-        ),
-        `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997`
-      );
-  
-      const decrypted = aes_gcm.decrypt(
-        ctext,
-        new Uint8Array(nonce),
-        new Uint8Array(aad)
-      );
-  
-      assert(
-        deepEql(Buffer.from(decrypted).toString("hex"), "5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e"),
-        `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
-      );
-    })
-
-  export const testAesCbcWithShortInput = () =>
-    test("AES-CBC test", () => {
-      const key = Buffer.from(
-        "0100000000000000000000000000000000000000000000000000000000000000",
-        "hex"
-      );
-  
-      const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(
-        new Uint8Array(key)
-      );
-  
-      const iv = Buffer.from("03000000000000000000000000000000", "hex");
-      const ptext = Buffer.from("02000000", "hex");
-  
-      const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
-  
-      assert(
-        deepEql(
-          Buffer.from(ctext).toString("hex"),
-          "65d6c77d8edd28fdc8fcd83277e02be5"
-        ),
-        `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`
-      );
-  
-      const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
-  
-      assert(
-        deepEql(Buffer.from(decrypted).toString("hex"), "02000000"),
-        `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 02000000`
-      );
-    });
-
-export const testAesCbcWithLongInput = () =>
-  test("AES-CBC test", () => {
+export const testAesGcmWithLongInput = () =>
+  test('AES-GCM test', () => {
     const key = Buffer.from(
-      "0100000000000000000000000000000000000000000000000000000000000000",
-      "hex"
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
+    );
+
+    const aes_gcm = ReactNativeLibsignalClient.Aes256Gcm.new(
+      new Uint8Array(key)
+    );
+
+    const nonce = Buffer.from('030000000000000000000000', 'hex');
+    const aad = Buffer.from('010000000000000000000000', 'hex');
+    const ptext = Buffer.from(
+      '5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e',
+      'hex'
+    );
+
+    const ctext = aes_gcm.encrypt(
+      new Uint8Array(ptext),
+      new Uint8Array(nonce),
+      new Uint8Array(aad)
+    );
+
+    assert(
+      deepEql(
+        Buffer.from(ctext).toString('hex'),
+        '2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997'
+      ),
+      `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 2320efcabeb94fc6bc3125a1a7747c672686cebcf8d0054913a11d9fd88be614f2f002b3fbbf532cd71b5dce2d4cc4a02d2dc665f370fb8686557135852c27d9b3a7569997`
+    );
+
+    const decrypted = aes_gcm.decrypt(
+      ctext,
+      new Uint8Array(nonce),
+      new Uint8Array(aad)
+    );
+
+    assert(
+      deepEql(
+        Buffer.from(decrypted).toString('hex'),
+        '5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e'
+      ),
+      `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
+    );
+  });
+
+export const testAesCbcWithShortInput = () =>
+  test('AES-CBC test', () => {
+    const key = Buffer.from(
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
     );
 
     const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(
       new Uint8Array(key)
     );
 
-    const iv = Buffer.from("03000000000000000000000000000000", "hex");
-    const ptext = Buffer.from("5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e", "hex");
+    const iv = Buffer.from('03000000000000000000000000000000', 'hex');
+    const ptext = Buffer.from('02000000', 'hex');
 
     const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
 
     assert(
       deepEql(
-        Buffer.from(ctext).toString("hex"),
-        "99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407"
+        Buffer.from(ctext).toString('hex'),
+        '65d6c77d8edd28fdc8fcd83277e02be5'
       ),
-      `ctext ${Buffer.from(ctext).toString("hex")} is not the same as the the one it was created with 99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407`
+      `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 65d6c77d8edd28fdc8fcd83277e02be5`
     );
 
     const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
 
     assert(
-      deepEql(Buffer.from(decrypted).toString("hex"), "5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e"),
-      `decrypted ${Buffer.from(decrypted).toString("hex")} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
+      deepEql(Buffer.from(decrypted).toString('hex'), '02000000'),
+      `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`
+    );
+  });
+
+export const testAesCbcWithLongInput = () =>
+  test('AES-CBC test', () => {
+    const key = Buffer.from(
+      '0100000000000000000000000000000000000000000000000000000000000000',
+      'hex'
+    );
+
+    const aes_cbc = ReactNativeLibsignalClient.Aes256Cbc.new(
+      new Uint8Array(key)
+    );
+
+    const iv = Buffer.from('03000000000000000000000000000000', 'hex');
+    const ptext = Buffer.from(
+      '5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e',
+      'hex'
+    );
+
+    const ctext = aes_cbc.encrypt(new Uint8Array(ptext), new Uint8Array(iv));
+
+    assert(
+      deepEql(
+        Buffer.from(ctext).toString('hex'),
+        '99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407'
+      ),
+      `ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 99b885bef61d111ac26a9127c75dc463810335a44333ac10378e4d9173e62cf9fb032bd5af0f6b9be42fc041227b23ac062894ec58ed39f44ed3c7fe703b1407`
+    );
+
+    const decrypted = aes_cbc.decrypt(ctext, new Uint8Array(iv));
+
+    assert(
+      deepEql(
+        Buffer.from(decrypted).toString('hex'),
+        '5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e'
+      ),
+      `decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
     );
   });
 
 export const testSignHmacSha256 = () =>
-  test("HMAC-SHA256 test ", () => {
+  test('HMAC-SHA256 test ', () => {
     function verifyHmacSha256(
       plaintext: Uint8Array,
       key: Uint8Array,
@@ -864,7 +876,7 @@ export const testSignHmacSha256 = () =>
       const ourMac = ReactNativeLibsignalClient.signHmacSha256(key, plaintext);
 
       if (theirMac.byteLength !== length || ourMac.byteLength < length) {
-        throw new Error("Bad MAC length");
+        throw new Error('Bad MAC length');
       }
       let result = 0;
 
@@ -872,13 +884,13 @@ export const testSignHmacSha256 = () =>
         result |= ourMac[i] ^ theirMac[i];
       }
       if (result !== 0) {
-        throw new Error("Bad MAC");
+        throw new Error('Bad MAC');
       }
     }
     const testTooShort = () => {
-      test("rejects if their MAC is too short", () => {
+      test('rejects if their MAC is too short', () => {
         const key = getRandomBytes(32);
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const ourMac = ReactNativeLibsignalClient.signHmacSha256(
           key,
           plaintext
@@ -890,18 +902,18 @@ export const testSignHmacSha256 = () =>
         } catch (err) {
           error = err;
         }
-        isInstanceOf(error, Error, "error is not an instance of Error");
+        isInstanceOf(error, Error, 'error is not an instance of Error');
         assert(
-          deepEql(error.message, "Bad MAC length"),
+          deepEql(error.message, 'Bad MAC length'),
           'error message is not "Bad MAC length"'
         );
       });
     };
 
     const testTooLong = () => {
-      test("rejects if their MAC is too long", () => {
+      test('rejects if their MAC is too long', () => {
         const key = getRandomBytes(32);
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const ourMac = ReactNativeLibsignalClient.signHmacSha256(
           key,
           plaintext
@@ -915,18 +927,18 @@ export const testSignHmacSha256 = () =>
         } catch (err) {
           error = err;
         }
-        isInstanceOf(error, Error, "error is not an instance of Error");
+        isInstanceOf(error, Error, 'error is not an instance of Error');
         assert(
-          deepEql(error.message, "Bad MAC length"),
+          deepEql(error.message, 'Bad MAC length'),
           'error message is not "Bad MAC length"'
         );
       });
     };
 
     const testShorter = () => {
-      test("rejects if our MAC is shorter than the specified length", () => {
+      test('rejects if our MAC is shorter than the specified length', () => {
         const key = getRandomBytes(32);
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const ourMac = ReactNativeLibsignalClient.signHmacSha256(
           key,
           plaintext
@@ -938,9 +950,9 @@ export const testSignHmacSha256 = () =>
         } catch (err) {
           error = err;
         }
-        isInstanceOf(error, Error, "error is not an instance of Error");
+        isInstanceOf(error, Error, 'error is not an instance of Error');
         assert(
-          deepEql(error.message, "Bad MAC length"),
+          deepEql(error.message, 'Bad MAC length'),
           'error message is not "Bad MAC length"'
         );
       });
@@ -948,7 +960,7 @@ export const testSignHmacSha256 = () =>
 
     const testMismatch = () => {
       test("rejects if the MACs don't match", () => {
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const ourKey = getRandomBytes(32);
         const ourMac = ReactNativeLibsignalClient.signHmacSha256(
           ourKey,
@@ -965,18 +977,18 @@ export const testSignHmacSha256 = () =>
         } catch (err) {
           error = err;
         }
-        isInstanceOf(error, Error, "error is not an instance of Error");
+        isInstanceOf(error, Error, 'error is not an instance of Error');
         assert(
-          deepEql(error.message, "Bad MAC"),
+          deepEql(error.message, 'Bad MAC'),
           'error message is not "Bad MAC"'
         );
       });
     };
 
     const testUndefinedResolutionIfNoMatch = () => {
-      test("resolves with undefined if the MACs match exactly", () => {
+      test('resolves with undefined if the MACs match exactly', () => {
         const key = getRandomBytes(32);
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const theirMac = ReactNativeLibsignalClient.signHmacSha256(
           key,
           plaintext
@@ -987,14 +999,14 @@ export const testSignHmacSha256 = () =>
           theirMac,
           theirMac.byteLength
         );
-        assert(result === undefined, "result is not undefined");
+        assert(result === undefined, 'result is not undefined');
       });
     };
 
     const testUndefinedResolutionIfFirstLengthMatch = () => {
-      test("resolves with undefined if the first `length` bytes of the MACs match", () => {
+      test('resolves with undefined if the first `length` bytes of the MACs match', () => {
         const key = getRandomBytes(32);
-        const plaintext = new Uint8Array(Buffer.from("Hello world", "utf8"));
+        const plaintext = new Uint8Array(Buffer.from('Hello world', 'utf8'));
         const theirMac = ReactNativeLibsignalClient.signHmacSha256(
           key,
           plaintext
@@ -1005,7 +1017,7 @@ export const testSignHmacSha256 = () =>
           theirMac,
           theirMac.byteLength
         );
-        assert(result === undefined, "result is not undefined");
+        assert(result === undefined, 'result is not undefined');
       });
     };
 
@@ -1020,24 +1032,24 @@ export const testSignHmacSha256 = () =>
   });
 
 export const testConstantTimeEqual = () =>
-  test("Constant Time Equal test", () => {
+  test('Constant Time Equal test', () => {
     const testCases = [
       // Test identical arrays
       {
-        a: new Uint8Array(Buffer.from("Hello world", "utf8")),
-        b: new Uint8Array(Buffer.from("Hello world", "utf8")),
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
         expected: true,
       },
       // Test arrays differing by one character
       {
-        a: new Uint8Array(Buffer.from("Hello world", "utf8")),
-        b: new Uint8Array(Buffer.from("Hello World", "utf8")),
+        a: new Uint8Array(Buffer.from('Hello world', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello World', 'utf8')),
         expected: false,
       },
       // Test arrays of different lengths
       {
-        a: new Uint8Array(Buffer.from("Short", "utf8")),
-        b: new Uint8Array(Buffer.from("A much longer string", "utf8")),
+        a: new Uint8Array(Buffer.from('Short', 'utf8')),
+        b: new Uint8Array(Buffer.from('A much longer string', 'utf8')),
         expected: false,
       },
       // Test empty arrays
@@ -1049,7 +1061,7 @@ export const testConstantTimeEqual = () =>
       // Test one empty array and one non-empty array
       {
         a: new Uint8Array([]),
-        b: new Uint8Array(Buffer.from("Non-empty", "utf8")),
+        b: new Uint8Array(Buffer.from('Non-empty', 'utf8')),
         expected: false,
       },
       // Test arrays with binary data
@@ -1082,14 +1094,14 @@ export const testConstantTimeEqual = () =>
       },
       // Test arrays with Unicode characters
       {
-        a: new Uint8Array(Buffer.from("こんにちは", "utf8")),
-        b: new Uint8Array(Buffer.from("こんにちは", "utf8")),
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
         expected: true,
       },
       // Test arrays with different Unicode characters
       {
-        a: new Uint8Array(Buffer.from("こんにちは", "utf8")),
-        b: new Uint8Array(Buffer.from("こんばんは", "utf8")),
+        a: new Uint8Array(Buffer.from('こんにちは', 'utf8')),
+        b: new Uint8Array(Buffer.from('こんばんは', 'utf8')),
         expected: false,
       },
       // Test arrays with null bytes
@@ -1100,8 +1112,8 @@ export const testConstantTimeEqual = () =>
       },
       // Test arrays with different lengths but same prefix
       {
-        a: new Uint8Array(Buffer.from("Hello", "utf8")),
-        b: new Uint8Array(Buffer.from("Hello world", "utf8")),
+        a: new Uint8Array(Buffer.from('Hello', 'utf8')),
+        b: new Uint8Array(Buffer.from('Hello world', 'utf8')),
         expected: false,
       },
       // Test arrays with repeated patterns
@@ -1118,32 +1130,32 @@ export const testConstantTimeEqual = () =>
       },
       // Test arrays with non-ASCII characters
       {
-        a: new Uint8Array(Buffer.from("ñandú", "utf8")),
-        b: new Uint8Array(Buffer.from("ñandú", "utf8")),
+        a: new Uint8Array(Buffer.from('ñandú', 'utf8')),
+        b: new Uint8Array(Buffer.from('ñandú', 'utf8')),
         expected: true,
       },
       // Test arrays with special characters
       {
-        a: new Uint8Array(Buffer.from("!@#$%^&*()", "utf8")),
-        b: new Uint8Array(Buffer.from("!@#$%^&*()", "utf8")),
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
         expected: true,
       },
       // Test arrays with similar special characters but differing
       {
-        a: new Uint8Array(Buffer.from("!@#$%^&*()", "utf8")),
-        b: new Uint8Array(Buffer.from("!@#$%^&*(", "utf8")),
+        a: new Uint8Array(Buffer.from('!@#$%^&*()', 'utf8')),
+        b: new Uint8Array(Buffer.from('!@#$%^&*(', 'utf8')),
         expected: false,
       },
       // Test arrays with numbers as strings
       {
-        a: new Uint8Array(Buffer.from("1234567890", "utf8")),
-        b: new Uint8Array(Buffer.from("1234567890", "utf8")),
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('1234567890', 'utf8')),
         expected: true,
       },
       // Test arrays with numbers that differ
       {
-        a: new Uint8Array(Buffer.from("1234567890", "utf8")),
-        b: new Uint8Array(Buffer.from("123456789", "utf8")),
+        a: new Uint8Array(Buffer.from('1234567890', 'utf8')),
+        b: new Uint8Array(Buffer.from('123456789', 'utf8')),
         expected: false,
       },
     ];

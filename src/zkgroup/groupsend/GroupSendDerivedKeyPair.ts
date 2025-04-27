@@ -1,5 +1,5 @@
 import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
-import ServerSecretParams from '../ServerSecretParams';
+import type ServerSecretParams from '../ServerSecretParams';
 
 // For docs
 import type GroupSendEndorsementsResponse from './GroupSendEndorsementsResponse';
@@ -16,28 +16,28 @@ import type GroupSendEndorsementsResponse from './GroupSendEndorsementsResponse'
  * @see {@link GroupSendFullToken#verify}
  */
 export default class GroupSendDerivedKeyPair {
-    readonly serialized: Uint8Array;
+  readonly serialized: Uint8Array;
 
-    constructor(contents: Uint8Array) {
-        this.serialized = contents
-    }
+  constructor(contents: Uint8Array) {
+    this.serialized = contents;
+  }
 
-    /**
-     * Derives a new key for group send endorsements that expire at `expiration`.
-     *
-     * `expiration` must be day-aligned as a protection against fingerprinting by the issuing server.
-     */
-    public static forExpiration(
-        expiration: Date,
-        params: ServerSecretParams
-    ): GroupSendDerivedKeyPair {
-        return new GroupSendDerivedKeyPair(
-            new Uint8Array(
-                ReactNativeLibsignalClientModule.groupSendDerivedKeyPairForExpiration(
-                    Math.floor(expiration.getTime() / 1000),
-                    params.serialized
-                )
-            )
-        );
-    }
+  /**
+   * Derives a new key for group send endorsements that expire at `expiration`.
+   *
+   * `expiration` must be day-aligned as a protection against fingerprinting by the issuing server.
+   */
+  public static forExpiration(
+    expiration: Date,
+    params: ServerSecretParams
+  ): GroupSendDerivedKeyPair {
+    return new GroupSendDerivedKeyPair(
+      new Uint8Array(
+        ReactNativeLibsignalClientModule.groupSendDerivedKeyPairForExpiration(
+          Math.floor(expiration.getTime() / 1000),
+          params.serialized
+        )
+      )
+    );
+  }
 }

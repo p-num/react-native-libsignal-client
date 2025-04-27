@@ -1,13 +1,13 @@
-import { RANDOM_LENGTH } from "../internal/Constants";
+import { RANDOM_LENGTH } from '../internal/Constants';
 
-import ServerPublicParams from "../ServerPublicParams";
-import AuthCredentialPresentation from "./AuthCredentialPresentation";
-import AuthCredentialWithPni from "./AuthCredentialWithPni";
-import AuthCredentialWithPniResponse from "./AuthCredentialWithPniResponse";
-import GroupSecretParams from "../groups/GroupSecretParams";
-import { Aci, Pni } from "../../Address";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import { randomBytes } from "../../randomBytes";
+import type { Aci, Pni } from '../../Address';
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../../randomBytes';
+import type ServerPublicParams from '../ServerPublicParams';
+import type GroupSecretParams from '../groups/GroupSecretParams';
+import AuthCredentialPresentation from './AuthCredentialPresentation';
+import AuthCredentialWithPni from './AuthCredentialWithPni';
+import type AuthCredentialWithPniResponse from './AuthCredentialWithPniResponse';
 
 export default class ClientZkAuthOperations {
   serverPublicParams: ServerPublicParams;

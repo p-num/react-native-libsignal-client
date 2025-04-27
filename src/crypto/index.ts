@@ -1,8 +1,8 @@
 import {
   CipherType,
   EncryptionOptions,
-} from "../ReactNativeLibsignalClient.types";
-import ReactNativeLibsignalClientModule from "../ReactNativeLibsignalClientModule";
+} from '../ReactNativeLibsignalClient.types';
+import ReactNativeLibsignalClientModule from '../ReactNativeLibsignalClientModule';
 
 export class Aes256Gcm {
   readonly serialized: Uint8Array;

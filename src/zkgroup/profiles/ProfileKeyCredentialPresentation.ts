@@ -1,6 +1,6 @@
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import ProfileKeyCiphertext from "../groups/ProfileKeyCiphertext";
-import UuidCiphertext from "../groups/UuidCiphertext";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import ProfileKeyCiphertext from '../groups/ProfileKeyCiphertext';
+import UuidCiphertext from '../groups/UuidCiphertext';
 
 export default class ProfileKeyCredentialPresentation {
   readonly serialized: Uint8Array;

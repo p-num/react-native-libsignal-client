@@ -1,13 +1,13 @@
-import ExpiringProfileKeyCredential from "./ExpiringProfileKeyCredential";
-import ExpiringProfileKeyCredentialResponse from "./ExpiringProfileKeyCredentialResponse";
-import ProfileKey from "./ProfileKey";
-import ProfileKeyCredentialPresentation from "./ProfileKeyCredentialPresentation";
-import ProfileKeyCredentialRequestContext from "./ProfileKeyCredentialRequestContext";
-import { Aci } from "../../Address";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import ServerPublicParams from "../ServerPublicParams";
-import GroupSecretParams from "../groups/GroupSecretParams";
-import { RANDOM_LENGTH } from "../internal/Constants";
+import type { Aci } from '../../Address';
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import type ServerPublicParams from '../ServerPublicParams';
+import type GroupSecretParams from '../groups/GroupSecretParams';
+import { RANDOM_LENGTH } from '../internal/Constants';
+import ExpiringProfileKeyCredential from './ExpiringProfileKeyCredential';
+import type ExpiringProfileKeyCredentialResponse from './ExpiringProfileKeyCredentialResponse';
+import type ProfileKey from './ProfileKey';
+import ProfileKeyCredentialPresentation from './ProfileKeyCredentialPresentation';
+import ProfileKeyCredentialRequestContext from './ProfileKeyCredentialRequestContext';
 
 export default class ClientZkProfileOperations {
   serverPublicParams: ServerPublicParams;

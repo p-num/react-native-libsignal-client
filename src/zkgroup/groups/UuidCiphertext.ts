@@ -6,7 +6,7 @@ export default class UuidCiphertext {
   }
 
   static serializeAndConcatenate(ciphertexts: UuidCiphertext[]): Uint8Array {
-    if (ciphertexts.length == 0) {
+    if (ciphertexts.length === 0) {
       return new Uint8Array(0);
     }
 

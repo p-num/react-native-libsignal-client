@@ -1,8 +1,8 @@
-import * as ReactNativeLibsignalClient from "../../src";
-import { ProtocolAddress } from "../../src/Address";
-import { TestStores } from "./mockStores";
-import { chance } from "./utils";
-import { Buffer } from "@craftzdog/react-native-buffer";
+import { Buffer } from '@craftzdog/react-native-buffer';
+import * as ReactNativeLibsignalClient from '../../src';
+import type { ProtocolAddress } from '../../src/Address';
+import type { TestStores } from './mockStores';
+import { chance } from './utils';
 
 async function makePQXDHBundleAndProcess(
   address: ProtocolAddress,
@@ -72,12 +72,12 @@ export function isUint32(number: number): boolean {
 
 export const sessionVersionTestCases = [
   {
-    suffix: "v3",
+    suffix: 'v3',
     makeAndProcessBundle: makeX3DHBundleAndProcess,
     expectedVersion: 3,
   },
   {
-    suffix: "v4",
+    suffix: 'v4',
     makeAndProcessBundle: makePQXDHBundleAndProcess,
     expectedVersion: 4,
   },

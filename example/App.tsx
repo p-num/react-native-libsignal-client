@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { log } from "./logger";
-import { TestFeedback } from "./TestFeedback";
+import { useEffect, useState } from 'react';
+import { TestFeedback } from './TestFeedback';
+import { log } from './logger';
 import {
   testAesCbcWithLongInput,
   testAesCbcWithShortInput,
@@ -19,22 +19,22 @@ import {
   testPreKeyRecord,
   testProtocolAddress,
   testServiceId,
-  testSignedPreKeyRecord,
   testSignHmacSha256,
-} from "./tests/api-test";
-import { runTests, sleep } from "./tests/utils";
-import { testZkGroup } from "./tests/zkgroup-test";
-import { testGroup } from "./tests/group";
-export type TestStatus = "IDLE" | "RUNNING" | "SUCCESS" | "ERROR";
+  testSignedPreKeyRecord,
+} from './tests/api-test';
+import { testGroup } from './tests/group';
+import { runTests, sleep } from './tests/utils';
+import { testZkGroup } from './tests/zkgroup-test';
+export type TestStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'ERROR';
 
 export default function App() {
-  const [testStatus, setTestStatus] = useState<TestStatus>("IDLE");
-  const [msg, setMsg] = useState<string>("");
+  const [testStatus, setTestStatus] = useState<TestStatus>('IDLE');
+  const [msg, setMsg] = useState<string>('');
 
   useEffect(() => {
     (async () => {
       try {
-        setTestStatus("RUNNING");
+        setTestStatus('RUNNING');
         await sleep(500);
 
         const { failedTests, passedTests, ranTests } = await runTests([
@@ -62,17 +62,17 @@ export default function App() {
         ]);
 
         if (failedTests === 0 && passedTests === ranTests) {
-          setTestStatus("SUCCESS");
-          setMsg("All tests passed!");
+          setTestStatus('SUCCESS');
+          setMsg('All tests passed!');
         } else {
-          setTestStatus("ERROR");
+          setTestStatus('ERROR');
           setMsg(
             `${failedTests}/${ranTests} tests failed! Check the logs for details.`
           );
         }
       } catch (error) {
-        setTestStatus("ERROR");
-        setMsg("An error occurred");
+        setTestStatus('ERROR');
+        setMsg('An error occurred');
         log.error(error);
       }
     })();

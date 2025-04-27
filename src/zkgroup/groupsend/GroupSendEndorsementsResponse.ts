@@ -1,17 +1,17 @@
 import { RANDOM_LENGTH } from '../internal/Constants';
 
-import GroupSecretParams from '../groups/GroupSecretParams';
-import ServerPublicParams from '../ServerPublicParams';
+import { type Aci, ServiceId } from '../../Address';
+import type ServerPublicParams from '../ServerPublicParams';
+import type GroupSecretParams from '../groups/GroupSecretParams';
 import UuidCiphertext from '../groups/UuidCiphertext';
-import { Aci, ServiceId } from '../../Address';
-import GroupSendDerivedKeyPair from './GroupSendDerivedKeyPair';
+import type GroupSendDerivedKeyPair from './GroupSendDerivedKeyPair';
 import GroupSendEndorsement from './GroupSendEndorsement';
 
 // For docs
 import type { VerificationFailedError } from '../../Errors';
-import GroupSendFullToken from './GroupSendFullToken';
 import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
 import { randomBytes } from '../../randomBytes';
+import GroupSendFullToken from './GroupSendFullToken';
 
 /**
  * A collection of endorsements known to be valid.
@@ -34,7 +34,7 @@ export type ReceivedEndorsements = {
  * perspective.
  */
 export default class GroupSendEndorsementsResponse {
-    readonly serialized: Uint8Array;
+  readonly serialized: Uint8Array;
 
   constructor(contents: Uint8Array) {
     this.serialized = contents;
@@ -50,7 +50,11 @@ export default class GroupSendEndorsementsResponse {
     keyPair: GroupSendDerivedKeyPair
   ): GroupSendEndorsementsResponse {
     const random = randomBytes(RANDOM_LENGTH);
-    return this.issueWithRandom(groupMembers, keyPair, random);
+    return GroupSendEndorsementsResponse.issueWithRandom(
+      groupMembers,
+      keyPair,
+      random
+    );
   }
 
   /**
@@ -67,10 +71,10 @@ export default class GroupSendEndorsementsResponse {
     random: Uint8Array
   ): GroupSendEndorsementsResponse {
     return new GroupSendEndorsementsResponse(
-        ReactNativeLibsignalClientModule.groupSendEndorsementsResponseIssueDeterministic(
-            UuidCiphertext.serializeAndConcatenate(groupMembers),
-            keyPair.serialized,
-            random
+      ReactNativeLibsignalClientModule.groupSendEndorsementsResponseIssueDeterministic(
+        UuidCiphertext.serializeAndConcatenate(groupMembers),
+        keyPair.serialized,
+        random
       )
     );
   }
@@ -78,7 +82,10 @@ export default class GroupSendEndorsementsResponse {
   /** Returns the expiration for the contained endorsements. */
   getExpiration(): Date {
     return new Date(
-      1000 * ReactNativeLibsignalClientModule.groupSendEndorsementsResponseGetExpiration(this.serialized)
+      1000 *
+        ReactNativeLibsignalClientModule.groupSendEndorsementsResponseGetExpiration(
+          this.serialized
+        )
     );
   }
 
@@ -102,7 +109,7 @@ export default class GroupSendEndorsementsResponse {
     now: Date = new Date()
   ): ReceivedEndorsements {
     const endorsementContents =
-    ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(
+      ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(
         this.serialized,
         ServiceId.toConcatenatedFixedWidthBinary(groupMembers),
         localUser.getServiceIdFixedWidthBinary(),
@@ -143,13 +150,13 @@ export default class GroupSendEndorsementsResponse {
     now: Date = new Date()
   ): ReceivedEndorsements {
     const endorsementContents =
-        ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(
-            this.serialized,
-            UuidCiphertext.serializeAndConcatenate(groupMembers),
-            localUser.serialized,
-            Math.floor(now.getTime() / 1000),
-            serverParams.serialized
-        );
+      ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(
+        this.serialized,
+        UuidCiphertext.serializeAndConcatenate(groupMembers),
+        localUser.serialized,
+        Math.floor(now.getTime() / 1000),
+        serverParams.serialized
+      );
     const endorsements = endorsementContents.map((next) => {
       // Normally we don't notice the cost of validating just-created zkgroup objects,
       // but in this case we may have up to 1000 of these. Let's assume they're created correctly.

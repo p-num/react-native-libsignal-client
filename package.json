@@ -7,7 +7,8 @@
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
-    "lint": "expo-module lint",
+    "wipe": "biome check --write --unsafe --no-errors-on-unmatched .",
+    "type-check": "tsc",
     "test": "expo-module test",
     "prepare": "expo-module prepare",
     "prepublishOnly": "expo-module prepublishOnly",
@@ -35,10 +36,13 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@evilmartians/lefthook": "^1.11.11",
     "@types/react": "~18.2.79",
     "@types/uuid": "^10.0.0",
     "expo-module-scripts": "^3.5.2",
-    "expo-modules-core": "~1.12.26"
+    "expo-modules-core": "~1.12.26",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "expo": "*",

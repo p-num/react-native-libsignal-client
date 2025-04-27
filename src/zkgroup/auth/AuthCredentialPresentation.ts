@@ -1,5 +1,5 @@
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import UuidCiphertext from "../groups/UuidCiphertext";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import UuidCiphertext from '../groups/UuidCiphertext';
 
 export default class AuthCredentialPresentation {
   readonly serialized: Uint8Array;

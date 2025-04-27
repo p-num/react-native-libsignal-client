@@ -1,14 +1,14 @@
-import GroupSecretParams from "../groups/GroupSecretParams";
-import GroupSendFullToken from "./GroupSendFullToken";
-import GroupSendToken from "./GroupSendToken";
-import { fromByteArray } from "react-native-quick-base64";
+import { fromByteArray } from 'react-native-quick-base64';
+import type GroupSecretParams from '../groups/GroupSecretParams';
+import type GroupSendFullToken from './GroupSendFullToken';
+import GroupSendToken from './GroupSendToken';
 
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
 // For docs
 import type {
   default as GroupSendEndorsementsResponse,
   ReceivedEndorsements,
-} from "./GroupSendEndorsementsResponse";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
+} from './GroupSendEndorsementsResponse';
 
 /**
  * An endorsement for a user or set of users in a group.

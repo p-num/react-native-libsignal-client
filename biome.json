@@ -1,0 +1,47 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"organizeImports": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"style": {
+				"useTemplate": "off",
+				"noNonNullAssertion": "off"
+			},
+			"complexity": {
+				"noForEach": "off"
+			}
+		}
+	},
+	"formatter": {
+		"indentWidth": 2,
+		"lineEnding": "lf"
+		
+	},
+	"javascript": {
+		"formatter": {
+			"bracketSpacing": true,
+			"semicolons": "always",
+			"trailingCommas": "es5",
+			"quoteStyle": "single"
+		}
+	},
+	"files": {
+		"ignore": [
+			"android",
+			"ios",
+			"example/android",
+			"example/ios",
+			"./*.js",
+			"./*.mjs",
+			"./*.d.ts",
+			"__tests__",
+			"package-lock.json",
+			"build/package-lock.json"
+		],
+		"ignoreUnknown": true
+	}
+}

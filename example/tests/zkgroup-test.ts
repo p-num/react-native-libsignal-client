@@ -1,7 +1,8 @@
-import { Buffer } from "@craftzdog/react-native-buffer";
-import { default as deepEql, default as deepEqual } from "deep-eql";
-import { assert } from "typed-assert";
-import { Aci, Pni } from "../../src";
+import { Buffer } from '@craftzdog/react-native-buffer';
+import { default as deepEql, default as deepEqual } from 'deep-eql';
+import { Platform } from 'react-native';
+import { assert } from 'typed-assert';
+import { Aci, Pni } from '../../src';
 import {
   ClientZkAuthOperations,
   ClientZkGroupCipher,
@@ -15,28 +16,27 @@ import {
   ServerSecretParams,
   ServerZkAuthOperations,
   ServerZkProfileOperations,
-} from "../../src/zkgroup";
-import { throwsSync } from "./extentions";
-import { test } from "./utils";
-import { Platform } from "react-native";
+} from '../../src/zkgroup';
+import { throwsSync } from './extentions';
+import { test } from './utils';
 
 const SECONDS_PER_DAY = 86400;
 
 function hexToBuffer(hex: string) {
-  return new Uint8Array(Buffer.from(hex, "hex"));
+  return new Uint8Array(Buffer.from(hex, 'hex'));
 }
 
 export const testZkGroup = () => {
-  const TEST_UUID = "dc249e7a-56ea-49cd-abce-aa3a0d65f6f0";
-  const TEST_UUID_1 = "18c7e848-2213-40c1-bd6b-3b69a82dd1f5";
+  const TEST_UUID = 'dc249e7a-56ea-49cd-abce-aa3a0d65f6f0';
+  const TEST_UUID_1 = '18c7e848-2213-40c1-bd6b-3b69a82dd1f5';
   const TEST_ARRAY_32 = hexToBuffer(
-    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
   );
   const TEST_ARRAY_32_1 = hexToBuffer(
-    "6465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80818283"
+    '6465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f80818283'
   );
   const TEST_ARRAY_32_2 = hexToBuffer(
-    "c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7"
+    'c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7'
   );
   const TEST_ARRAY_32_3 = new Uint8Array([
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
@@ -47,10 +47,10 @@ export const testZkGroup = () => {
     23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
   ]);
   const TEST_ARRAY_32_5 = hexToBuffer(
-    "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122"
+    '030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122'
   );
 
-  test("Test auth with pni integration", async () => {
+  test('Test auth with pni integration', async () => {
     const aci = Aci.fromUuid(TEST_UUID);
     const pni = Pni.fromUuid(TEST_UUID_1);
 
@@ -255,7 +255,7 @@ export const testZkGroup = () => {
         groupSecretParams.getMasterKey().serialized,
         masterKey.serialized
       ),
-      "Group secret params is not equal to master key"
+      'Group secret params is not equal to master key'
     );
 
     const groupPublicParams = groupSecretParams.getPublicParams();
@@ -360,7 +360,7 @@ export const testZkGroup = () => {
     );
   });
 
-  test("Test Auth Zkc Integration", async () => {
+  test('Test Auth Zkc Integration', async () => {
     const aci = Aci.fromUuid(TEST_UUID);
     const pni = Pni.fromUuid(TEST_UUID_1);
     const redemptionTime = 123456 * SECONDS_PER_DAY;
@@ -453,7 +453,7 @@ export const testZkGroup = () => {
     );
   });
 
-  test("Test expiring profile key integration", () => {
+  test('Test expiring profile key integration', () => {
     const userId = Aci.fromUuid(TEST_UUID);
 
     // Generate keys (client's are per-group, server's are not)
@@ -554,7 +554,7 @@ export const testZkGroup = () => {
 
     //    the important thing is that these test were commented by me weeks ago because they expect to be failed which is OK in ios , but the failure cause crash which can not be caught by try catch
     // so i make them conditional by Platform.OS
-    if (Platform.OS == "android") {
+    if (Platform.OS === 'android') {
       //Test expiration
       assert(
         throwsSync(() =>
@@ -644,7 +644,7 @@ export const testZkGroup = () => {
   //   assert(throwsSync(() => new GroupSecretParams(ckp)),
   //   "wrong sized serialized group secret params did not throw an error");
   // })
-  test("Test Blob Encryption", () => {
+  test('Test Blob Encryption', () => {
     const groupSecretParams = GroupSecretParams.generate();
     const clientZkGroupCipher = new ClientZkGroupCipher(groupSecretParams);
 
@@ -654,7 +654,7 @@ export const testZkGroup = () => {
     assert(deepEqual(plaintext, plaintext2));
   });
 
-  test("Test Blob Encription with random", () => {
+  test('Test Blob Encription with random', () => {
     const groupSecretParams = GroupSecretParams.generate();
     const clientZkGroupCipher = new ClientZkGroupCipher(groupSecretParams);
 
@@ -667,30 +667,30 @@ export const testZkGroup = () => {
     assert(deepEqual(plaintext, plaintext2));
   });
 
-  test("Test Derive Profile Key", () => {
-    const expectedAccessKey = hexToBuffer("5a723acee52c5ea02b92a3a360c09595");
+  test('Test Derive Profile Key', () => {
+    const expectedAccessKey = hexToBuffer('5a723acee52c5ea02b92a3a360c09595');
     const profileKey = new Uint8Array(Buffer.alloc(32, 0x02));
 
     const result = new ProfileKey(profileKey).deriveAccessKey();
     assert(deepEqual(expectedAccessKey, result));
   });
 
-  test("GroupSendEndorsement", () => {
+  test('GroupSendEndorsement', () => {
     const serverSecretParams =
       ServerSecretParams.generateWithRandom(TEST_ARRAY_32);
     const serverPublicParams = serverSecretParams.getPublicParams();
 
     const aliceAci = Aci.parseFromServiceIdString(
-      "9d0652a3-dcc3-4d11-975f-74d61598733f"
+      '9d0652a3-dcc3-4d11-975f-74d61598733f'
     );
     const bobAci = Aci.parseFromServiceIdString(
-      "6838237d-02f6-4098-b110-698253d15961"
+      '6838237d-02f6-4098-b110-698253d15961'
     );
     const eveAci = Aci.parseFromServiceIdString(
-      "3f0f4734-e331-4434-bd4f-6d8f6ea6dcc7"
+      '3f0f4734-e331-4434-bd4f-6d8f6ea6dcc7'
     );
     const malloryAci = Aci.parseFromServiceIdString(
-      "5d088142-6fd7-4dbd-af00-fdda1b3ce988"
+      '5d088142-6fd7-4dbd-af00-fdda1b3ce988'
     );
 
     const masterKey = new GroupMasterKey(TEST_ARRAY_32_1);
@@ -735,7 +735,7 @@ export const testZkGroup = () => {
           serverPublicParams
         )
       ),
-      "Missing local user"
+      'Missing local user'
     );
     // Missing another user
     assert(
@@ -747,7 +747,7 @@ export const testZkGroup = () => {
           serverPublicParams
         )
       ),
-      "Missing another user"
+      'Missing another user'
     );
 
     // Try the other receive too
@@ -773,7 +773,7 @@ export const testZkGroup = () => {
             serverPublicParams
           )
         ),
-        "Missing local user"
+        'Missing local user'
       );
       // Missing another user
 
@@ -785,7 +785,7 @@ export const testZkGroup = () => {
             serverPublicParams
           )
         ),
-        "Missing another user"
+        'Missing another user'
       );
     }
 
@@ -817,7 +817,7 @@ export const testZkGroup = () => {
           verifyKey
         )
       ),
-      "Included extra user"
+      'Included extra user'
     );
     // Missing user
 
@@ -825,7 +825,7 @@ export const testZkGroup = () => {
       throwsSync(() =>
         fullCombinedToken.verify([eveAci, malloryAci], verifyKey)
       ),
-      "Missing user"
+      'Missing user'
     );
     // Expired
     assert(
@@ -836,7 +836,7 @@ export const testZkGroup = () => {
           new Date(1000 * (expiration + 1))
         )
       ),
-      "Expired"
+      'Expired'
     );
 
     // Excluding a user

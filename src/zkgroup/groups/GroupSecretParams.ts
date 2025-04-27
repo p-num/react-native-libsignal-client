@@ -1,8 +1,8 @@
-import GroupMasterKey from "./GroupMasterKey";
-import GroupPublicParams from "./GroupPublicParams";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
-import { RANDOM_LENGTH } from "../internal/Constants";
-import { randomBytes } from "../../randomBytes";
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../../randomBytes';
+import { RANDOM_LENGTH } from '../internal/Constants';
+import GroupMasterKey from './GroupMasterKey';
+import GroupPublicParams from './GroupPublicParams';
 
 export default class GroupSecretParams {
   readonly serialized: Uint8Array;

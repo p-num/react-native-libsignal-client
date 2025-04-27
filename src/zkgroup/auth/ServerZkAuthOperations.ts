@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-import { RANDOM_LENGTH } from "../internal/Constants";
+import { RANDOM_LENGTH } from '../internal/Constants';
 
-import ServerSecretParams from "../ServerSecretParams";
-import AuthCredentialPresentation from "./AuthCredentialPresentation";
-import AuthCredentialWithPniResponse from "./AuthCredentialWithPniResponse";
-import GroupPublicParams from "../groups/GroupPublicParams";
-import { Aci, Pni } from "../../Address";
-import { randomBytes } from "../../randomBytes";
-import ReactNativeLibsignalClientModule from "../../ReactNativeLibsignalClientModule";
+import type { Aci, Pni } from '../../Address';
+import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
+import { randomBytes } from '../../randomBytes';
+import type ServerSecretParams from '../ServerSecretParams';
+import type GroupPublicParams from '../groups/GroupPublicParams';
+import type AuthCredentialPresentation from './AuthCredentialPresentation';
+import AuthCredentialWithPniResponse from './AuthCredentialWithPniResponse';
 
 export default class ServerZkAuthOperations {
   serverSecretParams: ServerSecretParams;
