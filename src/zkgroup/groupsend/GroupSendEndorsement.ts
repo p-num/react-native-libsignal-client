@@ -6,8 +6,8 @@ import GroupSendToken from './GroupSendToken';
 import ReactNativeLibsignalClientModule from '../../ReactNativeLibsignalClientModule';
 // For docs
 import type {
-  default as GroupSendEndorsementsResponse,
-  ReceivedEndorsements,
+	default as GroupSendEndorsementsResponse,
+	ReceivedEndorsements,
 } from './GroupSendEndorsementsResponse';
 
 /**
@@ -38,77 +38,77 @@ import type {
  * it's still cheaper than a usual zkgroup presentation.)
  */
 export default class GroupSendEndorsement {
-  readonly serialized: Uint8Array;
+	readonly serialized: Uint8Array;
 
-  constructor(contents: Uint8Array) {
-    this.serialized = contents;
-  }
+	constructor(contents: Uint8Array) {
+		this.serialized = contents;
+	}
 
-  /**
-   * Combines several endorsements into one.
-   *
-   * For example, if you have endorsements to send to Meredith and Aruna individually, then you can
-   * combine them to produce an endorsement to send a multi-recipient message to the two of them.
-   */
-  static combine(endorsements: GroupSendEndorsement[]): GroupSendEndorsement {
-    return new GroupSendEndorsement(
-      new Uint8Array(
-        ReactNativeLibsignalClientModule.groupSendEndorsementCombine(
-          endorsements.map((next) => fromByteArray(next.serialized))
-        )
-      )
-    );
-  }
+	/**
+	 * Combines several endorsements into one.
+	 *
+	 * For example, if you have endorsements to send to Meredith and Aruna individually, then you can
+	 * combine them to produce an endorsement to send a multi-recipient message to the two of them.
+	 */
+	static combine(endorsements: GroupSendEndorsement[]): GroupSendEndorsement {
+		return new GroupSendEndorsement(
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.groupSendEndorsementCombine(
+					endorsements.map((next) => fromByteArray(next.serialized))
+				)
+			)
+		);
+	}
 
-  /**
-   * Removes an endorsement (individual or combined) from this combined endorsement.
-   *
-   * If `this` is *not* a combined endorsement, or `toRemove` includes endorsements that were not
-   * combined into `this`, the result will not generate valid tokens.
-   */
-  byRemoving(toRemove: GroupSendEndorsement): GroupSendEndorsement {
-    return new GroupSendEndorsement(
-      new Uint8Array(
-        ReactNativeLibsignalClientModule.groupSendEndorsementRemove(
-          this.serialized,
-          toRemove.serialized
-        )
-      )
-    );
-  }
+	/**
+	 * Removes an endorsement (individual or combined) from this combined endorsement.
+	 *
+	 * If `this` is *not* a combined endorsement, or `toRemove` includes endorsements that were not
+	 * combined into `this`, the result will not generate valid tokens.
+	 */
+	byRemoving(toRemove: GroupSendEndorsement): GroupSendEndorsement {
+		return new GroupSendEndorsement(
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.groupSendEndorsementRemove(
+					this.serialized,
+					toRemove.serialized
+				)
+			)
+		);
+	}
 
-  /**
-   * Generates a cacheable token used to authenticate sends.
-   *
-   * The token is no longer associated with the group; it merely identifies the user or set of users
-   * referenced by this endorsement. (Of course, a set of users is a pretty good stand-in for a
-   * group.)
-   *
-   * @see {@link GroupSendToken}
-   */
-  toToken(groupParams: GroupSecretParams): GroupSendToken {
-    return new GroupSendToken(
-      new Uint8Array(
-        ReactNativeLibsignalClientModule.groupSendEndorsementToToken(
-          this.serialized,
-          groupParams.serialized
-        )
-      )
-    );
-  }
+	/**
+	 * Generates a cacheable token used to authenticate sends.
+	 *
+	 * The token is no longer associated with the group; it merely identifies the user or set of users
+	 * referenced by this endorsement. (Of course, a set of users is a pretty good stand-in for a
+	 * group.)
+	 *
+	 * @see {@link GroupSendToken}
+	 */
+	toToken(groupParams: GroupSecretParams): GroupSendToken {
+		return new GroupSendToken(
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.groupSendEndorsementToToken(
+					this.serialized,
+					groupParams.serialized
+				)
+			)
+		);
+	}
 
-  /**
-   * Generates a token used to authenticate sends, ready to put in an auth header.
-   *
-   * `expiration` must be the same expiration that was in the original {@link
-   * GroupSendEndorsementsResponse}, or the resulting token will fail to verify.
-   *
-   * Equivalent to {@link #toToken} followed by {@link GroupSendToken#toFullToken}.
-   */
-  toFullToken(
-    groupParams: GroupSecretParams,
-    expiration: Date
-  ): GroupSendFullToken {
-    return this.toToken(groupParams).toFullToken(expiration);
-  }
+	/**
+	 * Generates a token used to authenticate sends, ready to put in an auth header.
+	 *
+	 * `expiration` must be the same expiration that was in the original {@link
+	 * GroupSendEndorsementsResponse}, or the resulting token will fail to verify.
+	 *
+	 * Equivalent to {@link #toToken} followed by {@link GroupSendToken#toFullToken}.
+	 */
+	toFullToken(
+		groupParams: GroupSecretParams,
+		expiration: Date
+	): GroupSendFullToken {
+		return this.toToken(groupParams).toFullToken(expiration);
+	}
 }

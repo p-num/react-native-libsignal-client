@@ -1,9 +1,9 @@
 {
-  "platforms": ["ios", "tvos", "android", "web"],
-  "ios": {
-    "modules": ["ReactNativeLibsignalClientModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.libsignalclient.ReactNativeLibsignalClientModule"]
-  }
+	"platforms": ["ios", "tvos", "android", "web"],
+	"ios": {
+		"modules": ["ReactNativeLibsignalClientModule"]
+	},
+	"android": {
+		"modules": ["expo.modules.libsignalclient.ReactNativeLibsignalClientModule"]
+	}
 }

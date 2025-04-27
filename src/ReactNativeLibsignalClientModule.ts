@@ -7,14 +7,14 @@ const module = requireNativeModule('ReactNativeLibsignalClient');
 const emitter = new EventEmitter(module);
 
 export type RLCSLog = {
-  level: string;
-  msg: string;
+	level: string;
+	msg: string;
 };
 
 export function addLogListener(lf: (l: RLCSLog) => void) {
-  emitter.addListener('onLogGenerated', (event) => {
-    lf(event as RLCSLog);
-  });
+	emitter.addListener('onLogGenerated', (event) => {
+		lf(event as RLCSLog);
+	});
 }
 
 export default module;

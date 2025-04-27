@@ -19,7 +19,6 @@
 	"formatter": {
 		"indentWidth": 2,
 		"lineEnding": "lf"
-		
 	},
 	"javascript": {
 		"formatter": {
