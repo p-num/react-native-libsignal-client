@@ -1,6 +1,6 @@
 {
 	"name": "react-native-libsignal-client",
-	"version": "0.1.21",
+	"version": "0.1.22",
 	"description": "My new module",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
@@ -10,8 +10,8 @@
 		"wipe": "biome check --write --unsafe --no-errors-on-unmatched .",
 		"type-check": "tsc",
 		"test": "expo-module test",
-		"prepare": "expo-module prepare",
-		"prepublishOnly": "expo-module prepublishOnly",
+		"prepare": "expo-module prepare && git restore -- plugin/build/Podfile",
+		"prepublishOnly": "expo-module prepublishOnly && git restore -- plugin/build/Podfile",
 		"expo-module": "expo-module",
 		"open:ios": "xed example/ios",
 		"open:android": "open -a \"Android Studio\" example/android"
