@@ -1,4 +1,8 @@
-import { configLoggerType, consoleTransport, logger } from 'react-native-logs';
+import {
+	type configLoggerType,
+	consoleTransport,
+	logger,
+} from 'react-native-logs';
 const defaultConfig: configLoggerType = {
 	levels: {
 		debug: 0,

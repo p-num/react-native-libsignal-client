@@ -1,6 +1,6 @@
-import { type ConfigPlugin, withAppBuildGradle } from "@expo/config-plugins";
+import { type ConfigPlugin, withAppBuildGradle } from '@expo/config-plugins';
 
-const withCoreLibraryDesugaring :ConfigPlugin  = (config) => {
+const withCoreLibraryDesugaring: ConfigPlugin = (config) => {
 	return withAppBuildGradle(config, async (config) => {
 		const androidBlock = 'android {';
 		const desugaringBlock = `    compileOptions {
@@ -28,4 +28,4 @@ const withCoreLibraryDesugaring :ConfigPlugin  = (config) => {
 	});
 };
 
-export default withCoreLibraryDesugaring
+export default withCoreLibraryDesugaring;

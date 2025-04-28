@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { TestStatus } from './App';
+import type { TestStatus } from './App';
 
 interface Props {
 	testStatus: TestStatus;
@@ -33,10 +33,10 @@ const styles = ({ testStatus }: { testStatus: TestStatus }) =>
 				testStatus === 'ERROR'
 					? 'red'
 					: testStatus === 'RUNNING'
-					  ? 'yellow'
-					  : testStatus === 'SUCCESS'
-						  ? 'green'
-						  : 'gray',
+						? 'yellow'
+						: testStatus === 'SUCCESS'
+							? 'green'
+							: 'gray',
 			alignItems: 'center',
 			justifyContent: 'center',
 		},

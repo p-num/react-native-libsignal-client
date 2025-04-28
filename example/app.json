@@ -3,6 +3,7 @@
 		"name": "react-native-libsignal-client-example",
 		"slug": "react-native-libsignal-client-example",
 		"version": "1.0.0",
+		"newArchEnabled": false,
 		"orientation": "portrait",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "light",
@@ -30,12 +31,10 @@
 				"expo-build-properties",
 				{
 					"ios": {
-						"newArchEnabled": true,
 						"useFrameworks": "static",
 						"deploymentTarget": "15.5"
 					},
 					"android": {
-						"newArchEnabled": true,
 						"minSdkVersion": 26
 					}
 				}

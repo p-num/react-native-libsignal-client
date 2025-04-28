@@ -81,9 +81,7 @@ export class LibSignalErrorBase extends Error {
 			case ErrorCode.UntrustedIdentity:
 				return this._addr as string;
 			case ErrorCode.InvalidRegistrationId:
-				return ProtocolAddress.new(
-					this._addr as string
-				);
+				return ProtocolAddress.new(this._addr as string);
 			default:
 				throw new TypeError(`cannot get address from this error (${this})`);
 		}

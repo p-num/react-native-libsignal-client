@@ -1,20 +1,20 @@
 import {
-  Direction,
-  IdentityKeyStore,
-  KyberPreKeyRecord,
-  KyberPreKeyStore,
-  PreKeyRecord,
-  PreKeyStore,
-  PrivateKey,
-  PublicKey,
-  SenderKeyRecord,
-  SenderKeyStore,
-  SessionRecord,
-  SessionStore,
-  SignedPreKeyRecord,
-  SignedPreKeyStore,
-} from "../../src";
-import { ProtocolAddress } from "../../src/Address";
+	type Direction,
+	IdentityKeyStore,
+	KyberPreKeyRecord,
+	KyberPreKeyStore,
+	PreKeyRecord,
+	PreKeyStore,
+	PrivateKey,
+	type PublicKey,
+	type SenderKeyRecord,
+	SenderKeyStore,
+	SessionRecord,
+	SessionStore,
+	SignedPreKeyRecord,
+	SignedPreKeyStore,
+} from '../../src';
+import type { ProtocolAddress } from '../../src/Address';
 
 class InMemorySessionStore extends SessionStore {
 	private state = new Map<string, Uint8Array>();
@@ -25,13 +25,11 @@ class InMemorySessionStore extends SessionStore {
 		const idx = `${name.name}::${name.deviceId}`;
 		this.state.set(idx, record.serialized);
 	}
-	async getSession(
-		name: ProtocolAddress
-	): Promise<SessionRecord | null> {
+	async getSession(name: ProtocolAddress): Promise<SessionRecord | null> {
 		const idx = `${name.name}::${name.deviceId}`;
 		const serialized = this.state.get(idx);
 		if (serialized) {
-			return SessionRecord._fromSerialized(serialized)
+			return SessionRecord._fromSerialized(serialized);
 		}
 		return null;
 	}
@@ -80,10 +78,7 @@ class InMemoryIdentityKeyStore extends IdentityKeyStore {
 		return true;
 	}
 
-	async saveIdentity(
-		name: ProtocolAddress,
-		key: PublicKey
-	): Promise<boolean> {
+	async saveIdentity(name: ProtocolAddress, key: PublicKey): Promise<boolean> {
 		const idx = `${name.name}::${name.deviceId}`;
 		const currentKey = this.idKeys.get(idx);
 		if (currentKey) {
@@ -95,9 +90,7 @@ class InMemoryIdentityKeyStore extends IdentityKeyStore {
 		this.idKeys.set(idx, key);
 		return false;
 	}
-	async getIdentity(
-		name: ProtocolAddress
-	): Promise<PublicKey | null> {
+	async getIdentity(name: ProtocolAddress): Promise<PublicKey | null> {
 		const idx = `${name.name}::${name.deviceId}`;
 		return this.idKeys.get(idx) ?? null;
 	}
@@ -105,10 +98,7 @@ class InMemoryIdentityKeyStore extends IdentityKeyStore {
 
 class InMemoryPreKeyStore extends PreKeyStore {
 	private state = new Map<number, Uint8Array>();
-	async savePreKey(
-		id: number,
-		record: PreKeyRecord
-	): Promise<void> {
+	async savePreKey(id: number, record: PreKeyRecord): Promise<void> {
 		this.state.set(id, record.serialized);
 	}
 	async getPreKey(id: number): Promise<PreKeyRecord> {
@@ -131,9 +121,7 @@ class InMemorySignedPreKeyStore extends SignedPreKeyStore {
 	): Promise<void> {
 		this.state.set(id, record.serialized);
 	}
-	async getSignedPreKey(
-		id: number
-	): Promise<SignedPreKeyRecord> {
+	async getSignedPreKey(id: number): Promise<SignedPreKeyRecord> {
 		const record = this.state.get(id);
 		if (!record) {
 			throw new Error(`pre-key ${id} not found`);
@@ -145,15 +133,10 @@ class InMemorySignedPreKeyStore extends SignedPreKeyStore {
 class InMemoryKyberPreKeyStore extends KyberPreKeyStore {
 	private state = new Map<number, Uint8Array>();
 	private used = new Set<number>();
-	async saveKyberPreKey(
-		id: number,
-		record: KyberPreKeyRecord
-	): Promise<void> {
+	async saveKyberPreKey(id: number, record: KyberPreKeyRecord): Promise<void> {
 		this.state.set(id, record.serialized);
 	}
-	async getKyberPreKey(
-		id: number
-	): Promise<KyberPreKeyRecord> {
+	async getKyberPreKey(id: number): Promise<KyberPreKeyRecord> {
 		const record = this.state.get(id);
 		if (!record) {
 			throw new Error(`kyber pre-key ${id} not found`);
@@ -167,8 +150,8 @@ class InMemoryKyberPreKeyStore extends KyberPreKeyStore {
 		return this.used.has(id);
 	}
 	//added so we can pass them into signalDecryptPreKey in test
-		_getAllKyberKeyIds(): number[] {
-			return Array.from(this.state.keys())
+	_getAllKyberKeyIds(): number[] {
+		return Array.from(this.state.keys());
 	}
 }
 

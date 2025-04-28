@@ -1,15 +1,15 @@
 import { fromByteArray, toByteArray } from 'react-native-quick-base64';
 import {
 	IdentityKeyPair,
-	IdentityKeyStore,
+	type IdentityKeyStore,
 	KyberPreKeyRecord,
-	KyberPreKeyStore,
-	PreKeyStore,
+	type KyberPreKeyStore,
+	type PreKeyStore,
 	PublicKey,
 	SessionRecord,
-	SessionStore,
+	type SessionStore,
 	SignedPreKeyRecord,
-	SignedPreKeyStore,
+	type SignedPreKeyStore,
 } from '.';
 import { ProtocolAddress } from './Address';
 import { PreKeyRecord } from './index';
@@ -48,7 +48,9 @@ export async function updateSignedPrekeyStoreFromObject(
 	for (const key in signedPreKeyStoreState) {
 		await signedPreKeyStore.saveSignedPreKey(
 			Number(key),
-			SignedPreKeyRecord._fromSerialized(toByteArray(signedPreKeyStoreState[key]))
+			SignedPreKeyRecord._fromSerialized(
+				toByteArray(signedPreKeyStoreState[key])
+			)
 		);
 	}
 }
@@ -133,9 +135,7 @@ export async function getKyberPrekeyStoreState(
 	const keyObject: KeyObject = {};
 	for (const kyberPrekeyId of kyberPrekeyIds) {
 		const kyberPreKey = await kyberPreKeyStore.getKyberPreKey(kyberPrekeyId);
-		keyObject[kyberPrekeyId.toString()] = fromByteArray(
-			kyberPreKey.serialized
-		);
+		keyObject[kyberPrekeyId.toString()] = fromByteArray(kyberPreKey.serialized);
 	}
 
 	return keyObject;

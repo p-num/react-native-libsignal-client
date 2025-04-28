@@ -123,9 +123,7 @@ export abstract class ServiceId extends Object {
 	}
 
 	getRawUuidBytes(): Uint8Array {
-		return new Uint8Array(
-			Buffer.from(this.serviceIdFixedWidthBinary.buffer, 1)
-		);
+		return new Uint8Array(this.serviceIdFixedWidthBinary.buffer).slice(1);
 	}
 
 	isEqual(other: ServiceId): boolean {
@@ -172,8 +170,8 @@ export class Pni extends ServiceId {
 }
 
 export class ProtocolAddress {
-	public readonly name: string
-	public readonly deviceId: number
+	public readonly name: string;
+	public readonly deviceId: number;
 
 	constructor(name: string | ServiceId, deviceId: number) {
 		let serviceName: string;
@@ -187,11 +185,8 @@ export class ProtocolAddress {
 	}
 
 	static new(address: string): ProtocolAddress {
-		const[name, deviceId] = address.split('.');
-		return new ProtocolAddress(
-			name, 
-			Number(deviceId)
-		);
+		const [name, deviceId] = address.split('.');
+		return new ProtocolAddress(name, Number(deviceId));
 	}
 
 	/**
@@ -206,7 +201,6 @@ export class ProtocolAddress {
 			return null;
 		}
 	}
-
 
 	toString(): string {
 		return `${this.name}.${this.deviceId}`;

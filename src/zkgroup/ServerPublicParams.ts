@@ -1,5 +1,5 @@
-import ReactNativeLibsignalClientModule from "../ReactNativeLibsignalClientModule";
-import type NotarySignature from "./NotarySignature";
+import ReactNativeLibsignalClientModule from '../ReactNativeLibsignalClientModule';
+import type NotarySignature from './NotarySignature';
 
 export default class ServerPublicParams {
 	readonly serialized: Uint8Array;
@@ -13,10 +13,10 @@ export default class ServerPublicParams {
 			!ReactNativeLibsignalClientModule.serverPublicParamsVerifySignature(
 				this.serialized,
 				message,
-				notarySignature.serialized,
+				notarySignature.serialized
 			)
 		) {
-			throw new Error("ServerPublicParams.verifySignature failed");
+			throw new Error('ServerPublicParams.verifySignature failed');
 		}
 	}
 }

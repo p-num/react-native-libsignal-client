@@ -32,10 +32,9 @@ export async function runTests(tests: (() => Promise<void> | void)[]) {
 	const failedTests = testResults.filter(
 		(result) => result.status === 'rejected'
 	);
-	const passedTests = testResults.filter(
-		(result) =>{ 
-			return result.status === 'fulfilled'}
-	);
+	const passedTests = testResults.filter((result) => {
+		return result.status === 'fulfilled';
+	});
 	if (passedTests.length > 0) {
 		log.rootSuccess(
 			`${passedTests.length}/${testResults.length} test${
