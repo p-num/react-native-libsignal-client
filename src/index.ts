@@ -440,21 +440,25 @@ export class SenderCertificate {
 			localSenderUuid = senderUuid.getServiceIdString();
 		}
 		return new SenderCertificate(
-			ReactNativeLibsignalClientModule.senderCertificateNew(
-				localSenderUuid,
-				senderE164,
-				senderDeviceId,
-				senderKey.serialized,
-				expiration,
-				signerCert.serialized,
-				signerKey.serialized
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.senderCertificateNew(
+					localSenderUuid,
+					senderE164,
+					senderDeviceId,
+					senderKey.serialized,
+					expiration,
+					signerCert.serialized,
+					signerKey.serialized
+				)
 			)
 		);
 	}
 
 	certificate(): Uint8Array {
-		return ReactNativeLibsignalClientModule.senderCertificateGetCertificate(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.senderCertificateGetCertificate(
+				this.serialized
+			)
 		);
 	}
 	expiration(): number {
@@ -543,8 +547,10 @@ export class ServerCertificate {
 	}
 
 	certificateData(): Uint8Array {
-		return ReactNativeLibsignalClientModule.serverCertificateGetCertificate(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.serverCertificateGetCertificate(
+				this.serialized
+			)
 		);
 	}
 
@@ -622,7 +628,7 @@ export class SenderKeyDistributionMessage {
 	readonly serialized: Uint8Array;
 
 	private constructor(serialized: Uint8Array) {
-		this.serialized = serialized;
+		this.serialized = new Uint8Array(serialized);
 	}
 
 	static async create(
@@ -692,7 +698,7 @@ export class SenderKeyDistributionMessage {
 		// the distributionId is already stringified in the native side
 		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetDistributionId(
 			this.serialized
-		);
+		).toLowerCase();
 	}
 }
 
@@ -746,7 +752,7 @@ export class UnidentifiedSenderMessageContent {
 		contentHint: number,
 		groupId: Uint8Array | null
 	): UnidentifiedSenderMessageContent {
-		return new UnidentifiedSenderMessageContent(
+		const result = new UnidentifiedSenderMessageContent(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
 					message.serialized,
@@ -757,6 +763,8 @@ export class UnidentifiedSenderMessageContent {
 				)
 			)
 		);
+
+		return result;
 	}
 
 	static deserialize(buffer: Uint8Array): UnidentifiedSenderMessageContent {
@@ -789,8 +797,10 @@ export class UnidentifiedSenderMessageContent {
 
 	senderCertificate(): SenderCertificate {
 		return SenderCertificate._fromSerialized(
-			ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetSenderCert(
-				this.serialized
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentGetSenderCert(
+					this.serialized
+				)
 			)
 		);
 	}
@@ -1291,7 +1301,7 @@ export class SenderKeyMessage implements CipherTextMessage {
 		//it's already stringified in the native side
 		return ReactNativeLibsignalClientModule.senderKeyMessageGetDistributionId(
 			this.serialized
-		);
+		).toLowerCase();
 	}
 
 	verifySignature(key: PublicKey): boolean {
@@ -1491,6 +1501,7 @@ export async function sealedSenderEncryptMessage(
 		sessionStore,
 		identityStore
 	);
+
 	const usmc = UnidentifiedSenderMessageContent.new(
 		ciphertext,
 		senderCert,
@@ -1577,7 +1588,6 @@ export async function sealedSenderDecryptMessage(
 		);
 	} else if (usmcMsgType === CiphertextMessageType.PreKey) {
 		const msg = PreKeySignalMessage._fromSerialized(usmcContents);
-
 		message_decrypted = await signalDecryptPreKey(
 			msg,
 			senderAddress,
@@ -1647,8 +1657,12 @@ export async function sealedSenderMultiRecipientEncrypt(
 		} = contentOrOptions);
 	}
 
+	const recipientSessions: KeyObject = {};
 	const identityStoreState: [string, string][] = await Promise.all(
 		recipients.map(async (r) => {
+			const session = await sessionStore.getSession(r);
+			recipientSessions[r.toString()] = fromByteArray(session?.serialized!);
+
 			const ident = await identityStore.getIdentity(r);
 			if (ident == null) {
 				throw Error('user indetity key not found');
@@ -1657,12 +1671,15 @@ export async function sealedSenderMultiRecipientEncrypt(
 		})
 	);
 
-	const recipientSessions = await sessionStore.getExistingSessions(recipients);
+	const store = await getIdentityStoreInitializer(identityStore);
+	const serviceIds = ServiceId.toConcatenatedFixedWidthBinary(
+		excludedRecipients ?? []
+	);
 	return await ReactNativeLibsignalClientModule.sealedSenderMultiRecipientEncrypt(
-		await getIdentityStoreInitializer(identityStore),
+		store,
 		recipients.map((r) => r.toString()),
-		recipientSessions.map((r) => r.serialized),
-		ServiceId.toConcatenatedFixedWidthBinary(excludedRecipients ?? []),
+		recipientSessions,
+		serviceIds,
 		contentOrOptions.serialized,
 		identityStoreState
 	);
@@ -1672,8 +1689,10 @@ export async function sealedSenderMultiRecipientEncrypt(
 export function sealedSenderMultiRecipientMessageForSingleRecipient(
 	message: Uint8Array
 ): Uint8Array {
-	return ReactNativeLibsignalClientModule.sealedSenderMultiRecipientMessageForSingleRecipient(
-		message
+	return new Uint8Array(
+		ReactNativeLibsignalClientModule.sealedSenderMultiRecipientMessageForSingleRecipient(
+			message
+		)
 	);
 }
 
@@ -1711,9 +1730,10 @@ export async function groupEncrypt(
 			senderKeyRecord?.serialized ?? new Uint8Array([])
 		);
 	const newRecord = SenderKeyRecord._fromSerialized(newSenderKeyRecord);
-	await store.saveSenderKey(sender, distributionId, newRecord);
 
-	return bufferToCipherText(msgRaw, type);
+	await store.saveSenderKey(sender, distributionId, newRecord);
+	const cipherText = bufferToCipherText(msgRaw, type);
+	return cipherText;
 }
 
 export async function groupDecrypt(
@@ -1726,6 +1746,7 @@ export async function groupDecrypt(
 		sender,
 		msg.distributionId()
 	);
+
 	const [decrypted, rawNewRecord] =
 		ReactNativeLibsignalClientModule.groupCipherDecryptMessage(
 			sender.toString(),

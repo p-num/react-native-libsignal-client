@@ -204,6 +204,7 @@ export const testGroup = () => {
 			deepEqual(bUsmc.senderCertificate().senderE164(), aE164),
 			'sender E164 an calculated certificate E164 were not equal.'
 		);
+
 		assert(
 			deepEqual(bUsmc.senderCertificate().senderUuid(), aUuid),
 			'sender certificate uuid is not equal to expected uuid'
@@ -216,6 +217,7 @@ export const testGroup = () => {
 			deepEqual(bUsmc.contentHint(), ContentHint.Implicit),
 			'decrypted content hint is not implicit'
 		);
+
 		assert(
 			deepEqual(bUsmc.groupId(), new Uint8Array(Buffer.from([42]))),
 			'group id    missmatch'
@@ -526,6 +528,7 @@ export const testGroup = () => {
 		);
 
 		const bRegistrationId = await bKeys.getLocalRegistrationId();
+
 		const bPreKeyId = 31337;
 		const bSignedPreKeyId = 22;
 
@@ -575,6 +578,7 @@ export const testGroup = () => {
 		);
 
 		const kyberKeyIds = kyberStore._getAllKyberKeyIds();
+
 		const bPlaintext = await sealedSenderDecryptMessage(
 			aCiphertext,
 			trustRoot.getPublicKey(),
