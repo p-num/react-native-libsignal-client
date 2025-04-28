@@ -57,3 +57,4 @@ yarn-error.log
 .expo/*
 
 example/android
+example/ios
