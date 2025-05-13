@@ -4,7 +4,6 @@ import SignalFfi
 import Foundation
 import CryptoKit
 import CommonCrypto
-@testable import LibSignalClient
 
 /*START        typealias +  structs  + enums          START*/
 typealias ServiceIdStorage = SignalServiceIdFixedWidthBinaryBytes
