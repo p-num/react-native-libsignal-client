@@ -919,7 +919,7 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) -> [UInt8] in
             return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: [UInt8](randomNess), plainText: plainText, paddingLen: paddingLen)
         }
-        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: [UInt8]) -> [UInt8] in
+        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: Data) -> [UInt8] in
             return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
         }
         Function("Aes256GcmEncrypt") { (key: Data, iv: Data, plainText: Data, aad: Data?) -> Data in
@@ -1586,11 +1586,11 @@ public class ReactNativeLibsignalClientModule: Module {
 
         return Data(encryptedContent)
     }
-    private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: [UInt8]) throws -> [UInt8] {
+    private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: Data) throws -> [UInt8] {
         let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
         let clientZkCipher = ClientZkGroupCipher(groupSecretParams: groupSecretParams)
         
-        let decryptedBlob = try clientZkCipher.decryptBlob(blobCiphertext: blobCipherText)
+        let decryptedBlob = try clientZkCipher.decryptBlob(blobCiphertext: [UInt8](blobCipherText))
         
         return decryptedBlob
     }
