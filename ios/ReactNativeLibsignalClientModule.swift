@@ -4,6 +4,8 @@ import SignalFfi
 import Foundation
 import CryptoKit
 import CommonCrypto
+// TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+// @testable import LibSignalClient
 
 /*START        typealias +  structs  + enums          START*/
 typealias ServiceIdStorage = SignalServiceIdFixedWidthBinaryBytes
@@ -1328,7 +1330,8 @@ public class ReactNativeLibsignalClientModule: Module {
         }
 
         Function("sealedSenderEncrypt", sealedSenderEncryptTemp)
-        Function("sealedSenderMultiRecipientMessageForSingleRecipient", sealedSenderMultiRecipientMessageForSingleRecipientImplementation)
+        // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+        // Function("sealedSenderMultiRecipientMessageForSingleRecipient", sealedSenderMultiRecipientMessageForSingleRecipientImplementation)
         Function("serverCertificateNew", serverCertificateNewTemp)
         Function("senderCertificateNew", senderCertificateNewTemp)
         Function("senderKeyDistributionMessageCreate", senderKeyDistributionMessageCreateTemp)
@@ -1543,9 +1546,10 @@ public class ReactNativeLibsignalClientModule: Module {
 
         return Data(certificate.serialize())
     }
-    private func sealedSenderMultiRecipientMessageForSingleRecipientImplementation(message: Data) throws -> Data {
-        return try Data(LibSignalClient.sealedSenderMultiRecipientMessageForSingleRecipient([UInt8](message)))
-    }
+    // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+    // private func sealedSenderMultiRecipientMessageForSingleRecipientImplementation(message: Data) throws -> Data {
+    //     return try Data(LibSignalClient.sealedSenderMultiRecipientMessageForSingleRecipient([UInt8](message)))
+    // }
 
     private func sealedSenderEncryptTemp(destAddress: String, unidentifiedContent: Data, identityKeyState: [Any]) throws -> Data {
         guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: destAddress) else {
