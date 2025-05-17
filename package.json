@@ -1,6 +1,6 @@
 {
 	"name": "react-native-libsignal-client",
-	"version": "0.1.26",
+	"version": "0.1.27",
 	"description": "My new module",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
