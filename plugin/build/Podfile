@@ -14,7 +14,7 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-target 'pnummobileapp' do
+target 'reactnativelibsignalclientexample' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
@@ -32,12 +32,11 @@ target 'pnummobileapp' do
     ]
   end
   pod 'SignalCoreKit', git: 'https://github.com/signalapp/SignalCoreKit', testspecs: ["Tests"]
-  ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = 'd0ac82ca0afe42ca16c170e43b647cb3c24644e76b3dca83f0f9ce1baa11486d'
-  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.56.0', testspecs: ["Tests"]         
+  ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = 'e12f6f64eb0ed503c363f3b3830c4c62976cceec04122cd6deee66f5106c482d'
+  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.70.0', testspecs: ["Tests"]      
   pod 'SwiftProtobuf', ">= 1.14.0"
-  pod 'NFCPassportReader', git: 'https://github.com/0xturboblitz/NFCPassportReader.git', commit: '0a8e26d56f5f85f698b67c5df5ea9ecbb53cbc45'
-  pod 'QKMRZScanner'
-  pod 'lottie-ios'
+
+
 
   
   config = use_native_modules!(config_command)

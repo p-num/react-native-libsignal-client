@@ -4,6 +4,6 @@ pre-commit:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
       run: npx biome check --write --unsafe --no-errors-on-unmatched {staged_files} && git update-index --again
     build-plugins:
-      run: tsc --project plugin/tsconfig.json
+      run: npm run compile-plugin
     type-check:
       run: npm run type-check

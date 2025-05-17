@@ -21,7 +21,7 @@ public class ReactNativeLibsignalClientLogger {
     public ReactNativeLibsignalClientLogger() {}
 
     public static void initiate() {
-        Native.Logger_Initialize(2, ReactNativeLibsignalClientLogger.class);
+        // Native.Logger_Initialize(2, ReactNativeLibsignalClientLogger.class);
     }
 
     // this function only gets called from inside libsignal

@@ -39,7 +39,8 @@
 					}
 				}
 			],
-			"../app.plugin.js"
+			"../app.plugin.js",
+			"../plugin/build/withLibSignalClient.js"
 		]
 	}
 }
