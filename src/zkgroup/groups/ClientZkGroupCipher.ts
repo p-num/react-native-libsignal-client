@@ -79,8 +79,8 @@ export default class ClientZkGroupCipher {
 	decryptBlob(blobCiphertext: Uint8Array): Uint8Array {
 		return new Uint8Array(
 			ReactNativeLibsignalClientModule.groupSecretParamsDecryptBlobWithPadding(
-				this.groupSecretParams.serialized,
-				blobCiphertext
+				new Uint8Array(this.groupSecretParams.serialized),
+				new Uint8Array(blobCiphertext)
 			)
 		);
 	}
