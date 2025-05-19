@@ -756,11 +756,11 @@ export class UnidentifiedSenderMessageContent {
 		const result = new UnidentifiedSenderMessageContent(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
-					message.serialized,
+					new Uint8Array(message.serialized),
 					message.type() as number,
-					sender.serialized,
+					new Uint8Array(sender.serialized),
 					contentHint,
-					groupId ? groupId : new Uint8Array([])
+					groupId ? new Uint8Array(groupId) : new Uint8Array([])
 				)
 			)
 		);
