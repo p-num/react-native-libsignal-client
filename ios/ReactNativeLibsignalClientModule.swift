@@ -757,6 +757,10 @@ public class ReactNativeLibsignalClientModule: Module {
             (serializedPublicKey: Data) throws -> Data in
             return try publicKeyGetPublicKeyBytesHelper(serializedPublicKey: serializedPublicKey)
         }
+        Function("publicKeyVerify") {
+            (serializedPublicKey: Data, message: Data, signature: Data) throws -> Bool in
+            return try publicKeyVerifyHelper(serializedPublicKey: serializedPublicKey, message: message, signature: signature)
+        }
         Function("identityKeyVerifyAlternateIdentityWithIdentityKey") {
             (serializedIdentityKey: Data, otherPublicKey: Data, message: Data) throws -> Bool in
             return try identityKeyVerifyAlternateIdentityWithIdentityKeyHelper(serializedIdentityKey: serializedIdentityKey, otherPublicKey: otherPublicKey, message: message)
@@ -2458,6 +2462,15 @@ public class ReactNativeLibsignalClientModule: Module {
     throws -> Data {
         let publicKey = try PublicKey(serializedPublicKey)
         return Data(publicKey.keyBytes)
+    }
+
+    private func publicKeyVerifyHelper(
+        serializedPublicKey: Data,
+        message: Data,
+        signature: Data)
+    throws -> Bool {
+        let publicKey = try PublicKey(serializedPublicKey)
+        return try publicKey.verifySignature(message: message, signature: signature)
     }
 
     private func identityKeyVerifyAlternateIdentityWithPublicKeyHelper(
