@@ -64,7 +64,10 @@ export default class ClientZkGroupCipher {
 	encryptBlob(plaintext: Uint8Array): Uint8Array {
 		const random = randomBytes(RANDOM_LENGTH);
 
-		return this.encryptBlobWithRandom(random, plaintext);
+		return this.encryptBlobWithRandom(
+			new Uint8Array(random),
+			new Uint8Array(plaintext)
+		);
 	}
 
 	encryptBlobWithRandom(random: Uint8Array, plaintext: Uint8Array): Uint8Array {
@@ -79,8 +82,8 @@ export default class ClientZkGroupCipher {
 	decryptBlob(blobCiphertext: Uint8Array): Uint8Array {
 		return new Uint8Array(
 			ReactNativeLibsignalClientModule.groupSecretParamsDecryptBlobWithPadding(
-				this.groupSecretParams.serialized,
-				blobCiphertext
+				new Uint8Array(this.groupSecretParams.serialized),
+				new Uint8Array(blobCiphertext)
 			)
 		);
 	}
