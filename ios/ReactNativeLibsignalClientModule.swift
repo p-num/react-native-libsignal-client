@@ -4,7 +4,8 @@ import SignalFfi
 import Foundation
 import CryptoKit
 import CommonCrypto
-@testable import LibSignalClient
+// TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+// @testable import LibSignalClient
 
 /*START        typealias +  structs  + enums          START*/
 typealias ServiceIdStorage = SignalServiceIdFixedWidthBinaryBytes
@@ -756,6 +757,10 @@ public class ReactNativeLibsignalClientModule: Module {
             (serializedPublicKey: Data) throws -> Data in
             return try publicKeyGetPublicKeyBytesHelper(serializedPublicKey: serializedPublicKey)
         }
+        Function("publicKeyVerify") {
+            (serializedPublicKey: Data, message: Data, signature: Data) throws -> Bool in
+            return try publicKeyVerifyHelper(serializedPublicKey: serializedPublicKey, message: message, signature: signature)
+        }
         Function("identityKeyVerifyAlternateIdentityWithIdentityKey") {
             (serializedIdentityKey: Data, otherPublicKey: Data, message: Data) throws -> Bool in
             return try identityKeyVerifyAlternateIdentityWithIdentityKeyHelper(serializedIdentityKey: serializedIdentityKey, otherPublicKey: otherPublicKey, message: message)
@@ -918,7 +923,7 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) -> [UInt8] in
             return try! groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(sGroupSecretParams: sGroupSecretParams, randomNess: [UInt8](randomNess), plainText: plainText, paddingLen: paddingLen)
         }
-        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: [UInt8]) -> [UInt8] in
+        Function("groupSecretParamsDecryptBlobWithPadding") { (sGroupSecretParams: Data, blobCipherText: Data) -> [UInt8] in
             return try! groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: sGroupSecretParams, blobCipherText: blobCipherText)
         }
         Function("Aes256GcmEncrypt") { (key: Data, iv: Data, plainText: Data, aad: Data?) -> Data in
@@ -1329,7 +1334,8 @@ public class ReactNativeLibsignalClientModule: Module {
         }
 
         Function("sealedSenderEncrypt", sealedSenderEncryptTemp)
-        Function("sealedSenderMultiRecipientMessageForSingleRecipient", sealedSenderMultiRecipientMessageForSingleRecipientImplementation)
+        // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+        // Function("sealedSenderMultiRecipientMessageForSingleRecipient", sealedSenderMultiRecipientMessageForSingleRecipientImplementation)
         Function("serverCertificateNew", serverCertificateNewTemp)
         Function("senderCertificateNew", senderCertificateNewTemp)
         Function("senderKeyDistributionMessageCreate", senderKeyDistributionMessageCreateTemp)
@@ -1544,9 +1550,10 @@ public class ReactNativeLibsignalClientModule: Module {
 
         return Data(certificate.serialize())
     }
-    private func sealedSenderMultiRecipientMessageForSingleRecipientImplementation(message: Data) throws -> Data {
-        return try Data(LibSignalClient.sealedSenderMultiRecipientMessageForSingleRecipient([UInt8](message)))
-    }
+    // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+    // private func sealedSenderMultiRecipientMessageForSingleRecipientImplementation(message: Data) throws -> Data {
+    //     return try Data(LibSignalClient.sealedSenderMultiRecipientMessageForSingleRecipient([UInt8](message)))
+    // }
 
     private func sealedSenderEncryptTemp(destAddress: String, unidentifiedContent: Data, identityKeyState: [Any]) throws -> Data {
         guard let (serviceId, deviceId) = getDeviceIdAndServiceId(address: destAddress) else {
@@ -1583,11 +1590,11 @@ public class ReactNativeLibsignalClientModule: Module {
 
         return Data(encryptedContent)
     }
-    private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: [UInt8]) throws -> [UInt8] {
+    private func groupSecretParamsDecryptBlobWithPaddingHelper(sGroupSecretParams: Data, blobCipherText: Data) throws -> [UInt8] {
         let groupSecretParams = try GroupSecretParams(contents: [UInt8](sGroupSecretParams))
         let clientZkCipher = ClientZkGroupCipher(groupSecretParams: groupSecretParams)
         
-        let decryptedBlob = try clientZkCipher.decryptBlob(blobCiphertext: blobCipherText)
+        let decryptedBlob = try clientZkCipher.decryptBlob(blobCiphertext: [UInt8](blobCipherText))
         
         return decryptedBlob
     }
@@ -2455,6 +2462,15 @@ public class ReactNativeLibsignalClientModule: Module {
     throws -> Data {
         let publicKey = try PublicKey(serializedPublicKey)
         return Data(publicKey.keyBytes)
+    }
+
+    private func publicKeyVerifyHelper(
+        serializedPublicKey: Data,
+        message: Data,
+        signature: Data)
+    throws -> Bool {
+        let publicKey = try PublicKey(serializedPublicKey)
+        return try publicKey.verifySignature(message: message, signature: signature)
     }
 
     private func identityKeyVerifyAlternateIdentityWithPublicKeyHelper(

@@ -1242,7 +1242,7 @@ class ReactNativeLibsignalClientModule : Module() {
         val serverAuthOp = ServerZkAuthOperations(srvSecParams)
         val aci = Aci.parseFromFixedWidthBinary(sAci)
         val pni = Pni.parseFromFixedWidthBinary(sPni)
-        val authCredPniResp = serverAuthOp.issueAuthCredentialWithPniAsServiceId(SecureRandom(rndm), aci, pni, Instant.ofEpochSecond(redemptionTime))
+        val authCredPniResp = serverAuthOp.issueAuthCredentialWithPniZkc(SecureRandom(rndm), aci, pni, Instant.ofEpochSecond(redemptionTime))
 
         return authCredPniResp.serialize()
     }

@@ -1,7 +1,7 @@
 import { Buffer } from '@craftzdog/react-native-buffer';
 import deepEqual from 'deep-eql';
+import { Platform } from 'react-native';
 import { assert, isInstanceOf } from 'typed-assert';
-
 import {
 	ContentHint,
 	ErrorCode,
@@ -26,6 +26,7 @@ import {
 	sealedSenderEncryptMessage,
 	sealedSenderMultiRecipientEncrypt,
 	sealedSenderMultiRecipientMessageForSingleRecipient,
+	// sealedSenderMultiRecipientMessageForSingleRecipient,
 	signalEncrypt,
 } from '../../src';
 import { TestStores } from './mockStores';
@@ -194,63 +195,70 @@ export const testGroup = () => {
 			aKeys,
 			aSess
 		);
+		//TODO: remove after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+		if (Platform.OS === 'android') {
+			const bSealedSenderMessage =
+				sealedSenderMultiRecipientMessageForSingleRecipient(
+					aSealedSenderMessage
+				);
 
-		const bSealedSenderMessage =
-			sealedSenderMultiRecipientMessageForSingleRecipient(aSealedSenderMessage);
-
-		const bUsmc = await sealedSenderDecryptToUsmc(bSealedSenderMessage, bKeys);
-
-		assert(
-			deepEqual(bUsmc.senderCertificate().senderE164(), aE164),
-			'sender E164 an calculated certificate E164 were not equal.'
-		);
-
-		assert(
-			deepEqual(bUsmc.senderCertificate().senderUuid(), aUuid),
-			'sender certificate uuid is not equal to expected uuid'
-		);
-		assert(
-			deepEqual(bUsmc.senderCertificate().senderDeviceId(), aDeviceId),
-			'sender certificate device id is not equal to expected device id'
-		);
-		assert(
-			deepEqual(bUsmc.contentHint(), ContentHint.Implicit),
-			'decrypted content hint is not implicit'
-		);
-
-		assert(
-			deepEqual(bUsmc.groupId(), new Uint8Array(Buffer.from([42]))),
-			'group id    missmatch'
-		);
-
-		const bPtext = await groupDecrypt(
-			aAddress,
-			bSenderKeyStore,
-			bUsmc.contents()
-		);
-
-		assert(deepEqual(message, bPtext));
-
-		// Make sure the option-based syntax does the same thing.
-		const aSealedSenderMessageViaOptions =
-			await sealedSenderMultiRecipientEncrypt({
-				content: aUsmc,
-				recipients: [bAddress],
-				identityStore: aKeys,
-				sessionStore: aSess,
-			});
-
-		const bSealedSenderMessageViaOptions =
-			sealedSenderMultiRecipientMessageForSingleRecipient(
-				aSealedSenderMessageViaOptions
+			const bUsmc = await sealedSenderDecryptToUsmc(
+				bSealedSenderMessage,
+				bKeys
 			);
 
-		const bUsmcViaOptions = await sealedSenderDecryptToUsmc(
-			bSealedSenderMessageViaOptions,
-			bKeys
-		);
+			assert(
+				deepEqual(bUsmc.senderCertificate().senderE164(), aE164),
+				'sender E164 an calculated certificate E164 were not equal.'
+			);
 
-		assert(deepEqual(bUsmcViaOptions, bUsmc));
+			assert(
+				deepEqual(bUsmc.senderCertificate().senderUuid(), aUuid),
+				'sender certificate uuid is not equal to expected uuid'
+			);
+			assert(
+				deepEqual(bUsmc.senderCertificate().senderDeviceId(), aDeviceId),
+				'sender certificate device id is not equal to expected device id'
+			);
+			assert(
+				deepEqual(bUsmc.contentHint(), ContentHint.Implicit),
+				'decrypted content hint is not implicit'
+			);
+
+			assert(
+				deepEqual(bUsmc.groupId(), new Uint8Array(Buffer.from([42]))),
+				'group id    missmatch'
+			);
+
+			const bPtext = await groupDecrypt(
+				aAddress,
+				bSenderKeyStore,
+				bUsmc.contents()
+			);
+
+			assert(deepEqual(message, bPtext));
+
+			// Make sure the option-based syntax does the same thing.
+			const aSealedSenderMessageViaOptions =
+				await sealedSenderMultiRecipientEncrypt({
+					content: aUsmc,
+					recipients: [bAddress],
+					identityStore: aKeys,
+					sessionStore: aSess,
+				});
+
+			const bSealedSenderMessageViaOptions =
+				sealedSenderMultiRecipientMessageForSingleRecipient(
+					aSealedSenderMessageViaOptions
+				);
+
+			const bUsmcViaOptions = await sealedSenderDecryptToUsmc(
+				bSealedSenderMessageViaOptions,
+				bKeys
+			);
+
+			assert(deepEqual(bUsmcViaOptions, bUsmc));
+		}
 	});
 
 	test('rejects invalid registration IDs', async () => {

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import 'react-native-get-random-values';
 import { fromByteArray } from 'react-native-quick-base64';
 import * as uuid from 'uuid';
@@ -755,11 +756,11 @@ export class UnidentifiedSenderMessageContent {
 		const result = new UnidentifiedSenderMessageContent(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentNew(
-					message.serialized,
+					new Uint8Array(message.serialized),
 					message.type() as number,
-					sender.serialized,
+					new Uint8Array(sender.serialized),
 					contentHint,
-					groupId ? groupId : new Uint8Array([])
+					groupId ? new Uint8Array(groupId) : new Uint8Array([])
 				)
 			)
 		);
@@ -1689,6 +1690,12 @@ export async function sealedSenderMultiRecipientEncrypt(
 export function sealedSenderMultiRecipientMessageForSingleRecipient(
 	message: Uint8Array
 ): Uint8Array {
+	//TODO: remove after closing https://github.com/p-num/react-native-libsignal-client/issues/48
+	if (Platform.OS === 'ios') {
+		throw new Error(
+			'sealedSenderMultiRecipientMessageForSingleRecipient is only available on Android since we need a testing module for exporting it in ios'
+		);
+	}
 	return new Uint8Array(
 		ReactNativeLibsignalClientModule.sealedSenderMultiRecipientMessageForSingleRecipient(
 			message
