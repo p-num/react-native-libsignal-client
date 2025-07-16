@@ -2414,21 +2414,21 @@ public class ReactNativeLibsignalClientModule: Module {
     private func decryptionErrorMessageGetTimestampHelper(
         serializedContent: Data)
     throws -> Int64 {
-        let content = try decryptionErrorMessageExtractFromSerializedContentHelper(serializedContent: serializedContent)
+        let content = try DecryptionErrorMessage(bytes: serializedContent)
         return Int64(content.timestamp)
     }
 
     private func decryptionErrorMessageGetDeviceIdHelper(
         serializedContent: Data)
     throws -> Int {
-        let content = try decryptionErrorMessageExtractFromSerializedContentHelper(serializedContent: serializedContent)
+        let content = try DecryptionErrorMessage(bytes: serializedContent)
         return Int(content.deviceId)
     }
 
     private func decryptionErrorMessageGetRatchetKeyHelper(
         serializedContent: Data)
     throws -> Data? {
-        let content = try decryptionErrorMessageExtractFromSerializedContentHelper(serializedContent: serializedContent)
+        let content = try DecryptionErrorMessage(bytes: serializedContent)
         if let ratchetKey = content.ratchetKey {
             return Data(ratchetKey.serialize())
         }

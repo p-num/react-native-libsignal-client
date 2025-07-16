@@ -704,7 +704,8 @@ class ReactNativeLibsignalClientModule : Module() {
     }
 
     private fun plaintextContentFromDecryptionErrorMessage(message: ByteArray) : ByteArray {
-        val plaintextContent = PlaintextContent(message)
+        val decryptionErrorMsg = DecryptionErrorMessage(message)
+        val plaintextContent = PlaintextContent(decryptionErrorMsg)
         return plaintextContent.serialize()
     }
     private fun plaintextContentGetBody(message: ByteArray) : ByteArray {
@@ -720,16 +721,16 @@ class ReactNativeLibsignalClientModule : Module() {
         return content.serialize()
     }
     private fun decryptionErrorMessageGetTimestamp(serializedContent: ByteArray) : Long {
-        val content = DecryptionErrorMessage.extractFromSerializedContent(serializedContent)
+        val content = DecryptionErrorMessage(serializedContent)
         return content.timestamp
     }
     private fun decryptionErrorMessageGetDeviceId(serializedContent: ByteArray) : Int {
-        val content = DecryptionErrorMessage.extractFromSerializedContent(serializedContent)
+        val content = DecryptionErrorMessage(serializedContent)
         return content.deviceId
     }
     private fun decryptionErrorMessageGetRatchetKey(serializedContent: ByteArray) : ByteArray? {
         var ecPublicKey : ByteArray? = null
-        val content = DecryptionErrorMessage.extractFromSerializedContent(serializedContent)
+        val content = DecryptionErrorMessage(serializedContent)
         if (content.ratchetKey.isPresent) {
             ecPublicKey = content.ratchetKey.get().serialize()
         }
