@@ -87,6 +87,8 @@ export function encrypt(
 			);
 		case CipherType.AES256CBC:
 			return Aes256Cbc.new(options.key).encrypt(options.text, options.iv);
+		case CipherType.AES256CTR:
+			return Aes256Ctr.new(options.key).encrypt(options.text, options.iv);
 	}
 }
 
@@ -107,6 +109,8 @@ export function decrypt(
 			);
 		case CipherType.AES256CBC:
 			return Aes256Cbc.new(options.key).decrypt(options.text, options.iv);
+		case CipherType.AES256CTR:
+			return Aes256Ctr.new(options.key).decrypt(options.text, options.iv);
 	}
 }
 
@@ -117,4 +121,32 @@ export function constantTimeEqual(
 	return ReactNativeLibsignalClientModule.ConstantTimeEqual(left, right);
 }
 
-export { CipherType, EncryptionOptions };
+class Aes256Ctr {
+	readonly serialized: Uint8Array;
+
+	private constructor(serialized: Uint8Array) {
+		this.serialized = serialized;
+	}
+
+	static new(key: Uint8Array): Aes256Ctr {
+		return new Aes256Ctr(key);
+	}
+
+	encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
+		return ReactNativeLibsignalClientModule.Aes256CtrEncrypt(
+			this.serialized,
+			iv,
+			data
+		);
+	}
+
+	decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
+		return ReactNativeLibsignalClientModule.Aes256CtrDecrypt(
+			this.serialized,
+			iv,
+			data
+		);
+	}
+}
+
+export { CipherType, EncryptionOptions, Aes256Ctr as Aes256CCtr };
