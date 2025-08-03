@@ -938,19 +938,19 @@ public class ReactNativeLibsignalClientModule: Module {
             return result
          }
         Function("Aes256CtrEncrypt") { (key: Data, iv: Data, plainText: Data) -> Data in
-            let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
+            let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)),padding: .noPadding)
 
             /* Encrypt Data */
-            let encryptedBytes = try aes.encrypt(plaintext)
+            let encryptedBytes = try aes.encrypt([UInt8](plainText))
             let result = Data(encryptedBytes)
 
             return result
         }
         Function("Aes256CtrDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
-            let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
+            let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)), padding: .noPadding)
 
             /* Decrypt Data */
-            let decryptedBytes = try aes.decrypt(ciphertext)
+            let decryptedBytes = try aes.decrypt([UInt8](ciphertext))
             let result = Data(decryptedBytes)
 
             return result
