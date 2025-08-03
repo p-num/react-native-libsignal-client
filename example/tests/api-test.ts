@@ -865,6 +865,73 @@ export const testAesCbcWithLongInput = () =>
 		);
 	});
 
+export const testAesCtrWithShortInput = () =>
+	test('AES-CTR test', () => {
+		const key = Buffer.from(
+			'0100000000000000000000000000000000000000000000000000000000000000',
+			'hex'
+		);
+
+		const aes_ctr = ReactNativeLibsignalClient.Aes256CCtr.new(
+			new Uint8Array(key)
+		);
+
+		const aad = Buffer.from('01000000000000000000000000000000', 'hex');
+		const ptext = Buffer.from('02000000', 'hex');
+
+		const ctext = aes_ctr.encrypt(new Uint8Array(ptext), new Uint8Array(aad));
+
+		assert(
+			deepEql(Buffer.from(ctext).toString('hex'), 'c8e89d36'),
+			`ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with c8e89d36`
+		);
+
+		const decrypted = aes_ctr.decrypt(ctext, new Uint8Array(aad));
+
+		assert(
+			deepEql(Buffer.from(decrypted).toString('hex'), '02000000'),
+			`decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`
+		);
+	});
+
+export const testAesCtrWithLongInput = () =>
+	test('AES-CTR test', () => {
+		const key = Buffer.from(
+			'0100000000000000000000000000000000000000000000000000000000000000',
+			'hex'
+		);
+
+		const aes_ctr = ReactNativeLibsignalClient.Aes256CCtr.new(
+			new Uint8Array(key)
+		);
+
+		const aad = Buffer.from('01000000000000000000000000000000', 'hex');
+		const ptext = Buffer.from(
+			'5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e',
+			'hex'
+		);
+
+		const ctext = aes_ctr.encrypt(new Uint8Array(ptext), new Uint8Array(aad));
+
+		assert(
+			deepEql(
+				Buffer.from(ctext).toString('hex'),
+				'9e80f4451b025a7055e77fa5cd933d5b4399059a5f0d362a64e9d2b5ba4fd9536fdb865fc4d65710f7ff93e0d3fd5ef8388d84c251'
+			),
+			`ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 9e80f4451b025a7055e77fa5cd933d5b4399059a5f0d362a64e9d2b5ba4fd9536fdb865fc4d65710f7ff93e0d3fd5ef8388d84c251`
+		);
+
+		const decrypted = aes_ctr.decrypt(ctext, new Uint8Array(aad));
+
+		assert(
+			deepEql(
+				Buffer.from(decrypted).toString('hex'),
+				'5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e'
+			),
+			`decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
+		);
+	});
+
 export const testSignHmacSha256 = () =>
 	test('HMAC-SHA256 test ', () => {
 		function verifyHmacSha256(

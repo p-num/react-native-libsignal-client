@@ -4,6 +4,7 @@ import SignalFfi
 import Foundation
 import CryptoKit
 import CommonCrypto
+import CryptoSwift
 // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
 // @testable import LibSignalClient
 
@@ -936,6 +937,24 @@ public class ReactNativeLibsignalClientModule: Module {
             result += aes256GcmEncryptedDataResult.authenticationTag
             return result
          }
+        Function("Aes256CtrEncrypt") { (key: Data, iv: Data, plainText: Data) -> Data in
+            let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
+
+            /* Encrypt Data */
+            let encryptedBytes = try aes.encrypt(plaintext)
+            let result = Data(encryptedBytes)
+
+            return result
+        }
+        Function("Aes256CtrDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
+            let aes = try AES(key: key, blockMode: CTR(iv: iv), padding: .noPadding)
+
+            /* Decrypt Data */
+            let decryptedBytes = try aes.decrypt(ciphertext)
+            let result = Data(decryptedBytes)
+
+            return result
+        }
         Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
             let finalCiphertext = ciphertext.dropLast(16)
             let finalAuthenticationTag = ciphertext.suffix(16)

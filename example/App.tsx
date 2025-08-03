@@ -4,6 +4,8 @@ import { log } from './logger';
 import {
 	testAesCbcWithLongInput,
 	testAesCbcWithShortInput,
+	testAesCtrWithLongInput,
+	testAesCtrWithShortInput,
 	testAesGcmWithLongInput,
 	testAesGcmWithShortInput,
 	testConstantTimeEqual,
@@ -56,6 +58,8 @@ export default function App() {
 					testAesGcmWithLongInput,
 					testAesCbcWithShortInput,
 					testAesCbcWithLongInput,
+					testAesCtrWithShortInput,
+					testAesCtrWithLongInput,
 					testSignHmacSha256,
 					testConstantTimeEqual,
 					testGroup,

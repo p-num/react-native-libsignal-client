@@ -296,6 +296,8 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("Aes256GcmDecrypt", this@ReactNativeLibsignalClientModule::Aes256GcmDecrypt)
     Function("Aes256CbcEncrypt", this@ReactNativeLibsignalClientModule::Aes256CbcEncrypt)
     Function("Aes256CbcDecrypt", this@ReactNativeLibsignalClientModule::Aes256CbcDecrypt)
+    Function("Aes256CtrEncrypt", this@ReactNativeLibsignalClientModule::Aes256CtrEncrypt)
+    Function("Aes256CtrDecrypt", this@ReactNativeLibsignalClientModule::Aes256CtrDecrypt)
     Function("HmacSHA256", this@ReactNativeLibsignalClientModule::HmacSHA256)
     Function("ConstantTimeEqual", this@ReactNativeLibsignalClientModule::ConstantTimeEqual)
     Function("groupSendFullTokenGetExpiration", this@ReactNativeLibsignalClientModule::groupSendFullTokenGetExpiration)
@@ -1334,6 +1336,26 @@ class ReactNativeLibsignalClientModule : Module() {
 
     private fun Aes256CbcDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun Aes256CtrEncrypt(key: ByteArray, iv: ByteArray, plaintext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CTR/NoPadding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(plaintext)
+    }
+
+    private fun Aes256CtrDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CTR/NoPadding")
         cipher.init(
             Cipher.DECRYPT_MODE,
             SecretKeySpec(key, "AES"),
