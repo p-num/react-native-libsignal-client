@@ -12,7 +12,7 @@ export default class ProfileKeyCredentialRequestContext {
 		return new ProfileKeyCredentialRequest(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.profileKeyCredentialRequestContextGetRequest(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);

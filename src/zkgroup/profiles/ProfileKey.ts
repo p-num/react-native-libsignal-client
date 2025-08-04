@@ -21,7 +21,7 @@ export default class ProfileKey {
 		return new ProfileKeyCommitment(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.profileKeyGetCommitment(
-					this.serialized,
+					new Uint8Array(this.serialized),
 					userId.getServiceIdFixedWidthBinary()
 				)
 			)
@@ -31,7 +31,7 @@ export default class ProfileKey {
 	getProfileKeyVersion(userId: Aci): ProfileKeyVersion {
 		return new ProfileKeyVersion(
 			ReactNativeLibsignalClientModule.profileKeyGetVersion(
-				this.serialized,
+				new Uint8Array(this.serialized),
 				userId.getServiceIdFixedWidthBinary()
 			)
 		);
@@ -40,7 +40,7 @@ export default class ProfileKey {
 	deriveAccessKey(): Uint8Array {
 		return new Uint8Array(
 			ReactNativeLibsignalClientModule.profileKeyDeriveAccessKey(
-				this.serialized
+				new Uint8Array(this.serialized)
 			)
 		);
 	}

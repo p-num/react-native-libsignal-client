@@ -18,7 +18,7 @@ export default class ClientZkGroupCipher {
 		return new UuidCiphertext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSecretParamsEncryptCiphertext(
-					this.groupSecretParams.serialized,
+					new Uint8Array(this.groupSecretParams.serialized),
 					serviceId.getServiceIdFixedWidthBinary()
 				)
 			)
@@ -28,8 +28,8 @@ export default class ClientZkGroupCipher {
 	decryptServiceId(ciphertext: UuidCiphertext): ServiceId {
 		return ServiceId.parseFromServiceIdFixedWidthBinary(
 			ReactNativeLibsignalClientModule.groupSecretParamsDecryptServiceId(
-				this.groupSecretParams.serialized,
-				ciphertext.serialized
+				new Uint8Array(this.groupSecretParams.serialized),
+				new Uint8Array(ciphertext.serialized)
 			)
 		);
 	}
@@ -38,8 +38,8 @@ export default class ClientZkGroupCipher {
 		return new ProfileKeyCiphertext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSecretParamsEncryptProfileKey(
-					this.groupSecretParams.serialized,
-					profileKey.serialized,
+					new Uint8Array(this.groupSecretParams.serialized),
+					new Uint8Array(profileKey.serialized),
 					userId.getServiceIdFixedWidthBinary()
 				)
 			)
@@ -53,8 +53,8 @@ export default class ClientZkGroupCipher {
 		return new ProfileKey(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSecretParamsDecryptProfileKey(
-					this.groupSecretParams.serialized,
-					profileKeyCiphertext.serialized,
+					new Uint8Array(this.groupSecretParams.serialized),
+					new Uint8Array(profileKeyCiphertext.serialized),
 					userId.getServiceIdFixedWidthBinary()
 				)
 			)
@@ -71,11 +71,13 @@ export default class ClientZkGroupCipher {
 	}
 
 	encryptBlobWithRandom(random: Uint8Array, plaintext: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.groupSecretParamsEncryptBlobWithPaddingDeterministic(
-			this.groupSecretParams.serialized,
-			random,
-			plaintext,
-			0
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.groupSecretParamsEncryptBlobWithPaddingDeterministic(
+				new Uint8Array(this.groupSecretParams.serialized),
+				new Uint8Array(random),
+				new Uint8Array(plaintext),
+				0
+			)
 		);
 	}
 

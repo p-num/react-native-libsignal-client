@@ -13,7 +13,7 @@ export default class ProfileKeyCredentialPresentation {
 		return new UuidCiphertext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetUuidCiphertext(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);
@@ -23,7 +23,7 @@ export default class ProfileKeyCredentialPresentation {
 		return new ProfileKeyCiphertext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.profileKeyCredentialPresentationGetProfileKeyCiphertext(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);

@@ -44,8 +44,8 @@ export default class ServerZkAuthOperations {
 		return new AuthCredentialWithPniResponse(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic(
-					this.serverSecretParams.serialized,
-					random,
+					new Uint8Array(this.serverSecretParams.serialized),
+					new Uint8Array(random),
 					aci.getServiceIdFixedWidthBinary(),
 					pni.getServiceIdFixedWidthBinary(),
 					redemptionTime
@@ -78,8 +78,8 @@ export default class ServerZkAuthOperations {
 		return new AuthCredentialWithPniResponse(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic(
-					this.serverSecretParams.serialized,
-					random,
+					new Uint8Array(this.serverSecretParams.serialized),
+					new Uint8Array(random),
 					aci.getServiceIdFixedWidthBinary(),
 					pni.getServiceIdFixedWidthBinary(),
 					redemptionTime
@@ -94,9 +94,9 @@ export default class ServerZkAuthOperations {
 		now: Date = new Date()
 	): void {
 		ReactNativeLibsignalClientModule.serverSecretParamsVerifyAuthCredentialPresentation(
-			this.serverSecretParams.serialized,
-			groupPublicParams.serialized,
-			authCredentialPresentation.serialized,
+			new Uint8Array(this.serverSecretParams.serialized),
+			new Uint8Array(groupPublicParams.serialized),
+			new Uint8Array(authCredentialPresentation.serialized),
 			Math.floor(now.getTime() / 1000)
 		);
 	}
