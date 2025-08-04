@@ -602,7 +602,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 10. profileKeyDeriveAccessKey
         Function("profileKeyDeriveAccessKey") { (serializedProfileKey: Data) throws -> [UInt8] in
         do {
             return try profileKeyDeriveAccessKeyHelper(serializedProfileKey: serializedProfileKey)
@@ -614,7 +613,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 11. groupSecretParamsEncryptServiceId
         Function("groupSecretParamsEncryptServiceId") { (sGroupSecretParams: Data,
                                                         fixedWidthServiceId: Data) throws -> [UInt8] in
         do {
@@ -628,7 +626,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 12. groupSecretParamsDecryptServiceId
         Function("groupSecretParamsDecryptServiceId") { (sGroupSecretParams: Data,
                                                         rawCipherText: Data) throws -> [UInt8] in
         do {
@@ -642,7 +639,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 13. groupSecretParamsEncryptProfileKey
         Function("groupSecretParamsEncryptProfileKey") { (sGroupSecretParams: Data,
                                                         rawProfileKey: Data,
                                                         fixedWidthAci: Data) throws -> [UInt8] in
@@ -658,7 +654,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 14. groupSecretParamsDecryptProfileKey
         Function("groupSecretParamsDecryptProfileKey") { (sGroupSecretParams: Data,
                                                         rawProfileKeyCipherText: Data,
                                                         fixedWidthAci: Data) throws -> [UInt8] in
@@ -674,7 +669,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 15. encryptBlobWithPaddingDeterministic
         Function("encryptBlobWithPaddingDeterministic") { (sGroupSecretParams: Data,
                                                             randomNess: Data,
                                                             plainText: Data,
@@ -692,7 +686,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 16. decryptBlobWithPadding
         Function("decryptBlobWithPadding") { (sGroupSecretParams: Data,
                                             blobCipherText: Data) throws -> [UInt8] in
         do {
@@ -706,7 +699,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 17. expiringProfileKeyCredentialGetExpirationTime
         Function("expiringProfileKeyCredentialGetExpirationTime") { (sExpiringProfileKeyCredential: Data) throws -> Int64 in
         do {
             return try expiringProfileKeyCredentialGetExpirationTimeHelper(sExpiringProfileKeyCredential: sExpiringProfileKeyCredential)
@@ -718,7 +710,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 18. profileKeyCredentialPresentationGetUuidCiphertext
         Function("profileKeyCredentialPresentationGetUuidCiphertext") { (sProfileKeyCredentialPresentation: Data) throws -> [UInt8] in
         do {
             return try profileKeyCredentialPresentationGetUuidCiphertextHelper(sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation)
@@ -730,7 +721,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 19. profileKeyCredentialPresentationGetProfileKeyCiphertext
         Function("profileKeyCredentialPresentationGetProfileKeyCiphertext") { (sProfileKeyCredentialPresentation: Data) throws -> [UInt8] in
         do {
             return try profileKeyCredentialPresentationGetProfileKeyCiphertextHelper(sProfileKeyCredentialPresentation: sProfileKeyCredentialPresentation)
@@ -742,7 +732,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 20. profileKeyCredentialRequestContextGetRequest
         Function("profileKeyCredentialRequestContextGetRequest") { (sProfileKeyCredentialRequestContext: Data) throws -> [UInt8] in
         do {
             return try profileKeyCredentialRequestContextGetRequestHelper(sProfileKeyCredentialRequestContext: sProfileKeyCredentialRequestContext)
@@ -754,7 +743,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 21. serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic
         Function("serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic") { (sServerPublicParams: Data,
                                                                                                 randomness: Data,
                                                                                                 fixedWidthAci: Data,
@@ -773,7 +761,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 22. serverPublicParamsReceiveExpiringProfileKeyCredential
         Function("serverPublicParamsReceiveExpiringProfileKeyCredential") { (sServerPublicParams: Data,
                                                                             sProfileKeyCredReqCtx: Data,
                                                                             sExpProfileKeyCredResponse: Data,
@@ -792,7 +779,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 23. serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic
         Function("serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic") { (sServerPublicParams: Data,
                                                                                                     randomness: Data,
                                                                                                     sGpSecParams: Data,
@@ -811,7 +797,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 24. authCredentialPresentationGetUuidCiphertext
         Function("authCredentialPresentationGetUuidCiphertext") { (sAuthCredPres: Data) throws -> [UInt8] in
         do {
             return try authCredentialPresentationGetUuidCiphertextHelper(sAuthCredPres: sAuthCredPres)
@@ -823,7 +808,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 25. authCredentialPresentationGetPniCiphertext
         Function("authCredentialPresentationGetPniCiphertext") { (sAuthCredPres: Data) throws -> [UInt8] in
         do {
             return try authCredentialPresentationGetPniCiphertextHelper(sAuthCredPres: sAuthCredPres)
@@ -835,7 +819,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 26. authCredentialPresentationGetRedemptionTime
         Function("authCredentialPresentationGetRedemptionTime") { (sAuthCredPres: Data) throws -> Int64 in
         do {
             return try authCredentialPresentationGetRedemptionTimeHelper(sAuthCredPres: sAuthCredPres)
@@ -847,7 +830,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 27. serverPublicParamsReceiveAuthCredentialWithPniAsServiceId
         Function("serverPublicParamsReceiveAuthCredentialWithPniAsServiceId") { (sSrvPubParams: Data,
                                                                                 fixedWidthAci: Data,
                                                                                 fixedWidthPni: Data,
@@ -868,7 +850,6 @@ public class ReactNativeLibsignalClientModule: Module {
         }
         }
 
-        // 28. serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic
         Function("serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic") { (sSrvPubParams: Data,
                                                                                             randomness: Data,
                                                                                             sGpSecParams: Data,
@@ -1156,17 +1137,14 @@ public class ReactNativeLibsignalClientModule: Module {
         try serverSecretParamsGenerateDeterministicHelper(randomNess: rndm)
         }
 
-        // 4.
         Function("serverSecretParamsGetPublicParams") { (sSrvSecParams: Data) throws -> [UInt8] in
         try serverSecretParamsGetPublicParamsHelper(sSrvSecParams: sSrvSecParams)
         }
 
-        // 5.
         Function("serverSecretParamsSignDeterministic") { (sSrvSecParams: Data, rndm: Data, msg: Data) throws -> [UInt8] in
         try serverSecretParamsSignDeterministicHelper(sSrvSecParams: sSrvSecParams, rndm: rndm, msg: msg)
         }
 
-        // 6.
         Function("serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministic") {
         (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) throws -> [UInt8] in
         try serverSecretParamsIssueAuthCredentialWithPniAsServiceIdDeterministicHelper(
@@ -1177,7 +1155,6 @@ public class ReactNativeLibsignalClientModule: Module {
             redemptionTime: redemptionTime)
         }
 
-        // 7.
         Function("serverSecretParamsIssueAuthCredentialWithPniZkcDeterministic") {
         (sSrvSecParams: Data, rndm: Data, sAci: Data, sPni: Data, redemptionTime: Double) throws -> [UInt8] in
         try serverSecretParamsIssueAuthCredentialWithPniZkcDeterministicHelper(
@@ -1188,7 +1165,6 @@ public class ReactNativeLibsignalClientModule: Module {
             redemptionTime: redemptionTime)
         }
 
-        // 8.
         Function("serverSecretParamsVerifyAuthCredentialPresentation") {
         (sSrvSecParams: Data, sGpPublicParams: Data, sAuthCredPresent: Data, instant: Double) throws in
         try serverSecretParamsVerifyAuthCredentialPresentationHelper(
@@ -1198,12 +1174,10 @@ public class ReactNativeLibsignalClientModule: Module {
             instant: instant)
         }
 
-        // 9.
         Function("groupSecretParamsEncryptCiphertext") { (sGpSecParams: Data, sServiceId: Data) throws -> [UInt8] in
         try groupSecretParamsEncryptCiphertextHelper(sGpSecParams: sGpSecParams, sServiceId: sServiceId)
         }
 
-        // 10.
         Function("serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic") {
         (sSrvSecParams: Data, rand: Data, sProfCredRequest: Data, sAci: Data,
         sProfileKeyCommitment: Data, expiration: UInt64) throws -> [UInt8] in
@@ -1216,7 +1190,6 @@ public class ReactNativeLibsignalClientModule: Module {
             expiration: expiration)
         }
 
-        // 11.
         Function("serverSecretParamsVerifyProfileKeyCredentialPresentation") {
         (sSrvSecParams: Data, sGpPublicParams: Data, sProfileKeyCredentialPresentation: Data, instant: Double) throws in
         try serverSecretParamsVerifyProfileKeyCredentialPresentationHelper(
@@ -1226,7 +1199,6 @@ public class ReactNativeLibsignalClientModule: Module {
             instant: instant)
         }
 
-        // 12.
         Function("groupSecretParamsEncryptBlobWithPaddingDeterministic") {
         (sGroupSecretParams: Data, randomNess: Data, plainText: Data, paddingLen: Int) throws -> [UInt8] in
         try groupSecretParamsEncryptBlobWithPaddingDeterministicHelper(
@@ -1236,7 +1208,6 @@ public class ReactNativeLibsignalClientModule: Module {
             paddingLen: paddingLen)
         }
 
-        // 13.
         Function("groupSecretParamsDecryptBlobWithPadding") {
         (sGroupSecretParams: Data, blobCipherText: Data) throws -> [UInt8] in
         try groupSecretParamsDecryptBlobWithPaddingHelper(
