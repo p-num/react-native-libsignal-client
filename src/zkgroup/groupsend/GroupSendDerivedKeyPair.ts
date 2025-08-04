@@ -35,7 +35,7 @@ export default class GroupSendDerivedKeyPair {
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSendDerivedKeyPairForExpiration(
 					Math.floor(expiration.getTime() / 1000),
-					params.serialized
+					new Uint8Array(params.serialized)
 				)
 			)
 		);

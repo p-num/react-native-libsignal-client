@@ -39,10 +39,10 @@ export default class ClientZkProfileOperations {
 		return new ProfileKeyCredentialRequestContext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverPublicParamsCreateProfileKeyCredentialRequestContextDeterministic(
-					this.serverPublicParams.serialized,
+					new Uint8Array(this.serverPublicParams.serialized),
 					random,
 					userId.getServiceIdFixedWidthBinary(),
-					profileKey.serialized
+					new Uint8Array(profileKey.serialized)
 				)
 			)
 		);
@@ -56,9 +56,9 @@ export default class ClientZkProfileOperations {
 		return new ExpiringProfileKeyCredential(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverPublicParamsReceiveExpiringProfileKeyCredential(
-					this.serverPublicParams.serialized,
-					profileKeyCredentialRequestContext.serialized,
-					profileKeyCredentialResponse.serialized,
+					new Uint8Array(this.serverPublicParams.serialized),
+					new Uint8Array(profileKeyCredentialRequestContext.serialized),
+					new Uint8Array(profileKeyCredentialResponse.serialized),
 					Math.floor(now.getTime() / 1000)
 				)
 			)
@@ -88,10 +88,10 @@ export default class ClientZkProfileOperations {
 		return new ProfileKeyCredentialPresentation(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverPublicParamsCreateExpiringProfileKeyCredentialPresentationDeterministic(
-					this.serverPublicParams.serialized,
+					new Uint8Array(this.serverPublicParams.serialized),
 					random,
-					groupSecretParams.serialized,
-					profileKeyCredential.serialized
+					new Uint8Array(groupSecretParams.serialized),
+					new Uint8Array(profileKeyCredential.serialized)
 				)
 			)
 		);

@@ -28,7 +28,7 @@ export default class GroupSendToken {
 		return new GroupSendFullToken(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSendTokenToFullToken(
-					this.serialized,
+					new Uint8Array(this.serialized),
 					Math.floor(expiration.getTime() / 1000)
 				)
 			)

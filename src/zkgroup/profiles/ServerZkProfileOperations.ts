@@ -49,11 +49,11 @@ export default class ServerZkProfileOperations {
 		return new ExpiringProfileKeyCredentialResponse(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsIssueExpiringProfileKeyCredentialDeterministic(
-					this.serverSecretParams.serialized,
+					new Uint8Array(this.serverSecretParams.serialized),
 					random,
-					profileKeyCredentialRequest.serialized,
+					new Uint8Array(profileKeyCredentialRequest.serialized),
 					userId.getServiceIdFixedWidthBinary(),
-					profileKeyCommitment.serialized,
+					new Uint8Array(profileKeyCommitment.serialized),
 					expirationInSeconds
 				)
 			)
@@ -66,9 +66,9 @@ export default class ServerZkProfileOperations {
 		now: Date = new Date()
 	): void {
 		ReactNativeLibsignalClientModule.serverSecretParamsVerifyProfileKeyCredentialPresentation(
-			this.serverSecretParams.serialized,
-			groupPublicParams.serialized,
-			profileKeyCredentialPresentation.serialized,
+			new Uint8Array(this.serverSecretParams.serialized),
+			new Uint8Array(groupPublicParams.serialized),
+			new Uint8Array(profileKeyCredentialPresentation.serialized),
 			Math.floor(now.getTime() / 1000)
 		);
 	}

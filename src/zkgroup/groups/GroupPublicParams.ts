@@ -12,7 +12,7 @@ export default class GroupPublicParams {
 		return new GroupIdentifier(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupPublicParamsGetGroupIdentifier(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);

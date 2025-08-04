@@ -22,10 +22,10 @@ export class Aes256Gcm {
 	): Uint8Array {
 		return new Uint8Array(
 			ReactNativeLibsignalClientModule.Aes256GcmEncrypt(
-				this.serialized,
-				nonce,
-				message,
-				associated_data
+				new Uint8Array(this.serialized),
+				new Uint8Array(nonce),
+				new Uint8Array(message),
+				associated_data ? new Uint8Array(associated_data) : undefined
 			)
 		);
 	}
@@ -37,10 +37,10 @@ export class Aes256Gcm {
 	): Uint8Array {
 		return new Uint8Array(
 			ReactNativeLibsignalClientModule.Aes256GcmDecrypt(
-				this.serialized,
-				nonce,
-				message,
-				associated_data
+				new Uint8Array(this.serialized),
+				new Uint8Array(nonce),
+				new Uint8Array(message),
+				associated_data ? new Uint8Array(associated_data) : undefined
 			)
 		);
 	}
@@ -59,17 +59,17 @@ export class Aes256Cbc {
 
 	encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
 		return ReactNativeLibsignalClientModule.Aes256CbcEncrypt(
-			this.serialized,
-			iv,
-			data
+			new Uint8Array(this.serialized),
+			new Uint8Array(iv),
+			new Uint8Array(data)
 		);
 	}
 
 	decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
 		return ReactNativeLibsignalClientModule.Aes256CbcDecrypt(
-			this.serialized,
-			iv,
-			data
+			new Uint8Array(this.serialized),
+			new Uint8Array(iv),
+			new Uint8Array(data)
 		);
 	}
 }
@@ -81,9 +81,9 @@ export function encrypt(
 	switch (cipherType) {
 		case CipherType.AES256GCM:
 			return Aes256Gcm.new(options.key).encrypt(
-				options.text,
-				options.iv,
-				options.aad ?? new Uint8Array()
+				new Uint8Array(options.text),
+				new Uint8Array(options.iv),
+				options.aad ? new Uint8Array(options.aad) : new Uint8Array()
 			);
 		case CipherType.AES256CBC:
 			return Aes256Cbc.new(options.key).encrypt(options.text, options.iv);
@@ -93,7 +93,12 @@ export function encrypt(
 }
 
 export function signHmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array {
-	return ReactNativeLibsignalClientModule.HmacSHA256(key, data);
+	return new Uint8Array(
+		ReactNativeLibsignalClientModule.HmacSHA256(
+			new Uint8Array(key),
+			new Uint8Array(data)
+		)
+	);
 }
 
 export function decrypt(
@@ -103,9 +108,9 @@ export function decrypt(
 	switch (cipherType) {
 		case CipherType.AES256GCM:
 			return Aes256Gcm.new(options.key).decrypt(
-				options.text,
-				options.iv,
-				options.aad ?? new Uint8Array()
+				new Uint8Array(options.text),
+				new Uint8Array(options.iv),
+				options.aad ? new Uint8Array(options.aad) : new Uint8Array()
 			);
 		case CipherType.AES256CBC:
 			return Aes256Cbc.new(options.key).decrypt(options.text, options.iv);
@@ -118,7 +123,10 @@ export function constantTimeEqual(
 	left: Uint8Array,
 	right: Uint8Array
 ): boolean {
-	return ReactNativeLibsignalClientModule.ConstantTimeEqual(left, right);
+	return ReactNativeLibsignalClientModule.ConstantTimeEqual(
+		new Uint8Array(left),
+		new Uint8Array(right)
+	);
 }
 
 class Aes256Ctr {
@@ -134,19 +142,19 @@ class Aes256Ctr {
 
 	encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
 		return ReactNativeLibsignalClientModule.Aes256CtrEncrypt(
-			this.serialized,
-			iv,
-			data
+			new Uint8Array(this.serialized),
+			new Uint8Array(iv),
+			new Uint8Array(data)
 		);
 	}
 
 	decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
 		return ReactNativeLibsignalClientModule.Aes256CtrDecrypt(
-			this.serialized,
-			iv,
-			data
+			new Uint8Array(this.serialized),
+			new Uint8Array(iv),
+			new Uint8Array(data)
 		);
 	}
 }
 
-export { CipherType, EncryptionOptions, Aes256Ctr as Aes256CCtr };
+export { Aes256Ctr as Aes256CCtr, CipherType, EncryptionOptions };
