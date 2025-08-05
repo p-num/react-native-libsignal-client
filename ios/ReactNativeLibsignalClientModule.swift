@@ -872,11 +872,11 @@ public class ReactNativeLibsignalClientModule: Module {
             return IdentityKeyPair.generate().serialize()
         }
         Function("identityKeyPairSerialize") {
-            (serializedPublicKey: Data, serializedPrivateKey: Data) -> Data in
+            (serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data in
             return try identityKeyPairSerializeHelper(serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey)
         }
         Function("sessionCipherEncryptMessage") {
-            (base64Message: String, address: String, sessionStoreState: [String: String], identityKeyState: [Any], now: Int64) -> [Any] in
+            (base64Message: String, address: String, sessionStoreState: [String: String], identityKeyState: [Any], now: Int64) throws -> [Any] in
             return try sessionCipherEncryptMessageHelper(
                 base64Message: base64Message,
                 address: address,
@@ -885,19 +885,19 @@ public class ReactNativeLibsignalClientModule: Module {
                 now: now)
         }
         Function("preKeySignalMessageGetRegistrationId") {
-            (serializedMessage: Data) -> UInt32 in
+            (serializedMessage: Data) throws -> UInt32 in
             return try preKeySignalMessageGetRegistrationIdHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetSignedPreKeyId") {
-            (serializedMessage: Data) -> UInt32 in
+            (serializedMessage: Data) throws -> UInt32 in
             return try preKeySignalMessageGetSignedPreKeyIdHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetVersion") {
-            (serializedMessage: Data) -> UInt32 in
+            (serializedMessage: Data) throws -> UInt32 in
             return try preKeySignalMessageGetVersionHelper(serializedMessage: serializedMessage)
         }
         Function("preKeySignalMessageGetPreKeyId") {
-            (serializedMessage: Data) -> UInt32? in
+            (serializedMessage: Data) throws -> UInt32? in
             return try preKeySignalMessageGetPreKeyIdHelper(serializedMessage: serializedMessage)
         }
         Function("createAndProcessPreKeyBundle") {
@@ -957,7 +957,7 @@ public class ReactNativeLibsignalClientModule: Module {
                 messageType: Int,
                 timestamp: Int64,
                 originalSenderDeviceId: Int)
-            -> Data in
+            throws -> Data in
             return try decryptionErrorMessageForOriginalMessageHelper(
                 originalBytes: originalBytes,
                 messageType: messageType,
@@ -965,20 +965,20 @@ public class ReactNativeLibsignalClientModule: Module {
                 originalSenderDeviceId: originalSenderDeviceId)
         }
         Function("decryptionErrorMessageExtractFromSerializedContent") {
-            (serializedContent: Data) -> Data in
+            (serializedContent: Data) throws -> Data in
             let content = try decryptionErrorMessageExtractFromSerializedContentHelper(serializedContent: serializedContent)
             return Data(content.serialize())
         }
         Function("decryptionErrorMessageGetTimestamp") {
-            (serializedContent: Data) -> Int64 in
+            (serializedContent: Data) throws -> Int64 in
             return try decryptionErrorMessageGetTimestampHelper(serializedContent: serializedContent)
         }
         Function("decryptionErrorMessageGetDeviceId") {
-            (serializedContent: Data) -> Int in
+            (serializedContent: Data) throws -> Int in
             return try decryptionErrorMessageGetDeviceIdHelper(serializedContent: serializedContent)
         }
         Function("decryptionErrorMessageGetRatchetKey") {
-            (serializedContent: Data) -> Data? in
+            (serializedContent: Data) throws -> Data? in
             return try decryptionErrorMessageGetRatchetKeyHelper(serializedContent: serializedContent)
         }
         Function("plaintextContentFromDecryptionErrorMessage") { (message: Data) throws -> Data in
@@ -1026,7 +1026,7 @@ public class ReactNativeLibsignalClientModule: Module {
             return try sessionRecordCurrentRatchetKeyMatchesHelper(record: record, pubKey: pubKey)
         }
         Function("hkdfDeriveSecrets") {
-            (outputLength: Int, inputKeyMaterial: Data, info: Data, salt: Data?) -> [UInt8] in
+            (outputLength: Int, inputKeyMaterial: Data, info: Data, salt: Data?) throws -> [UInt8] in
             return try hkdfDeriveSecretsHelper(
                 outputLength: outputLength,
                 inputKeyMaterial: inputKeyMaterial,
@@ -1034,103 +1034,103 @@ public class ReactNativeLibsignalClientModule: Module {
                 salt: salt ?? Data())
         }
         Function("serviceIdServiceIdString") {
-            (fixedWidthServiceId: Data) -> String in
+            (fixedWidthServiceId: Data) throws -> String in
             return try serviceIdServiceIdStringHelper(fixedWidthServiceId: [UInt8](fixedWidthServiceId))
         }
         Function("serviceIdServiceIdLog") {
-            (fixedWidthServiceId: Data) -> String in
+            (fixedWidthServiceId: Data) throws -> String in
             return try serviceIdServiceIdLogHelper(fixedWidthServiceId: [UInt8](fixedWidthServiceId))
         }
         Function("serviceIdParseFromServiceIdString") {
-            (serviceIdString: String) -> Data in
+            (serviceIdString: String) throws -> Data in
             return Data(try serviceIdParseFromServiceIdStringHelper(serviceIdString: serviceIdString))
         }
         Function("serviceIdServiceIdBinary") {
-            (fixedWidthServiceId: Data) -> Data in
+            (fixedWidthServiceId: Data) throws -> Data in
             return Data(try serviceIdServiceIdBinaryHelper(fixedWidthServiceId: fixedWidthServiceId))
         }
         Function("serviceIdParseFromServiceIdBinary") {
-            (serviceIdBinary: Data) -> Data in
+            (serviceIdBinary: Data) throws -> Data in
             return Data(try serviceIdParseFromServiceIdBinaryHelper(serviceIdBinary: serviceIdBinary))
         }
         Function("privateKeyGetPublicKey") {
-            (serializedPrivateKey: Data) -> Data? in
+            (serializedPrivateKey: Data) throws -> Data? in
             return try privateKeyGetPublicKeyHelper(serializedPrivateKey: serializedPrivateKey)
         }
         Function("generateKyberRecord") {
-            (keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: Data) -> Data in
+            (keyId: CGFloat, timestamp: CGFloat, privateKeySerialized: Data) throws -> Data in
             return try generateKyberRecordBody(keyId: keyId, timestamp: timestamp, privateKeySerialized: privateKeySerialized)
         }
         Function("kyberPreKeyRecordGetId") {
-            (record: Data) -> UInt32 in
+            (record: Data) throws -> UInt32 in
             return try kyberPreKeyRecordGetIdBody(record: record)
         }
         Function("kyberPreKeyRecordGetPublicKey") {
-            (record: Data) -> Data in
+            (record: Data) throws -> Data in
             return try kyberPreKeyRecordGetPublicKeyBody(record: record)
         }
         Function("kyberPreKeyRecordGetSecretKey") {
-            (record: Data) -> Data in
+            (record: Data) throws -> Data in
             return try kyberPreKeyRecordGetSecretKeyBody(record: record)
         }
         Function("kyberPreKeyRecordGetSignature") {
-            (record: Data) -> Data in
+            (record: Data) throws -> Data in
             return try kyberPreKeyRecordGetSignatureBody(record: record)
         }
         Function("kyberPreKeyRecordGetTimestamp") {
-            (record: Data) -> UInt64 in
+            (record: Data) throws -> UInt64 in
             return try kyberPreKeyRecordGetTimestampBody(record: record)
         }
         Function("privateKeyGenerate") {
-            () -> Data in
+            () throws -> Data in
             return privateKeyGenerateBody()
         }
         Function("privateKeySign") {
-            (serializedPrivateKey: Data, message: Data ) -> Data in
+            (serializedPrivateKey: Data, message: Data ) throws -> Data in
             return try privateKeySignBody(serializedPrivateKey: serializedPrivateKey, message: message)
         }
         Function("signedPreKeyRecordNew") {
-            (id: UInt32, timestamp: UInt64, serializedPublicKey: Data, serializedPrivateKey: Data, signature: Data) -> Data in
+            (id: UInt32, timestamp: UInt64, serializedPublicKey: Data, serializedPrivateKey: Data, signature: Data) throws -> Data in
             return try signedPreKeyRecordNewBody(id: id, timestamp: timestamp, serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey, signature: signature)
         }
         Function("signedPreKeyRecordGetId") {
-            (record: Data) -> UInt32 in
+            (record: Data) throws -> UInt32 in
             return try signedPreKeyRecordGetIdBody(record: record)
         }
         Function("signedPreKeyRecordGetPrivateKey") {
-            (record: Data) -> [UInt8] in
+            (record: Data) throws -> [UInt8] in
             return try signedPreKeyRecordGetPrivateKeyBody(record: record)
         }
         Function("signedPreKeyRecordGetPublicKey") {
-            (record: Data) -> [UInt8] in
+            (record: Data) throws -> [UInt8] in
             return try signedPreKeyRecordGetPublicKeyBody(record: record)
         }
         Function("signedPreKeyRecordGetSignature") {
-            (record: Data) -> Data in
+            (record: Data) throws -> Data in
             return try signedPreKeyRecordGetSignatureBody(record: record)
         }
         Function("signedPreKeyRecordGetTimestamp") {
-            (record: Data) -> UInt64 in
+            (record: Data) throws -> UInt64 in
             return try signedPreKeyRecordGetTimestampBody(record: record)
         }
         Function("preKeyRecordNew") {
-            (id: UInt32, serializedPublicKey: Data, serializedPrivateKey: Data) -> Data in
+            (id: UInt32, serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data in
             return try preKeyRecordNewBody(id: id, serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey)
         }
         Function("preKeyRecordGetId") {
-            (record: Data) -> UInt32 in
+            (record: Data) throws -> UInt32 in
             return try preKeyRecordGetIdBody(record: record)
         }
         Function("preKeyRecordGetPrivateKey") {
-            (record: Data) -> [UInt8] in
+            (record: Data) throws -> [UInt8] in
             return try preKeyRecordGetPrivateKeyBody(record: record)
         }
         Function("generateRegistrationId") {
-            () -> UInt32 in
+            () throws -> UInt32 in
             return UInt32.random(in: 1...0x3fff)
         }
         Function("preKeyRecordGetPublicKey") {
-            (record: Data) -> [UInt8] in
+            (record: Data) throws -> [UInt8] in
             return try preKeyRecordGetPublicKeyBody(record: record)
         }
         Function("serverSecretParamsGenerateDeterministic") { (rndm: Data) throws -> [UInt8] in
@@ -1224,32 +1224,24 @@ public class ReactNativeLibsignalClientModule: Module {
             out += packed.authenticationTag
             return out
         }
-        Function("Aes256CtrEncrypt") { (key: Data, iv: Data, plainText: Data) -> Data in
+        Function("Aes256CtrEncrypt") { (key: Data, iv: Data, plainText: Data) throws -> Data in
             let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)),padding: .noPadding)
-
-            /* Encrypt Data */
             let encryptedBytes = try aes.encrypt([UInt8](plainText))
-            let result = Data(encryptedBytes)
-
-            return result
+            return Data(encryptedBytes)
         }
-        Function("Aes256CtrDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
+        Function("Aes256CtrDecrypt") { (key: Data, iv: Data, ciphertext: Data) throws -> Data in
             let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)), padding: .noPadding)
-
-            /* Decrypt Data */
             let decryptedBytes = try aes.decrypt([UInt8](ciphertext))
-            let result = Data(decryptedBytes)
-
-            return result
+            return Data(decryptedBytes)
         }
-        Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) -> Data in
+        Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) throws -> Data in
             let finalCiphertext = ciphertext.dropLast(16)
             let finalAuthenticationTag = ciphertext.suffix(16)
-            let aes256GcmEncryptedDataResult = try Aes256GcmEncryptedData(nonce: iv, ciphertext: finalCiphertext, authenticationTag: finalAuthenticationTag)
+            let aes256GcmEncryptedDataResult = Aes256GcmEncryptedData(nonce: iv, ciphertext: finalCiphertext, authenticationTag: finalAuthenticationTag)
             let result = try aes256GcmEncryptedDataResult.decrypt(key: key,associatedData: aad ?? Data())
             return result
         }
-        Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) -> Data in
+        Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) throws -> Data in
             let cipherContext = try CipherContext(
                 operation: .encrypt,
                 algorithm: .aes,
@@ -1261,7 +1253,7 @@ public class ReactNativeLibsignalClientModule: Module {
             let ciphertextPart2 = try cipherContext.finalize()
             return ciphertextPart1 + ciphertextPart2
         }
-        Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) -> Data in
+        Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) throws -> Data in
             let cipherContext = try CipherContext(
                 operation: .decrypt,
                 algorithm: .aes,
@@ -1273,7 +1265,7 @@ public class ReactNativeLibsignalClientModule: Module {
             let plaintextPart2 = try cipherContext.finalize()
             return plaintextPart1 + plaintextPart2
         }
-        Function("groupSendFullTokenGetExpiration") { (sgpfulltoken: Data) -> UInt64 in
+        Function("groupSendFullTokenGetExpiration") { (sgpfulltoken: Data) throws -> UInt64 in
             let gpFullToken = try GroupSendFullToken(contents: [UInt8](sgpfulltoken))
             return UInt64(gpFullToken.expiration.timeIntervalSince1970)
         }
@@ -1285,17 +1277,17 @@ public class ReactNativeLibsignalClientModule: Module {
             try gpFullToken.verify(userIds: serviceIds, now: Date(timeIntervalSince1970: TimeInterval(time)), keyPair: groupSendKeyPair)
         }
 
-        Function("groupSendTokenToFullToken") { (sgpsendtoken: Data, expTime: UInt64) -> Data in
+        Function("groupSendTokenToFullToken") { (sgpsendtoken: Data, expTime: UInt64) throws -> Data in
             let groupSendToken = try GroupSendEndorsement.Token(contents: [UInt8](sgpsendtoken))
             return Data(groupSendToken.toFullToken(expiration: Date(timeIntervalSince1970: TimeInterval(expTime))).serialize())
         }
 
-        Function("groupSendDerivedKeyPairForExpiration") { (expTime: UInt64, svSecParams: Data) -> Data in
+        Function("groupSendDerivedKeyPairForExpiration") { (expTime: UInt64, svSecParams: Data) throws -> Data in
             let serverSecParams = try ServerSecretParams(contents: [UInt8](svSecParams))
             return Data(GroupSendDerivedKeyPair.forExpiration(Date(timeIntervalSince1970: TimeInterval(expTime)), params: serverSecParams).serialize())
         }
 
-        Function("groupSendEndorsementCombine") { (sendorsements: [String]) -> Data in
+        Function("groupSendEndorsementCombine") { (sendorsements: [String]) throws -> Data in
             
             let endorsements = try sendorsements.map { base64String in
                         guard let decodedData = Data(base64Encoded: base64String) else {
@@ -1304,16 +1296,16 @@ public class ReactNativeLibsignalClientModule: Module {
                         return try GroupSendEndorsement(contents: [UInt8](decodedData))
             }
         
-            return try Data(GroupSendEndorsement.combine(endorsements).serialize())
+            return Data(GroupSendEndorsement.combine(endorsements).serialize())
         }
 
-        Function("groupSendEndorsementRemove") { (sgpsendendorsement: Data, toRemove: Data) -> Data in
+        Function("groupSendEndorsementRemove") { (sgpsendendorsement: Data, toRemove: Data) throws -> Data in
             let endorsement = try GroupSendEndorsement(contents: [UInt8](sgpsendendorsement))
             let toRemoveEndorsement = try GroupSendEndorsement(contents: [UInt8](toRemove))
             return Data(endorsement.byRemoving(toRemoveEndorsement).serialize())
         }
 
-        Function("groupSendEndorsementToToken") { (sgpsendendorsement: Data, sGpSecParams: Data) -> Data in
+        Function("groupSendEndorsementToToken") { (sgpsendendorsement: Data, sGpSecParams: Data) throws -> Data in
             let endorsement = try GroupSendEndorsement(contents: [UInt8](sgpsendendorsement))
             let params = try GroupSecretParams(contents: [UInt8](sGpSecParams))
             return Data(endorsement.toToken(groupParams: params).serialize())
@@ -1322,10 +1314,10 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("groupSendEndorsementsResponseIssueDeterministic") { (uuidCipherTexts: Data, gpsenddrivedkp: Data, rndm: Data) throws -> Data in
             let serviceIds = try parseUuidCipherTexts(raw: [UInt8](uuidCipherTexts))
             let keyPair = try GroupSendDerivedKeyPair(contents: [UInt8](gpsenddrivedkp))
-            return Data(try GroupSendEndorsementsResponse.issue(groupMembers: serviceIds, keyPair: keyPair).serialize())
+            return Data(GroupSendEndorsementsResponse.issue(groupMembers: serviceIds, keyPair: keyPair).serialize())
         }
 
-        Function("groupSendEndorsementsResponseGetExpiration") { (gpSendEndResponse: Data) -> UInt64 in
+        Function("groupSendEndorsementsResponseGetExpiration") { (gpSendEndResponse: Data) throws -> UInt64 in
             let response = try GroupSendEndorsementsResponse(contents: [UInt8](gpSendEndResponse))
             return UInt64(response.expiration.timeIntervalSince1970)
         }
@@ -1352,11 +1344,11 @@ public class ReactNativeLibsignalClientModule: Module {
             let publicParams = try ServerPublicParams(contents: [UInt8](srvPubParams))
             let endorsements = try response.receive(groupMembers: serviceIds, localUser: userServiceId, groupParams: params, serverParams: publicParams).endorsements
 
-            let combined = Data(try GroupSendEndorsement.combine(
+            let combined = Data(GroupSendEndorsement.combine(
                 endorsements[..<localUserIndex] + endorsements[(localUserIndex + 1)...]
             ).serialize())
             
-            return endorsements.map { Data(try! $0.serialize()) } + [combined]
+            return endorsements.map { Data($0.serialize()) } + [combined]
         }
 
         Function("groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts") { (gpSendEndResponse: Data, svcUuidIds: Data, userId: Data, time: UInt64, srvPubParams: Data) throws -> [Data] in
@@ -1371,10 +1363,10 @@ public class ReactNativeLibsignalClientModule: Module {
             
             let endorsements = try response.receive(groupMembers: serviceIds, localUser: userServiceId, serverParams: publicParams).endorsements
             
-            let combined = Data(try GroupSendEndorsement.combine(
+            let combined = Data(GroupSendEndorsement.combine(
                 Array(endorsements[..<localUserIndex]) + Array(endorsements[(localUserIndex + 1)...])
             ).serialize())
-            return endorsements.map { Data(try! $0.serialize()) } + [combined]
+            return endorsements.map { Data($0.serialize()) } + [combined]
         }
 
         Function("groupCipherEncryptMessage") { (senderAddress: String, sDistId: String, msg: Data, sSenderKeyRecord: Data) throws -> [Any] in
@@ -1449,7 +1441,7 @@ public class ReactNativeLibsignalClientModule: Module {
                 cipherTextType: Int,
                 sSenderCertificate: Data,
                 contentHint: UInt32,
-                groupId: Data?) -> Data in
+                groupId: Data?) throws -> Data in
             do {
                 let senderCertificate = try SenderCertificate(sSenderCertificate)
                 var signalMessageType: CiphertextMessage.MessageType = .preKey
@@ -1481,16 +1473,11 @@ public class ReactNativeLibsignalClientModule: Module {
 
 
 
-        Function("HmacSHA256") { (key: Data, data: Data) -> Data? in
-            do {
-                var hmac = HMAC<SHA256>(key: .init(data: [UInt8](key)))
-                hmac.update(data: [UInt8](data))
-                let digest = hmac.finalize()
-                return Data(digest)
-            } catch {
-                throw NSError(domain: "HMAC calculation error: \(error)", code: 1, userInfo: nil)
-                return nil
-            }
+        Function("HmacSHA256") { (key: Data, data: Data) throws -> Data in
+            var hmac = HMAC<SHA256>(key: .init(data: [UInt8](key)))
+            hmac.update(data: [UInt8](data))
+            let digest = hmac.finalize()
+            return Data(digest)            
         }
 
         Function("ConstantTimeEqual") {(lhs: Data, rhs: Data) -> Bool in
@@ -1531,34 +1518,34 @@ public class ReactNativeLibsignalClientModule: Module {
                 context: NullContext()
             )
             
-            return Data(try content.serialize())
+            return Data(content.serialize())
         }
 
 
-        Function("unidentifiedSenderMessageContentGetContents"){(serializedContent: Data) in 
+        Function("unidentifiedSenderMessageContentGetContents") { (serializedContent: Data) throws -> [UInt8] in
             let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
             return content.contents
         }
-        Function("unidentifiedSenderMessageContentGetMsgType"){(serializedContent: Data) in
-            let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
-            return content.messageType.rawValue
+        Function("unidentifiedSenderMessageContentGetMsgType") { (serializedContent: Data) throws -> Int in
+            let content = try! UnidentifiedSenderMessageContent(bytes:serializedContent)
+            return Int(content.messageType.rawValue)
         }
-        Function("unidentifiedSenderMessageContentGetSenderCert"){(serializedContent: Data) in
+        Function("unidentifiedSenderMessageContentGetSenderCert") { (serializedContent: Data) throws -> [UInt8] in
             let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
             return content.senderCertificate.serialize()
         }
-        Function("unidentifiedSenderMessageContentGetContentHint"){(serializedContent: Data) in
+        Function("unidentifiedSenderMessageContentGetContentHint") { (serializedContent: Data) throws -> UInt32 in
             let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
             return content.contentHint.rawValue
         }
-        Function("unidentifiedSenderMessageContentGetGroupId"){(serializedContent: Data) in
+        Function("unidentifiedSenderMessageContentGetGroupId") { (serializedContent: Data) throws -> [UInt8] in
             let content = try UnidentifiedSenderMessageContent(bytes:serializedContent)
             return content.groupId ?? [UInt8]()
         }
 
         Function("sealedSenderMultiRecipientEncrypt") { 
             (ownerIdentityData: [Any], srecipients: [String],sessionStoreState: [String: String], 
-            excludedRecipients: Data, uidentcontent: Data, identityStoreState: [[String]]) in
+            excludedRecipients: Data, uidentcontent: Data, identityStoreState: [[String]]) throws -> Data in
             
 
 
@@ -1582,7 +1569,7 @@ public class ReactNativeLibsignalClientModule: Module {
             }
 
             let ownerIdentityKey = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
-            let sigStore = try InMemorySignalProtocolStore(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
+            let sigStore = InMemorySignalProtocolStore(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
 
             let store = InMemorySignalProtocolStoreWithPreKeysList(identity: ownerIdentityKey, registrationId: ownerRegistrationId)
             for (key, value) in sessionStoreState {
@@ -1608,11 +1595,9 @@ public class ReactNativeLibsignalClientModule: Module {
                 }
                 
                 let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData)) 
-                try sigStore.saveIdentity(identityKey, for: protocolAddress, context: NullContext())
+                let _ = try sigStore.saveIdentity(identityKey, for: protocolAddress, context: NullContext())
             }
 
-
-            let randomUUID = UUID()
             do {
                 let messageContent = try UnidentifiedSenderMessageContent(
                     bytes: [UInt8](uidentcontent)
@@ -1630,7 +1615,6 @@ public class ReactNativeLibsignalClientModule: Module {
                 return Data(encryptedMessage)
             } catch {
                 throw NSError(domain: "UnidentifiedSenderMessageContent calculation error: \(error)", code: 1, userInfo: nil)
-                return Data()
             }
 
            
@@ -1700,7 +1684,7 @@ public class ReactNativeLibsignalClientModule: Module {
         
         Function("senderCertificateGetKey") { (serializedCertificate: Data) throws -> Data in
             let certificate = try SenderCertificate([UInt8](serializedCertificate))
-            return Data(try certificate.publicKey.serialize())
+            return Data(certificate.publicKey.serialize())
         }
 
         
@@ -1724,25 +1708,20 @@ public class ReactNativeLibsignalClientModule: Module {
         
         Function("senderCertificateGetServerCertificate") { (serializedCertificate: Data) throws -> Data in
             let certificate = try SenderCertificate([UInt8](serializedCertificate))
-            return Data(try certificate.serverCertificate.serialize())
+            return Data(certificate.serverCertificate.serialize())
         }
 
         
-        Function("senderCertificateValidate") { (trustRoot: Data, serializedCertificate: Data, timestamp: UInt64) -> Bool in
-            do {
-                let certificate = try SenderCertificate([UInt8](serializedCertificate))
-                let publicKey = try PublicKey([UInt8](trustRoot))
-                try certificate.validate(trustRoot: publicKey, time: timestamp)
-                return true
-            } catch {
-                return false
-            }
+        Function("senderCertificateValidate") { (trustRoot: Data, serializedCertificate: Data, timestamp: UInt64) throws -> Bool in
+            let certificate = try SenderCertificate([UInt8](serializedCertificate))
+            let publicKey = try PublicKey([UInt8](trustRoot))
+            return try certificate.validate(trustRoot: publicKey, time: timestamp)
         }
 
 
         Function("serverCertificateGetKey") { (serializedCertificate: Data) throws -> Data in
             let certificate = try ServerCertificate([UInt8](serializedCertificate))
-            return Data(try certificate.publicKey.serialize())
+            return Data(certificate.publicKey.serialize())
         }
 
         Function("serverCertificateGetKeyId") { (serializedCertificate: Data) throws -> UInt32 in
@@ -1773,12 +1752,11 @@ public class ReactNativeLibsignalClientModule: Module {
             let message = try SenderKeyMessage(bytes: [UInt8](serializedMessage))
             return message.distributionId.uuidString
         }
-        Function("senderKeyMessageVerifySignature") { (serializedMessage: Data, serializedSenderIdentityKey: Data) -> Bool in
+        Function("senderKeyMessageVerifySignature") { (serializedMessage: Data, serializedSenderIdentityKey: Data) throws -> Bool in
             do {
                 let message = try SenderKeyMessage(bytes: [UInt8](serializedMessage))
                 let senderIdentityKey = try PublicKey([UInt8](serializedSenderIdentityKey))
-                try message.verifySignature(against: senderIdentityKey)
-                return true
+                return try message.verifySignature(against: senderIdentityKey)
             } catch {
                 return false
             }
@@ -1881,8 +1859,7 @@ public class ReactNativeLibsignalClientModule: Module {
         let ownerKeypair = try IdentityKeyPair(bytes: [UInt8](ownerKeypairData))
         let identityKey = try IdentityKey(bytes: [UInt8](identityKeyData))
         let store = InMemorySignalProtocolStoreWithPreKeysList(identity: ownerKeypair, registrationId: ownerRegistrationId)
-        try store.saveIdentity(identityKey, for: protoAddress, context: NullContext())
-        let randomUUID = UUID()
+        let _ = try store.saveIdentity(identityKey, for: protoAddress, context: NullContext())
         let content = try UnidentifiedSenderMessageContent(
             bytes: [UInt8](unidentifiedContent)
         )
