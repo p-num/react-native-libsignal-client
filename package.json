@@ -1,6 +1,6 @@
 {
 	"name": "react-native-libsignal-client",
-	"version": "0.1.32",
+	"version": "0.1.33",
 	"description": "My new module",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
@@ -31,9 +31,9 @@
 	"license": "MIT",
 	"homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
 	"dependencies": {
-		"@craftzdog/react-native-buffer": "^6.0.5",
+		"@craftzdog/react-native-buffer": "^6.1.0",
 		"react-native-get-random-values": "^1.11.0",
-		"react-native-quick-base64": "^2.1.2",
+		"react-native-quick-base64": "^2.0.5",
 		"uuid": "^10.0.0"
 	},
 	"devDependencies": {
