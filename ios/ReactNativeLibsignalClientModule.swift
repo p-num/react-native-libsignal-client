@@ -2,8 +2,6 @@ import ExpoModulesCore
 import LibSignalClient
 import SignalFfi
 import Foundation
-import CryptoKit
-import CommonCrypto
 import CryptoSwift
 // TODO: uncomment after closing https://github.com/p-num/react-native-libsignal-client/issues/48
 // @testable import LibSignalClient
@@ -23,6 +21,17 @@ public struct NullContext: StoreContext {
     public init() {
     }
 
+}
+
+private extension Data {
+    /// Quick bridge to `[UInt8]` expected by CryptoSwift.
+    var bytes: [UInt8] { Array(self) }
+}
+
+/// Generic crypto errors you may want to surface upstream.
+enum CryptoError: Error {
+    case invalidKeyLength
+    case invalidIvLength
 }
 private struct SenderKeyName: Hashable {
     var sender: ProtocolAddress
@@ -230,186 +239,6 @@ open class InMemorySignalProtocolStoreWithPreKeysList: IdentityKeyStore, PreKeyS
 
 }
 /*END          InMemorySignalProtocolStoreWithPreKeysList              END*/
-
-public class CipherContext {
-    public enum Operation {
-        case encrypt
-        case decrypt
-
-        var ccValue: CCOperation {
-            switch self {
-            case .encrypt: return CCOperation(kCCEncrypt)
-            case .decrypt: return CCOperation(kCCDecrypt)
-            }
-        }
-    }
-
-    public enum Algorithm {
-        case aes
-
-        var ccValue: CCOperation {
-            switch self {
-            case .aes: return CCAlgorithm(kCCAlgorithmAES)
-            }
-        }
-    }
-
-    public struct Options: OptionSet {
-        public let rawValue: Int
-
-        public init(rawValue: Int) {
-            self.rawValue = rawValue
-        }
-
-        public static let pkcs7Padding = Options(rawValue: kCCOptionPKCS7Padding)
-        public static let ecbMode = Options(rawValue: kCCOptionECBMode)
-    }
-
-    private var cryptor: CCCryptorRef?
-
-    deinit {
-        if let cryptor {
-            CCCryptorRelease(cryptor)
-            self.cryptor = nil
-        }
-    }
-
-    public init(operation: Operation, algorithm: Algorithm, options: Options, key: Data, iv: Data) throws {
-        let result = key.withUnsafeBytes { keyBytes in
-            iv.withUnsafeBytes { ivBytes in
-                CCCryptorCreate(
-                    operation.ccValue,
-                    algorithm.ccValue,
-                    CCOptions(options.rawValue),
-                    keyBytes.baseAddress,
-                    keyBytes.count,
-                    ivBytes.baseAddress,
-                    &cryptor
-                )
-            }
-        }
-        guard result == CCStatus(kCCSuccess) else {
-            throw NSError(domain: "Invalid arguments provided \(result)", code: 1, userInfo: nil)
-        }
-    }
-
-    public func outputLength(forUpdateWithInputLength inputLength: Int) throws -> Int {
-        guard let cryptor else {
-            throw NSError(domain: "Unexpectedly attempted to read a finalized cipher", code: 1, userInfo: nil)
-        }
-
-        return CCCryptorGetOutputLength(cryptor, inputLength, false)
-    }
-
-    public func outputLengthForFinalize() throws -> Int {
-        guard let cryptor else {
-            throw NSError(domain: "Unexpectedly attempted to read a finalized cipher", code: 1, userInfo: nil)
-        }
-
-        return CCCryptorGetOutputLength(cryptor, 0, true)
-    }
-
-    public func update(_ data: Data) throws -> Data {
-        let outputLength = try outputLength(forUpdateWithInputLength: data.count)
-        var outputBuffer = Data(repeating: 0, count: outputLength)
-        let actualOutputLength = try self.update(input: data, output: &outputBuffer)
-        outputBuffer.count = actualOutputLength
-        return outputBuffer
-    }
-
-    /// Update the cipher with provided input, writing decrypted output into the provided output buffer.
-    ///
-    /// - parameter input: The encrypted input to decrypt.
-    /// - parameter inputLength: If non-nil, only this many bytes of the input will be read.
-    ///     Otherwise the entire input will be read.
-    /// - parameter output: The output buffer to write the decrypted bytes into.
-    /// - parameter offsetInOutput: Decrypted bytes will be written into the output buffer starting at
-    ///     this offset. Defaults to 0 (bytes written into the start of the output buffer)
-    /// - parameter outputLength: If non-nil, only this many bytes of output will be written to the output
-    ///     buffer. If nil, the length of the output buffer (minus `offsetInOutput`) will be used. NOTE: should
-    ///     not be larger than the length of the buffer minus `offsetInOutput`.
-    ///
-    /// - returns The actual number of bytes written to `output`.
-    public func update(
-        input: Data,
-        inputLength: Int? = nil,
-        output: inout Data,
-        offsetInOutput: Int = 0,
-        outputLength: Int? = nil
-    ) throws -> Int {
-        guard let cryptor else {
-            throw NSError(domain: "Unexpectedly attempted to update a finalized cipher", code: 1, userInfo: nil)
-        }
-
-        let outputLength = outputLength ?? (output.count - offsetInOutput)
-        var actualOutputLength = 0
-        let result = input.withUnsafeBytes { inputPointer in
-            output.withUnsafeMutableBytes { outputPointer in
-                return CCCryptorUpdate(
-                    cryptor,
-                    inputPointer.baseAddress,
-                    inputLength ?? input.count,
-                    outputPointer.baseAddress.map { $0 + offsetInOutput },
-                    outputLength,
-                    &actualOutputLength
-                )
-            }
-        }
-        guard result == CCStatus(kCCSuccess) else {
-            throw NSError(domain: "Unexpected result \(result)", code: 1, userInfo: nil)
-        }
-        return actualOutputLength
-    }
-
-    public func finalize() throws -> Data {
-        let outputLength = try self.outputLengthForFinalize()
-        var outputBuffer = Data(repeating: 0, count: outputLength)
-        let actualOutputLength = try finalize(output: &outputBuffer)
-        outputBuffer.count = actualOutputLength
-        return outputBuffer
-    }
-
-    /// Finalize the cipher, writing decrypted output into the provided output buffer.
-    ///
-    /// - parameter output: The output buffer to write the decrypted bytes into.
-    /// - parameter offsetInOutput: Decrypted bytes will be written into the output buffer starting at
-    ///     this offset. Defaults to 0 (bytes written into the start of the output buffer)
-    /// - parameter outputLength: If non-nil, only this many bytes of output will be written to the output
-    ///     buffer. If nil, the length of the output buffer (minus `offsetInOutput`) will be used. NOTE: should
-    ///     not be larger than the length of the buffer minus `offsetInOutput`.
-    ///
-    /// - returns The actual number of bytes written to `output`.
-    public func finalize(
-        output: inout Data,
-        offsetInOutput: Int = 0,
-        outputLength: Int? = nil
-    ) throws -> Int {
-        guard let cryptor = cryptor else {
-            throw NSError(domain: "Unexpectedly attempted to finalize a finalized cipher", code: 1, userInfo: nil)
-        }
-
-        defer {
-            CCCryptorRelease(cryptor)
-            self.cryptor = nil
-        }
-
-        let outputLength = outputLength ?? (output.count - offsetInOutput)
-        var actualOutputLength = 0
-        let result = output.withUnsafeMutableBytes { outputPointer in
-            return CCCryptorFinal(
-                cryptor,
-                outputPointer.baseAddress.map { $0 + offsetInOutput },
-                outputLength,
-                &actualOutputLength
-            )
-        }
-        guard result == CCStatus(kCCSuccess) else {
-            throw NSError(domain: "Unexpected result \(result)", code: 1, userInfo: nil)
-        }
-        return actualOutputLength
-    }
-}
-
 
 
 struct ReactNativeLibsignalClientLogType {
@@ -1215,55 +1044,53 @@ public class ReactNativeLibsignalClientModule: Module {
             blobCipherText: blobCipherText)
         }
         Function("Aes256GcmEncrypt") { (key: Data, iv: Data, plainText: Data, aad: Data?) throws -> Data in
-            var buf = plainText
-            let gcm = try Aes256GcmEncryption(key: key, nonce: iv, associatedData: aad ?? Data())
-            try gcm.encrypt(&buf)
-            let packed = try Aes256GcmEncryptedData(nonce: iv, ciphertext: buf, authenticationTag: gcm.computeTag())
-            var out = Data(capacity: packed.ciphertext.count + packed.authenticationTag.count)
-            out += packed.ciphertext
-            out += packed.authenticationTag
-            return out
+            guard key.count == 32 else { throw CryptoError.invalidKeyLength }
+            guard (12...16).contains(iv.count) else { throw CryptoError.invalidIvLength }
+
+            let gcm = GCM(
+                iv: iv.bytes,
+                additionalAuthenticatedData: aad?.bytes ?? [],
+                mode: .combined            // ciphertext+tag in one buffer :contentReference[oaicite:0]{index=0}
+            )
+            let aes  = try AES(key: key.bytes, blockMode: gcm, padding: .noPadding)
+            let combined = try aes.encrypt(plainText.bytes)   // Data(ciphertext || tag)
+            return Data(combined)
         }
         Function("Aes256CtrEncrypt") { (key: Data, iv: Data, plainText: Data) throws -> Data in
-            let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)),padding: .noPadding)
+            let aes = try CryptoSwift.AES(key: [UInt8](key), blockMode: CryptoSwift.CTR(iv: [UInt8](iv)),padding: .noPadding)
             let encryptedBytes = try aes.encrypt([UInt8](plainText))
             return Data(encryptedBytes)
         }
         Function("Aes256CtrDecrypt") { (key: Data, iv: Data, ciphertext: Data) throws -> Data in
-            let aes = try AES(key: [UInt8](key), blockMode: CTR(iv: [UInt8](iv)), padding: .noPadding)
+            let aes = try CryptoSwift.AES(key: [UInt8](key), blockMode: CryptoSwift.CTR(iv: [UInt8](iv)), padding: .noPadding)
             let decryptedBytes = try aes.decrypt([UInt8](ciphertext))
             return Data(decryptedBytes)
         }
         Function("Aes256GcmDecrypt") { (key: Data, iv: Data, ciphertext: Data, aad: Data?) throws -> Data in
-            let finalCiphertext = ciphertext.dropLast(16)
-            let finalAuthenticationTag = ciphertext.suffix(16)
-            let aes256GcmEncryptedDataResult = Aes256GcmEncryptedData(nonce: iv, ciphertext: finalCiphertext, authenticationTag: finalAuthenticationTag)
-            let result = try aes256GcmEncryptedDataResult.decrypt(key: key,associatedData: aad ?? Data())
-            return result
+            let gcm = GCM(
+                iv: iv.bytes,
+                additionalAuthenticatedData: aad?.bytes ?? [],
+                mode: .combined            // CryptoSwift separates tag internally :contentReference[oaicite:1]{index=1}
+            )
+            let aes = try AES(key: key.bytes, blockMode: gcm, padding: .noPadding)
+            let decrypted = try aes.decrypt(ciphertext.bytes)
+            return Data(decrypted)
         }
         Function("Aes256CbcEncrypt") { (key: Data, iv: Data, plaintext: Data) throws -> Data in
-            let cipherContext = try CipherContext(
-                operation: .encrypt,
-                algorithm: .aes,
-                options: .pkcs7Padding,
-                key: key,
-                iv: iv
+            let aes = try AES(
+                key: key.bytes,
+                blockMode: CBC(iv: iv.bytes),
+                padding: .pkcs7            // PKCS#7 == PKCS#5 for 16-byte blocks :contentReference[oaicite:2]{index=2}
             )
-            let ciphertextPart1 = try cipherContext.update(plaintext)
-            let ciphertextPart2 = try cipherContext.finalize()
-            return ciphertextPart1 + ciphertextPart2
+            return Data(try aes.encrypt(plaintext.bytes))
         }
         Function("Aes256CbcDecrypt") { (key: Data, iv: Data, ciphertext: Data) throws -> Data in
-            let cipherContext = try CipherContext(
-                operation: .decrypt,
-                algorithm: .aes,
-                options: .pkcs7Padding,
-                key: key,
-                iv: iv
+            let aes = try AES(
+                key: key.bytes,
+                blockMode: CBC(iv: iv.bytes),
+                padding: .pkcs7
             )
-            let plaintextPart1 = try cipherContext.update(ciphertext)
-            let plaintextPart2 = try cipherContext.finalize()
-            return plaintextPart1 + plaintextPart2
+            return Data(try aes.decrypt(ciphertext.bytes))
         }
         Function("groupSendFullTokenGetExpiration") { (sgpfulltoken: Data) throws -> UInt64 in
             let gpFullToken = try GroupSendFullToken(contents: [UInt8](sgpfulltoken))
@@ -1474,10 +1301,8 @@ public class ReactNativeLibsignalClientModule: Module {
 
 
         Function("HmacSHA256") { (key: Data, data: Data) throws -> Data in
-            var hmac = HMAC<SHA256>(key: .init(data: [UInt8](key)))
-            hmac.update(data: [UInt8](data))
-            let digest = hmac.finalize()
-            return Data(digest)            
+            let hmac = try HMAC(key: [UInt8](key), variant: HMAC.Variant.sha2(.sha256)).authenticate([UInt8](data))
+            return Data(hmac)        
         }
 
         Function("ConstantTimeEqual") {(lhs: Data, rhs: Data) -> Bool in
@@ -2813,7 +2638,7 @@ public class ReactNativeLibsignalClientModule: Module {
         info: Data,
         salt: Data)
     throws -> [UInt8] {
-        return try hkdf(
+        return try LibSignalClient.hkdf(
             outputLength: outputLength,
             inputKeyMaterial: inputKeyMaterial,
             salt: salt,
