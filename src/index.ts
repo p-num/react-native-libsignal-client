@@ -59,11 +59,13 @@ export function hkdf(
 	label: Uint8Array,
 	salt: Uint8Array | null
 ): Uint8Array {
-	return ReactNativeLibsignalClientModule.hkdfDeriveSecrets(
-		outputLength,
-		keyMaterial,
-		label,
-		salt
+	return new Uint8Array(
+		ReactNativeLibsignalClientModule.hkdfDeriveSecrets(
+			outputLength,
+			keyMaterial,
+			label,
+			salt
+		)
 	);
 }
 
@@ -81,16 +83,17 @@ export class PrivateKey {
 	}
 
 	sign(msg: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.privateKeySign(
-			this.serialized,
-			msg
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.privateKeySign(this.serialized, msg)
 		);
 	}
 
 	agree(other_key: PublicKey): Uint8Array {
-		return ReactNativeLibsignalClientModule.privateKeyAgree(
-			this.serialized,
-			other_key.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.privateKeyAgree(
+				this.serialized,
+				other_key.serialized
+			)
 		);
 	}
 
@@ -103,7 +106,7 @@ export class PrivateKey {
 	}
 
 	static _fromSerialized(serialized: Uint8Array): PrivateKey {
-		return new PrivateKey(serialized);
+		return new PrivateKey(new Uint8Array(serialized));
 	}
 }
 
@@ -117,14 +120,16 @@ export class PublicKey {
 	/// Returns -1, 0, or 1
 	compare(other: PublicKey): number {
 		return ReactNativeLibsignalClientModule.publicKeyCompare(
-			this.serialized,
-			other.serialized
+			new Uint8Array(this.serialized),
+			new Uint8Array(other.serialized)
 		);
 	}
 
 	getPublicKeyBytes(): Uint8Array {
-		return ReactNativeLibsignalClientModule.publicKeyGetPublicKeyBytes(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.publicKeyGetPublicKeyBytes(
+				this.serialized
+			)
 		);
 	}
 
@@ -159,27 +164,37 @@ export class IdentityKeyPair {
 	}
 
 	static generate(): IdentityKeyPair {
-		const [privateKey, publicKey] =
-			ReactNativeLibsignalClientModule.generateIdentityKeyPair();
-		return new IdentityKeyPair(
-			PublicKey._fromSerialized(publicKey),
-			PrivateKey._fromSerialized(privateKey)
-		);
+		const privateKey = PrivateKey.generate();
+		return new IdentityKeyPair(privateKey.getPublicKey(), privateKey);
 	}
 
 	signAlternateIdentity(other: PublicKey): Uint8Array {
-		return ReactNativeLibsignalClientModule.identityKeyPairSignAlternateIdentity(
-			this.publicKey.serialized,
-			this.privateKey.serialized,
-			other.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.identityKeyPairSignAlternateIdentity(
+				new Uint8Array(this.publicKey.serialized),
+				new Uint8Array(this.privateKey.serialized),
+				new Uint8Array(other.serialized)
+			)
 		);
 	}
 
 	serialize(): Uint8Array {
-		return ReactNativeLibsignalClientModule.identityKeyPairSerialize(
-			this.publicKey.serialized,
-			this.privateKey.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.identityKeyPairSerialize(
+				new Uint8Array(this.publicKey.serialized),
+				new Uint8Array(this.privateKey.serialized)
+			)
 		);
+	}
+
+	static deserialize(serialized: Uint8Array): IdentityKeyPair {
+		const [privateKey, publicKey] =
+			ReactNativeLibsignalClientModule.identityKeyPairDeserialize(serialized);
+		const pair = new IdentityKeyPair(
+			PublicKey._fromSerialized(new Uint8Array(publicKey)),
+			PrivateKey._fromSerialized(new Uint8Array(privateKey))
+		);
+		return pair;
 	}
 }
 
@@ -274,8 +289,10 @@ export class KyberPreKeyRecord {
 	}
 
 	signature(): Uint8Array {
-		return ReactNativeLibsignalClientModule.kyberPreKeyRecordGetSignature(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.kyberPreKeyRecordGetSignature(
+				this.serialized
+			)
 		);
 	}
 
@@ -342,8 +359,10 @@ export class SignedPreKeyRecord {
 	}
 
 	signature(): Uint8Array {
-		return ReactNativeLibsignalClientModule.signedPreKeyRecordGetSignature(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.signedPreKeyRecordGetSignature(
+				this.serialized
+			)
 		);
 	}
 
@@ -507,8 +526,10 @@ export class SenderCertificate {
 		);
 	}
 	signature(): Uint8Array {
-		return ReactNativeLibsignalClientModule.senderCertificateGetSignature(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.senderCertificateGetSignature(
+				this.serialized
+			)
 		);
 	}
 	validate(trustRoot: PublicKey, time: number): boolean {
@@ -568,8 +589,10 @@ export class ServerCertificate {
 	}
 
 	signature(): Uint8Array {
-		return ReactNativeLibsignalClientModule.serverCertificateGetSignature(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.serverCertificateGetSignature(
+				this.serialized
+			)
 		);
 	}
 }
@@ -678,8 +701,10 @@ export class SenderKeyDistributionMessage {
 	// }
 
 	chainKey(): Uint8Array {
-		return ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetChainKey(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.senderKeyDistributionMessageGetChainKey(
+				this.serialized
+			)
 		);
 	}
 
@@ -777,8 +802,10 @@ export class UnidentifiedSenderMessageContent {
 	}
 
 	serialize(): Uint8Array {
-		return ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentSerialize(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.unidentifiedSenderMessageContentSerialize(
+				this.serialized
+			)
 		);
 	}
 
@@ -1029,8 +1056,8 @@ export class PlaintextContent implements CipherTextMessage {
 	}
 
 	body(): Uint8Array {
-		return ReactNativeLibsignalClientModule.plaintextContentGetBody(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.plaintextContentGetBody(this.serialized)
 		);
 	}
 
@@ -1281,8 +1308,10 @@ export class SenderKeyMessage implements CipherTextMessage {
 	}
 
 	ciphertext(): Uint8Array {
-		return ReactNativeLibsignalClientModule.senderKeyMessageGetCipherText(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.senderKeyMessageGetCipherText(
+				this.serialized
+			)
 		);
 	}
 
@@ -1799,8 +1828,10 @@ export class SealedSenderDecryptionResult {
 			return this.#message;
 		}
 
-		return ReactNativeLibsignalClientModule.sealedSenderDecryptionResultMessage(
-			this.serialized
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.sealedSenderDecryptionResultMessage(
+				this.serialized
+			)
 		);
 	}
 

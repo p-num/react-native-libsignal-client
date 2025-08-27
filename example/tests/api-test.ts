@@ -1473,3 +1473,200 @@ export const testConstantTimeEqual = () =>
 // 			'senderDeviceId is not the same as the the one it was created with'
 // 		);
 // 	});
+
+export const testECC = () => {
+	// it('ECC signatures work', () => {
+	//   const priv_a = SignalClient.PrivateKey.generate();
+	//   const priv_b = SignalClient.PrivateKey.generate();
+	//   assert.lengthOf(priv_a.serialize(), 32, 'private key serialization length');
+	//   assert.deepEqual(priv_a.serialize(), priv_a.serialize(), 'repeatable');
+	//   assert.notDeepEqual(
+	//     priv_a.serialize(),
+	//     priv_b.serialize(),
+	//     'different for different keys'
+	//   );
+
+	//   const pub_a = priv_a.getPublicKey();
+	//   const pub_b = priv_b.getPublicKey();
+
+	//   const msg = Buffer.from([1, 2, 3]);
+
+	//   const sig_a = priv_a.sign(msg);
+	//   assert.lengthOf(sig_a, 64, 'signature length');
+
+	//   assert(pub_a.verify(msg, sig_a));
+	//   assert(!pub_b.verify(msg, sig_a));
+
+	//   const sig_b = priv_b.sign(msg);
+	//   assert.lengthOf(sig_b, 64, 'signature length');
+
+	//   assert(pub_b.verify(msg, sig_b));
+	//   assert(!pub_a.verify(msg, sig_b));
+	// });
+
+	// it('ECC key agreement work', () => {
+	//   const priv_a = SignalClient.PrivateKey.generate();
+	//   const priv_b = SignalClient.PrivateKey.generate();
+
+	//   const pub_a = priv_a.getPublicKey();
+	//   const pub_b = priv_b.getPublicKey();
+
+	//   const shared_a = priv_a.agree(pub_b);
+	//   const shared_b = priv_b.agree(pub_a);
+
+	//   assert.deepEqual(shared_a, shared_b, 'key agreement works');
+	// });
+	//let's transform the above tests into our own api
+	test('ECC signatures work', () => {
+		const priv_a = ReactNativeLibsignalClient.PrivateKey.generate();
+		const priv_b = ReactNativeLibsignalClient.PrivateKey.generate();
+		assert(priv_a.serialized.length === 32);
+		assert(deepEql(priv_a.serialized, priv_a.serialized));
+		assert(!deepEql(priv_a.serialized, priv_b.serialized));
+
+		const pub_a = priv_a.getPublicKey();
+		const pub_b = priv_b.getPublicKey();
+
+		const msg = new Uint8Array(Buffer.from([1, 2, 3]));
+
+		const sig_a = priv_a.sign(msg);
+		assert(sig_a.length === 64);
+
+		assert(pub_a.verify(msg, sig_a));
+		assert(!pub_b.verify(msg, sig_a));
+
+		const sig_b = priv_b.sign(msg);
+		assert(sig_b.length === 64);
+
+		assert(pub_b.verify(msg, sig_b));
+		assert(!pub_a.verify(msg, sig_b));
+	});
+
+	test('ECC key agreement work', () => {
+		const priv_a = ReactNativeLibsignalClient.PrivateKey.generate();
+		const priv_b = ReactNativeLibsignalClient.PrivateKey.generate();
+
+		const pub_a = priv_a.getPublicKey();
+		const pub_b = priv_b.getPublicKey();
+
+		const shared_a = priv_a.agree(pub_b);
+		const shared_b = priv_b.agree(pub_a);
+
+		assert(deepEql(shared_a, shared_b), 'key agreement works');
+	});
+
+	test('ECC keys roundtrip through serialization', () => {
+		const key = Buffer.alloc(32, 0x40);
+		const priv = ReactNativeLibsignalClient.PrivateKey._fromSerialized(key);
+		assert(key.equals(Buffer.from(priv.serialized)));
+
+		const pub = priv.getPublicKey();
+		const pub_bytes = pub.serialized;
+		assert(pub_bytes.length === 32 + 1);
+
+		const pub2 =
+			ReactNativeLibsignalClient.PublicKey._fromSerialized(pub_bytes);
+
+		assert(deepEql(pub.serialized, pub2.serialized));
+
+		assert(deepEql(pub.compare(pub2), 0));
+		assert(deepEql(pub2.compare(pub), 0));
+
+		const anotherKey = ReactNativeLibsignalClient.PrivateKey._fromSerialized(
+			new Uint8Array(Buffer.alloc(32, 0xcd))
+		).getPublicKey();
+		assert(deepEql(pub.compare(anotherKey), 1));
+		assert(deepEql(anotherKey.compare(pub), -1));
+
+		assert(pub.getPublicKeyBytes().length === 32);
+
+		const keyPair = new ReactNativeLibsignalClient.IdentityKeyPair(pub, priv);
+		const keyPairBytes = keyPair.serialize();
+		const roundTripKeyPair =
+			ReactNativeLibsignalClient.IdentityKeyPair.deserialize(keyPairBytes);
+		assert(roundTripKeyPair.publicKey.compare(pub) === 0);
+		const roundTripKeyPairBytes = roundTripKeyPair.serialize();
+		assert(deepEql(keyPairBytes, roundTripKeyPairBytes));
+	});
+
+	//   it('decoding invalid ECC key throws an error', () => {
+	//   const invalid_key = Buffer.alloc(33, 0xab);
+
+	//   assert.throws(() => {
+	//     SignalClient.PrivateKey.deserialize(invalid_key);
+	//   }, 'bad key length <33> for key with type <Djb>');
+
+	//   assert.throws(() => {
+	//     SignalClient.PublicKey.deserialize(invalid_key);
+	//   }, 'bad key type <0xab>');
+	// });
+	// let's transform the above tests into our own api
+	test('decoding invalid ECC key throws an error', () => {
+		const invalid_key = Buffer.alloc(33, 0xab);
+
+		assert(
+			throwsSync(() => {
+				ReactNativeLibsignalClient.PrivateKey._fromSerialized(invalid_key);
+			}),
+			'bad key length <33> for key with type <Djb>'
+		);
+
+		assert(
+			throwsSync(() => {
+				ReactNativeLibsignalClient.PublicKey._fromSerialized(invalid_key);
+			}),
+			'bad key type <0xab>'
+		);
+	});
+
+	test('can sign and verify alternate identity keys', () => {
+		const primary = ReactNativeLibsignalClient.IdentityKeyPair.generate();
+		const secondary = ReactNativeLibsignalClient.IdentityKeyPair.generate();
+		const signature = secondary.signAlternateIdentity(primary.publicKey);
+		assert(
+			secondary.publicKey.verifyAlternateIdentity(primary.publicKey, signature)
+		);
+	});
+
+	//   it('includes all error codes in LibSignalError', () => {
+	//   // This is a compilation test only.
+	//   type MissingCodes = Exclude<
+	//     ReactNativeLibsignalClient.ErrorCode,
+	//     ReactNativeLibsignalClient.LibSignalError['code']
+	//   >;
+	//   function _check(
+	//     hasMissingCode: MissingCodes extends never ? never : unknown
+	//   ): MissingCodes {
+	//     // If the following line errors with something like...
+	//     //
+	//     //     Type 'unknown' is not assignable to type 'ErrorCode.RateLimitedError | ErrorCode.BackupValidation'.
+	//     //
+	//     // ...that means `MissingCode extends never` was false, i.e. there were codes missing from the
+	//     // LibSignalError union. Fortunately, the error message also tells you what they are.
+	//     // (We ought to have been able to write this as `const missing: never = someMissingCodesValue`
+	//     // or similar, but TypeScript 5.3 doesn't show the missing cases in the diagnostic that way.)
+	//     return hasMissingCode;
+	//   }
+	// });
+	// let's transform the above tests into our own api
+	test('includes all error codes in LibSignalError', () => {
+		// This is a compilation test only.
+		type MissingCodes = Exclude<
+			ReactNativeLibsignalClient.ErrorCode,
+			ReactNativeLibsignalClient.LibSignalError['code']
+		>;
+		function _check(
+			hasMissingCode: MissingCodes extends never ? never : unknown
+		): MissingCodes {
+			// If the following line errors with something like...
+			//
+			//     Type 'unknown' is not assignable to type 'ErrorCode.RateLimitedError | ErrorCode.BackupValidation'.
+			//
+			// ...that means `MissingCode extends never` was false, i.e. there were codes missing from the
+			// LibSignalError union. Fortunately, the error message also tells you what they are.
+			// (We ought to have been able to write this as `const missing: never = someMissingCodesValue`
+			// or similar, but TypeScript 5.3 doesn't show the missing cases in the diagnostic that way.)
+			return hasMissingCode;
+		}
+	});
+};

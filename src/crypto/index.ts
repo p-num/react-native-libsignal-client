@@ -58,18 +58,22 @@ export class Aes256Cbc {
 	}
 
 	encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.Aes256CbcEncrypt(
-			new Uint8Array(this.serialized),
-			new Uint8Array(iv),
-			new Uint8Array(data)
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.Aes256CbcEncrypt(
+				new Uint8Array(this.serialized),
+				new Uint8Array(iv),
+				new Uint8Array(data)
+			)
 		);
 	}
 
 	decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.Aes256CbcDecrypt(
-			new Uint8Array(this.serialized),
-			new Uint8Array(iv),
-			new Uint8Array(data)
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.Aes256CbcDecrypt(
+				new Uint8Array(this.serialized),
+				new Uint8Array(iv),
+				new Uint8Array(data)
+			)
 		);
 	}
 }
@@ -141,18 +145,22 @@ class Aes256Ctr {
 	}
 
 	encrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.Aes256CtrEncrypt(
-			new Uint8Array(this.serialized),
-			new Uint8Array(iv),
-			new Uint8Array(data)
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.Aes256CtrEncrypt(
+				new Uint8Array(this.serialized),
+				new Uint8Array(iv),
+				new Uint8Array(data)
+			)
 		);
 	}
 
 	decrypt(data: Uint8Array, iv: Uint8Array): Uint8Array {
-		return ReactNativeLibsignalClientModule.Aes256CtrDecrypt(
-			new Uint8Array(this.serialized),
-			new Uint8Array(iv),
-			new Uint8Array(data)
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.Aes256CtrDecrypt(
+				new Uint8Array(this.serialized),
+				new Uint8Array(iv),
+				new Uint8Array(data)
+			)
 		);
 	}
 }

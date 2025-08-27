@@ -9,6 +9,7 @@ import {
 	testAesGcmWithLongInput,
 	testAesGcmWithShortInput,
 	testConstantTimeEqual,
+	testECC,
 	testGenerateRegistrationId,
 	testHKDF,
 	testKyberPreKeyRecord,
@@ -63,6 +64,7 @@ export default function App() {
 					testSignHmacSha256,
 					testConstantTimeEqual,
 					testGroup,
+					testECC,
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {
