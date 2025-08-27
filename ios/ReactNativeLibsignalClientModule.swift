@@ -696,13 +696,17 @@ public class ReactNativeLibsignalClientModule: Module {
             throw error
         }
         }
-
-        Function("generateIdentityKeyPair") {
-            return IdentityKeyPair.generate().serialize()
-        }
         Function("identityKeyPairSerialize") {
             (serializedPublicKey: Data, serializedPrivateKey: Data) throws -> Data in
             return try identityKeyPairSerializeHelper(serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey)
+        }
+        Function("identityKeyPairDeserialize") {
+            (serializedIdentityKeyPair: Data) throws -> [[UInt8]] in
+            return try identityKeyPairDeserializeHelper(serializedIdentityKeyPair: serializedIdentityKeyPair)
+        }
+        Function("identityKeyPairSignAlternateIdentity") {
+            (serializedPublicKey: Data, serializedPrivateKey: Data, serializedAlternateIdentityKey: Data) throws -> [UInt8] in
+            return try identityKeyPairSignAlternateIdentityHelper(serializedPublicKey: serializedPublicKey, serializedPrivateKey: serializedPrivateKey, serializedAlternateIdentityKey: serializedAlternateIdentityKey)
         }
         Function("sessionCipherEncryptMessage") {
             (base64Message: String, address: String, sessionStoreState: [String: String], identityKeyState: [Any], now: Int64) throws -> [Any] in
@@ -830,7 +834,7 @@ public class ReactNativeLibsignalClientModule: Module {
             (serializedPublicKey: Data, message: Data, signature: Data) throws -> Bool in
             return try publicKeyVerifyHelper(serializedPublicKey: serializedPublicKey, message: message, signature: signature)
         }
-        Function("identityKeyVerifyAlternateIdentityWithIdentityKey") {
+        Function("identityKeyVerifyAlternateIdentity") {
             (serializedIdentityKey: Data, otherPublicKey: Data, message: Data) throws -> Bool in
             return try identityKeyVerifyAlternateIdentityWithIdentityKeyHelper(serializedIdentityKey: serializedIdentityKey, otherPublicKey: otherPublicKey, message: message)
         }
@@ -917,6 +921,12 @@ public class ReactNativeLibsignalClientModule: Module {
         Function("privateKeySign") {
             (serializedPrivateKey: Data, message: Data ) throws -> Data in
             return try privateKeySignBody(serializedPrivateKey: serializedPrivateKey, message: message)
+        }
+        Function ("privateKeyAgree") {
+            (serializedPrivateKey: Data, serializedPublicKey: Data) throws -> [UInt8] in
+            let publicKey = try PublicKey([UInt8](serializedPublicKey))
+            let privateKey = try PrivateKey([UInt8](serializedPrivateKey))
+            return privateKey.keyAgreement(with: publicKey)
         }
         Function("signedPreKeyRecordNew") {
             (id: UInt32, timestamp: UInt64, serializedPublicKey: Data, serializedPrivateKey: Data, signature: Data) throws -> Data in
@@ -2224,7 +2234,17 @@ public class ReactNativeLibsignalClientModule: Module {
         let identityKeyPair = IdentityKeyPair(publicKey: publicKey, privateKey: privateKey)
         return Data(identityKeyPair.serialize())
     }
-
+    private func identityKeyPairDeserializeHelper(serializedIdentityKeyPair: Data) throws -> [[UInt8]] {
+        let identityKeyPair = try IdentityKeyPair(bytes: serializedIdentityKeyPair)
+        return [identityKeyPair.privateKey.serialize(), identityKeyPair.publicKey.serialize()]
+    }
+    private func identityKeyPairSignAlternateIdentityHelper(serializedPublicKey: Data, serializedPrivateKey: Data, serializedAlternateIdentityKey: Data) throws -> [UInt8] {
+        let publicKey = try PublicKey(serializedPublicKey)
+        let privateKey = try PrivateKey(serializedPrivateKey)
+        let identityKeyPair = IdentityKeyPair(publicKey: publicKey, privateKey: privateKey)
+        let alternateIdentityKey = try IdentityKey(bytes: serializedAlternateIdentityKey)
+        return identityKeyPair.signAlternateIdentity(alternateIdentityKey)
+    }
     private func sessionCipherEncryptMessageHelper(
         base64Message: String,
         address: String,

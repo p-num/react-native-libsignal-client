@@ -183,8 +183,9 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("publicKeyGetPublicKeyBytes", this@ReactNativeLibsignalClientModule::publicKeyGetPublicKeyBytes)
     Function("publicKeyVerify", this@ReactNativeLibsignalClientModule::publicKeyVerify)
     Function("identityKeyPairSerialize", this@ReactNativeLibsignalClientModule::identityKeyPairSerialize)
+    Function("identityKeyPairDeserialize", this@ReactNativeLibsignalClientModule::identityKeyPairDeserialize)
+    Function("identityKeyPairSignAlternateIdentity", this@ReactNativeLibsignalClientModule::identityKeyPairSignAlternateIdentity)
     Function("identityKeyVerifyAlternateIdentity", this@ReactNativeLibsignalClientModule::identityKeyVerifyAlternateIdentity)
-    Function("generateIdentityKeyPair", this@ReactNativeLibsignalClientModule::generateIdentityKeyPair)
     Function("generateKyberKeyPair", this@ReactNativeLibsignalClientModule::generateKyberKeyPair)
     Function("generateKyberRecord", this@ReactNativeLibsignalClientModule::generateKyberRecord)
     Function("kyberPreKeyRecordGetId", this@ReactNativeLibsignalClientModule::kyberPreKeyRecordGetId)
@@ -370,18 +371,25 @@ class ReactNativeLibsignalClientModule : Module() {
     val otherIdentityKey = IdentityKey(otherPublicKey)
     return identityKey.verifyAlternateIdentity(otherIdentityKey, message)
   }
+  private fun identityKeyPairSignAlternateIdentity(serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray, otherPublicKey: ByteArray) : ByteArray {
+    val identityKey = IdentityKey(serializedPublicKey)
+    val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
+    val identityKeyPair = IdentityKeyPair(identityKey, privateKey)
+    val otherIdentityKey = IdentityKey(otherPublicKey)
+    return identityKeyPair.signAlternateIdentity(otherIdentityKey)
+  }
   private fun privateKeySign(serializedPrivateKey: ByteArray, message: ByteArray) : ByteArray {
     val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
     return privateKey.calculateSignature(message)
-  }
-  private fun generateIdentityKeyPair() : Pair<ByteArray, ByteArray>  {
-    val keypair = Curve.generateKeyPair()
-    return Pair(keypair.publicKey.serialize(), keypair.privateKey.serialize())
   }
   private fun identityKeyPairSerialize(serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray) : ByteArray {
     val pubKey = IdentityKey(serializedPublicKey)
     val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
     return IdentityKeyPair(pubKey, privateKey).serialize()
+  }
+  private fun identityKeyPairDeserialize(serializedIdentityKeyPair: ByteArray) : Pair<ByteArray, ByteArray> {
+    val identityKeyPair = IdentityKeyPair(serializedIdentityKeyPair)
+    return Pair(identityKeyPair.privateKey.serialize(), identityKeyPair.publicKey.serialize())
   }
   private fun generateKyberKeyPair() : Pair<ByteArray, ByteArray>   {
     val keypair = KEMKeyPair.generate(KEMKeyType.KYBER_1024)
