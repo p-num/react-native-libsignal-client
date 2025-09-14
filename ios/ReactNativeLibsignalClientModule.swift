@@ -2565,7 +2565,8 @@ public class ReactNativeLibsignalClientModule: Module {
     private func plaintextContentFromDecryptionErrorMessageHelper(
         message: Data)
     throws -> PlaintextContent {
-        return try PlaintextContent(bytes: message)
+        let errorMessage = try DecryptionErrorMessage(bytes: message)
+        return try PlaintextContent(errorMessage)
     }
 
     private func plaintextContentGetBodyHelper(
