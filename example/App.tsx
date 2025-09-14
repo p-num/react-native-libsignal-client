@@ -9,6 +9,7 @@ import {
 	testAesGcmWithLongInput,
 	testAesGcmWithShortInput,
 	testConstantTimeEqual,
+	testDecryptionMessageError,
 	testECC,
 	testGenerateRegistrationId,
 	testHKDF,
@@ -65,6 +66,7 @@ export default function App() {
 					testConstantTimeEqual,
 					testGroup,
 					testECC,
+					testDecryptionMessageError,
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {
