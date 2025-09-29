@@ -1,11 +1,21 @@
-import type { ConfigPlugin } from 'expo/config-plugins';
-import withCoreLibraryDesugaring from './withCoreLibraryDesugaring';
-import withLibsignalClient from './withLibSignalClient';
+import { type ConfigPlugin, createRunOncePlugin } from '@expo/config-plugins';
+import { withBuildProperties } from 'expo-build-properties';
 
-const withConfig: ConfigPlugin = (config) => {
-	let newConfig = withLibsignalClient(config);
-	newConfig = withCoreLibraryDesugaring(config);
-	return newConfig;
+import withCoreLibraryDesugaring from './withCoreLibraryDesugaring';
+import withLibSignalClient from './withLibSignalClient';
+
+const withReactNativeLibsignalClient: ConfigPlugin = (rawConfig) => {
+	let config = withBuildProperties(rawConfig, {
+		ios: {
+			useFrameworks: 'dynamic',
+		},
+	});
+	config = withLibSignalClient(config);
+	config = withCoreLibraryDesugaring(config);
+	return config;
 };
 
-export default withConfig;
+export default createRunOncePlugin(
+	withReactNativeLibsignalClient,
+	'react-native-libsignal-client'
+);
