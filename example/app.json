@@ -30,16 +30,18 @@
 			[
 				"expo-build-properties",
 				{
-					"ios": {
-						"deploymentTarget": "15.5"
-					},
-					"android": {
-						"minSdkVersion": 26
-					}
+					"ios": { "deploymentTarget": "15.5" },
+					"android": { "minSdkVersion": 26 }
 				}
 			],
-			"../app.plugin.js",
-			"../plugin/build/withLibSignalClient.js"
+			[
+				"../app.plugin.js",
+				{
+					"ios": {
+						"staticPods": ["RNCMaskedView", "EXDocumentPicker"]
+					}
+				}
+			]
 		]
 	}
 }

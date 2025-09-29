@@ -179,6 +179,86 @@ Persistence: You must implement storage interfaces (identity, sessions, prekeys,
 
 ---
 
+## iOS Framework / Static Pod Workarounds
+
+Because `use_frameworks! :linkage => :dynamic` is required for the Swift-based `LibSignalClient` pod, some React Native pods (notably `RNReanimated`, sometimes `RNScreens`) can fail to link with errors like:
+
+```
+Undefined symbols for architecture arm64
+_OBJC_CLASS_$_RCTEventDispatcher
+```
+
+This is a known CocoaPods + mixed linkage quirk. The plugin automatically forces a minimal set of pods to build as static libraries to avoid these issues.
+
+Default static overrides:
+
+- RNReanimated
+- RNScreens
+
+You can customize:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-libsignal-client",
+        {
+          "ios": {
+            "staticPods": ["RNCMaskedView", "ExpoDocumentPicker"],   // add more
+            "disableStaticWorkarounds": false
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+Set `disableStaticWorkarounds: true` to remove the pre_install block and manage linkage manually.
+
+### Overriding libsignal Version / Checksum
+
+The plugin pins a known-good upstream tag & checksum. To test a new upstream release:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-libsignal-client",
+        {
+          "ios": {
+            "libsignalTag": "v0.71.0",
+            "libsignalChecksum": "<release_checksum>"
+          }
+        }
+      ]
+    ]
+  }
+}
+```
+
+(Checksum comes from the upstream release notes. A mismatch will cause the pod build script to fail early.)
+
+### How It Works (iOS)
+
+1. `use_frameworks! :linkage => :dynamic` enables building Swift/C modules as frameworks.
+2. `LibSignalClient` pod build script downloads / builds the Rust FFI for required architectures.
+3. Static override block redefines `build_type` for selected pods so they link into the app binary, preventing missing React symbol linkage.
+4. If you remove `use_frameworks!`, the pod will fail (Swift + Rust wrapper expects frameworks).
+
+### When to Add More Static Pods
+
+Add a pod name to `staticPods` if:
+
+- You see "Undefined symbols ..." referencing React classes from that pod.
+- You get duplicate symbol errors after adding another dynamic framework—forcing one side static can help.
+
+If everything builds, do not add more; keep surface minimal.
+
+---
+
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 – see the [LICENSE](LICENSE) file.
