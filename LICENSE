@@ -1,0 +1,7 @@
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+This project uses [libsignal](https://github.com/signalapp/libsignal), which is licensed under the GNU AGPL v3.0.
+
+**Important**: The AGPL v3.0 is a copyleft license. Any application using this library must also be licensed under AGPL v3.0 or obtain a commercial license from Signal.
