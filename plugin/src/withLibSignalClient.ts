@@ -1,6 +1,4 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { type ConfigPlugin, withDangerousMod } from '@expo/config-plugins';
+import { type ConfigPlugin, withPodfile } from '@expo/config-plugins';
 
 const LIBSIGNAL_POD =
 	"  pod 'LibSignalClient', :git => 'https://github.com/signalapp/libsignal.git', :tag => 'v0.70.0'";
@@ -53,24 +51,13 @@ function ensureChecksum(contents: string) {
 }
 
 const withLibsignalClient: ConfigPlugin = (config) =>
-	withDangerousMod(config, [
-		'ios',
-		async (config) => {
-			const filePath = path.join(
-				config.modRequest.platformProjectRoot,
-				'Podfile'
-			);
-			const contents = await fs.readFile(filePath, 'utf8');
-			const next = ensureChecksum(
-				ensureLibsignalPod(ensureUseFrameworks(contents))
-			);
-
-			if (next !== contents) {
-				await fs.writeFile(filePath, next, 'utf8');
-			}
-
-			return config;
-		},
-	]);
+	withPodfile(config, (config) => {
+		const { modResults } = config;
+		const next = ensureChecksum(
+			ensureLibsignalPod(ensureUseFrameworks(modResults.contents))
+		);
+		modResults.contents = next;
+		return config;
+	});
 
 export default withLibsignalClient;
