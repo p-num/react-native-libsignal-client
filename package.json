@@ -28,13 +28,14 @@
 		"url": "https://github.com/ehsunahmadi/react-native-libsignal-client/issues"
 	},
 	"author": "ehsun <ehsun.ahmadi@gmail.com> (https://github.com/ehsunahmadi)",
-	"license": "MIT",
+	"license": "AGPL-3.0",
 	"homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
 	"dependencies": {
 		"@craftzdog/react-native-buffer": "^6.1.0",
 		"react-native-get-random-values": "^1.11.0",
 		"react-native-quick-base64": "^2.0.5",
-		"uuid": "^10.0.0"
+		"uuid": "^10.0.0",
+		"expo-build-properties": "~0.12.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
