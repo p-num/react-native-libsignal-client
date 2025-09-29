@@ -5,28 +5,6 @@ const LIBSIGNAL_POD =
 const CHECKSUM_LINE =
 	"ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] ||= 'e12f6f64eb0ed503c363f3b3830c4c62976cceec04122cd6deee66f5106c482d'";
 
-function ensureUseFrameworks(contents: string) {
-	const dynamicLine = 'use_frameworks! :linkage => :dynamic';
-
-	if (contents.includes(dynamicLine)) {
-		return contents;
-	}
-
-	if (contents.match(/use_frameworks!\s*(?:[:(]|$)/)) {
-		return contents.replace(/use_frameworks!.*\n/, `${dynamicLine}\n`);
-	}
-
-	const platformLine = contents.match(/platform :ios, .*\n/);
-	if (platformLine) {
-		return contents.replace(
-			platformLine[0],
-			`${platformLine[0]}\n${dynamicLine}\n`
-		);
-	}
-
-	return `${dynamicLine}\n${contents}`;
-}
-
 function ensureLibsignalPod(contents: string) {
 	if (contents.includes("pod 'LibSignalClient'")) {
 		return contents;
@@ -53,9 +31,7 @@ function ensureChecksum(contents: string) {
 const withLibsignalClient: ConfigPlugin = (config) =>
 	withPodfile(config, (config) => {
 		const { modResults } = config;
-		const next = ensureChecksum(
-			ensureLibsignalPod(ensureUseFrameworks(modResults.contents))
-		);
+		const next = ensureChecksum(ensureLibsignalPod(modResults.contents));
 		modResults.contents = next;
 		return config;
 	});

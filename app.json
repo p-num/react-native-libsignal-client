@@ -5,6 +5,7 @@
 		"version": "0.1.36",
 		"description": "My new module",
 		"sdkVersion": "51.0.0",
-		"platforms": ["ios", "android"]
+		"platforms": ["ios", "android"],
+		"plugins": ["expo-build-properties"]
 	}
 }
