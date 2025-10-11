@@ -17,6 +17,7 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
   s.dependency 'LibSignalClient'
+  s.dependency 'CryptoSwift', '~> 1.8.4'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {

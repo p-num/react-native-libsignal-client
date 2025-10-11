@@ -4,9 +4,13 @@ import { log } from './logger';
 import {
 	testAesCbcWithLongInput,
 	testAesCbcWithShortInput,
+	testAesCtrWithLongInput,
+	testAesCtrWithShortInput,
 	testAesGcmWithLongInput,
 	testAesGcmWithShortInput,
 	testConstantTimeEqual,
+	testDecryptionMessageError,
+	testECC,
 	testGenerateRegistrationId,
 	testHKDF,
 	testKyberPreKeyRecord,
@@ -56,9 +60,13 @@ export default function App() {
 					testAesGcmWithLongInput,
 					testAesCbcWithShortInput,
 					testAesCbcWithLongInput,
+					testAesCtrWithShortInput,
+					testAesCtrWithLongInput,
 					testSignHmacSha256,
 					testConstantTimeEqual,
 					testGroup,
+					testECC,
+					testDecryptionMessageError,
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {

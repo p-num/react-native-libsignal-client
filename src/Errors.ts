@@ -1,53 +1,62 @@
 import { ProtocolAddress } from '.';
 
+// biome-ignore lint/style/useEnumInitializers: <explanation>
 export enum ErrorCode {
-	Generic = 0,
+	Generic,
 
-	DuplicatedMessage = 1,
-	SealedSenderSelfSend = 2,
-	UntrustedIdentity = 3,
-	InvalidRegistrationId = 4,
-	VerificationFailed = 5,
-	InvalidSession = 6,
-	InvalidSenderKeySession = 7,
+	DuplicatedMessage,
+	SealedSenderSelfSend,
+	UntrustedIdentity,
+	InvalidRegistrationId,
+	VerificationFailed,
+	InvalidSession,
+	InvalidSenderKeySession,
 
-	NicknameCannotBeEmpty = 8,
-	CannotStartWithDigit = 9,
-	MissingSeparator = 10,
-	BadNicknameCharacter = 11,
-	NicknameTooShort = 12,
-	NicknameTooLong = 13,
-	DiscriminatorCannotBeEmpty = 14,
-	DiscriminatorCannotBeZero = 15,
-	DiscriminatorCannotBeSingleDigit = 16,
-	DiscriminatorCannotHaveLeadingZeros = 17,
-	BadDiscriminatorCharacter = 18,
-	DiscriminatorTooLarge = 19,
+	NicknameCannotBeEmpty,
+	CannotStartWithDigit,
+	MissingSeparator,
+	BadNicknameCharacter,
+	NicknameTooShort,
+	NicknameTooLong,
+	DiscriminatorCannotBeEmpty,
+	DiscriminatorCannotBeZero,
+	DiscriminatorCannotBeSingleDigit,
+	DiscriminatorCannotHaveLeadingZeros,
+	BadDiscriminatorCharacter,
+	DiscriminatorTooLarge,
 
-	IoError = 20,
-	CdsiInvalidToken = 21,
-	InvalidUri = 22,
+	IoError,
+	CdsiInvalidToken,
+	InvalidUri,
 
-	InvalidMediaInput = 23,
-	UnsupportedMediaInput = 24,
+	InvalidMediaInput,
+	UnsupportedMediaInput,
 
-	InputDataTooLong = 25,
-	InvalidEntropyDataLength = 26,
-	InvalidUsernameLinkEncryptedData = 27,
+	InputDataTooLong,
+	InvalidEntropyDataLength,
+	InvalidUsernameLinkEncryptedData,
 
-	RateLimitedError = 28,
+	RateLimitedError,
 
-	SvrDataMissing = 29,
-	SvrRequestFailed = 30,
-	SvrRestoreFailed = 31,
+	SvrDataMissing,
+	SvrRequestFailed,
+	SvrRestoreFailed,
 
-	ChatServiceInactive = 32,
+	ChatServiceInactive,
+	AppExpired,
+	DeviceDelinked,
+	ConnectionInvalidated,
+	ConnectedElsewhere,
+
+	BackupValidation,
+
+	Cancelled,
 }
 
 export class LibSignalErrorBase extends Error {
 	public readonly code: ErrorCode;
 	public readonly operation: string;
-	readonly _addr?: string;
+	readonly _addr?: string | ProtocolAddress;
 
 	constructor(
 		message: string,
@@ -68,12 +77,6 @@ export class LibSignalErrorBase extends Error {
 		if (extraProps !== undefined) {
 			Object.assign(this, extraProps);
 		}
-
-		// Maintains proper stack trace, where our error was thrown (only available on V8)
-		//   via https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error
-		// if (Error.captureStackTrace) {
-		// 	Error.captureStackTrace(this);
-		// }
 	}
 
 	public get addr(): ProtocolAddress | string {
@@ -85,6 +88,29 @@ export class LibSignalErrorBase extends Error {
 			default:
 				throw new TypeError(`cannot get address from this error (${this})`);
 		}
+	}
+
+	public toString(): string {
+		return `${this.name} - ${this.operation}: ${this.message}`;
+	}
+
+	/// Like `error.code === code`, but also providing access to any additional properties.
+	public is<E extends ErrorCode>(
+		code: E
+	): this is Extract<LibSignalError, { code: E }> {
+		return this.code === code;
+	}
+
+	/// Like `error instanceof LibSignalErrorBase && error.code === code`, but all in one expression,
+	/// and providing access to any additional properties.
+	public static is<E extends ErrorCode>(
+		error: unknown,
+		code: E
+	): error is Extract<LibSignalError, { code: E }> {
+		if (error instanceof LibSignalErrorBase) {
+			return error.is(code);
+		}
+		return false;
 	}
 }
 
@@ -207,6 +233,22 @@ export type ChatServiceInactive = LibSignalErrorBase & {
 	code: ErrorCode.ChatServiceInactive;
 };
 
+export type AppExpiredError = LibSignalErrorBase & {
+	code: ErrorCode.AppExpired;
+};
+
+export type DeviceDelinkedError = LibSignalErrorBase & {
+	code: ErrorCode.DeviceDelinked;
+};
+
+export type ConnectionInvalidatedError = LibSignalErrorBase & {
+	code: ErrorCode.ConnectionInvalidated;
+};
+
+export type ConnectedElsewhereError = LibSignalErrorBase & {
+	code: ErrorCode.ConnectedElsewhere;
+};
+
 export type SvrDataMissingError = LibSignalErrorBase & {
 	code: ErrorCode.SvrDataMissing;
 };
@@ -217,6 +259,16 @@ export type SvrRequestFailedError = LibSignalErrorCommon & {
 
 export type SvrRestoreFailedError = LibSignalErrorCommon & {
 	code: ErrorCode.SvrRestoreFailed;
+	readonly triesRemaining: number;
+};
+
+export type BackupValidationError = LibSignalErrorCommon & {
+	code: ErrorCode.BackupValidation;
+	readonly unknownFields: ReadonlyArray<string>;
+};
+
+export type CancellationError = LibSignalErrorCommon & {
+	code: ErrorCode.Cancelled;
 };
 
 export type LibSignalError =
@@ -251,4 +303,11 @@ export type LibSignalError =
 	| SvrRestoreFailedError
 	| SvrRequestFailedError
 	| UnsupportedMediaInputError
-	| ChatServiceInactive;
+	| ChatServiceInactive
+	| AppExpiredError
+	| DeviceDelinkedError
+	| ConnectionInvalidatedError
+	| ConnectedElsewhereError
+	| RateLimitedError
+	| BackupValidationError
+	| CancellationError;

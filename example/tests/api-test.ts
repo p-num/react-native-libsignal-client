@@ -865,6 +865,73 @@ export const testAesCbcWithLongInput = () =>
 		);
 	});
 
+export const testAesCtrWithShortInput = () =>
+	test('AES-CTR test', () => {
+		const key = Buffer.from(
+			'0100000000000000000000000000000000000000000000000000000000000000',
+			'hex'
+		);
+
+		const aes_ctr = ReactNativeLibsignalClient.Aes256CCtr.new(
+			new Uint8Array(key)
+		);
+
+		const aad = Buffer.from('01000000000000000000000000000000', 'hex');
+		const ptext = Buffer.from('02000000', 'hex');
+
+		const ctext = aes_ctr.encrypt(new Uint8Array(ptext), new Uint8Array(aad));
+
+		assert(
+			deepEql(Buffer.from(ctext).toString('hex'), 'c8e89d36'),
+			`ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with c8e89d36`
+		);
+
+		const decrypted = aes_ctr.decrypt(ctext, new Uint8Array(aad));
+
+		assert(
+			deepEql(Buffer.from(decrypted).toString('hex'), '02000000'),
+			`decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 02000000`
+		);
+	});
+
+export const testAesCtrWithLongInput = () =>
+	test('AES-CTR test', () => {
+		const key = Buffer.from(
+			'0100000000000000000000000000000000000000000000000000000000000000',
+			'hex'
+		);
+
+		const aes_ctr = ReactNativeLibsignalClient.Aes256CCtr.new(
+			new Uint8Array(key)
+		);
+
+		const aad = Buffer.from('01000000000000000000000000000000', 'hex');
+		const ptext = Buffer.from(
+			'5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e',
+			'hex'
+		);
+
+		const ctext = aes_ctr.encrypt(new Uint8Array(ptext), new Uint8Array(aad));
+
+		assert(
+			deepEql(
+				Buffer.from(ctext).toString('hex'),
+				'9e80f4451b025a7055e77fa5cd933d5b4399059a5f0d362a64e9d2b5ba4fd9536fdb865fc4d65710f7ff93e0d3fd5ef8388d84c251'
+			),
+			`ctext ${Buffer.from(ctext).toString('hex')} is not the same as the the one it was created with 9e80f4451b025a7055e77fa5cd933d5b4399059a5f0d362a64e9d2b5ba4fd9536fdb865fc4d65710f7ff93e0d3fd5ef8388d84c251`
+		);
+
+		const decrypted = aes_ctr.decrypt(ctext, new Uint8Array(aad));
+
+		assert(
+			deepEql(
+				Buffer.from(decrypted).toString('hex'),
+				'5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e'
+			),
+			`decrypted ${Buffer.from(decrypted).toString('hex')} is not the same as the the one it was created with 5468697320697320612074657374206d65737361676520746861742065786365656473206f6e6520626c6f636b206c656e6774682e`
+		);
+	});
+
 export const testSignHmacSha256 = () =>
 	test('HMAC-SHA256 test ', () => {
 		function verifyHmacSha256(
@@ -1406,3 +1473,536 @@ export const testConstantTimeEqual = () =>
 // 			'senderDeviceId is not the same as the the one it was created with'
 // 		);
 // 	});
+
+export const testECC = () => {
+	// it('ECC signatures work', () => {
+	//   const priv_a = SignalClient.PrivateKey.generate();
+	//   const priv_b = SignalClient.PrivateKey.generate();
+	//   assert.lengthOf(priv_a.serialize(), 32, 'private key serialization length');
+	//   assert.deepEqual(priv_a.serialize(), priv_a.serialize(), 'repeatable');
+	//   assert.notDeepEqual(
+	//     priv_a.serialize(),
+	//     priv_b.serialize(),
+	//     'different for different keys'
+	//   );
+
+	//   const pub_a = priv_a.getPublicKey();
+	//   const pub_b = priv_b.getPublicKey();
+
+	//   const msg = Buffer.from([1, 2, 3]);
+
+	//   const sig_a = priv_a.sign(msg);
+	//   assert.lengthOf(sig_a, 64, 'signature length');
+
+	//   assert(pub_a.verify(msg, sig_a));
+	//   assert(!pub_b.verify(msg, sig_a));
+
+	//   const sig_b = priv_b.sign(msg);
+	//   assert.lengthOf(sig_b, 64, 'signature length');
+
+	//   assert(pub_b.verify(msg, sig_b));
+	//   assert(!pub_a.verify(msg, sig_b));
+	// });
+
+	// it('ECC key agreement work', () => {
+	//   const priv_a = SignalClient.PrivateKey.generate();
+	//   const priv_b = SignalClient.PrivateKey.generate();
+
+	//   const pub_a = priv_a.getPublicKey();
+	//   const pub_b = priv_b.getPublicKey();
+
+	//   const shared_a = priv_a.agree(pub_b);
+	//   const shared_b = priv_b.agree(pub_a);
+
+	//   assert.deepEqual(shared_a, shared_b, 'key agreement works');
+	// });
+	//let's transform the above tests into our own api
+	test('ECC signatures work', () => {
+		const priv_a = ReactNativeLibsignalClient.PrivateKey.generate();
+		const priv_b = ReactNativeLibsignalClient.PrivateKey.generate();
+		assert(priv_a.serialized.length === 32);
+		assert(deepEql(priv_a.serialized, priv_a.serialized));
+		assert(!deepEql(priv_a.serialized, priv_b.serialized));
+
+		const pub_a = priv_a.getPublicKey();
+		const pub_b = priv_b.getPublicKey();
+
+		const msg = new Uint8Array(Buffer.from([1, 2, 3]));
+
+		const sig_a = priv_a.sign(msg);
+		assert(sig_a.length === 64);
+
+		assert(pub_a.verify(msg, sig_a));
+		assert(!pub_b.verify(msg, sig_a));
+
+		const sig_b = priv_b.sign(msg);
+		assert(sig_b.length === 64);
+
+		assert(pub_b.verify(msg, sig_b));
+		assert(!pub_a.verify(msg, sig_b));
+	});
+
+	test('ECC key agreement work', () => {
+		const priv_a = ReactNativeLibsignalClient.PrivateKey.generate();
+		const priv_b = ReactNativeLibsignalClient.PrivateKey.generate();
+
+		const pub_a = priv_a.getPublicKey();
+		const pub_b = priv_b.getPublicKey();
+
+		const shared_a = priv_a.agree(pub_b);
+		const shared_b = priv_b.agree(pub_a);
+
+		assert(deepEql(shared_a, shared_b), 'key agreement works');
+	});
+
+	test('ECC keys roundtrip through serialization', () => {
+		const key = Buffer.alloc(32, 0x40);
+		const priv = ReactNativeLibsignalClient.PrivateKey._fromSerialized(key);
+		assert(key.equals(Buffer.from(priv.serialized)));
+
+		const pub = priv.getPublicKey();
+		const pub_bytes = pub.serialized;
+		assert(pub_bytes.length === 32 + 1);
+
+		const pub2 =
+			ReactNativeLibsignalClient.PublicKey._fromSerialized(pub_bytes);
+
+		assert(deepEql(pub.serialized, pub2.serialized));
+
+		assert(deepEql(pub.compare(pub2), 0));
+		assert(deepEql(pub2.compare(pub), 0));
+
+		const anotherKey = ReactNativeLibsignalClient.PrivateKey._fromSerialized(
+			new Uint8Array(Buffer.alloc(32, 0xcd))
+		).getPublicKey();
+		assert(deepEql(pub.compare(anotherKey), 1));
+		assert(deepEql(anotherKey.compare(pub), -1));
+
+		assert(pub.getPublicKeyBytes().length === 32);
+
+		const keyPair = new ReactNativeLibsignalClient.IdentityKeyPair(pub, priv);
+		const keyPairBytes = keyPair.serialize();
+		const roundTripKeyPair =
+			ReactNativeLibsignalClient.IdentityKeyPair.deserialize(keyPairBytes);
+		assert(roundTripKeyPair.publicKey.compare(pub) === 0);
+		const roundTripKeyPairBytes = roundTripKeyPair.serialize();
+		assert(deepEql(keyPairBytes, roundTripKeyPairBytes));
+	});
+
+	// NOTE: because we just save the raw key bytes and not deserialize it with native functions the way signal does, we It's not gonna throw an error, so we comment it out for now
+	// test('decoding invalid ECC key throws an error', () => {
+	// 	const invalid_key = Buffer.alloc(33, 0xab);
+
+	// 	assert(
+	// 		throwsSync(() => {
+	// 			ReactNativeLibsignalClient.PrivateKey._fromSerialized(invalid_key);
+	// 		}),
+	// 		'bad key length <33> for key with type <Djb>'
+	// 	);
+
+	// 	assert(
+	// 		throwsSync(() => {
+	// 			ReactNativeLibsignalClient.PublicKey._fromSerialized(invalid_key);
+	// 		}),
+	// 		'bad key type <0xab>'
+	// 	);
+	// });
+
+	test('can sign and verify alternate identity keys', () => {
+		const primary = ReactNativeLibsignalClient.IdentityKeyPair.generate();
+		const secondary = ReactNativeLibsignalClient.IdentityKeyPair.generate();
+		const signature = secondary.signAlternateIdentity(primary.publicKey);
+		assert(
+			secondary.publicKey.verifyAlternateIdentity(primary.publicKey, signature)
+		);
+	});
+
+	//   it('includes all error codes in LibSignalError', () => {
+	//   // This is a compilation test only.
+	//   type MissingCodes = Exclude<
+	//     ReactNativeLibsignalClient.ErrorCode,
+	//     ReactNativeLibsignalClient.LibSignalError['code']
+	//   >;
+	//   function _check(
+	//     hasMissingCode: MissingCodes extends never ? never : unknown
+	//   ): MissingCodes {
+	//     // If the following line errors with something like...
+	//     //
+	//     //     Type 'unknown' is not assignable to type 'ErrorCode.RateLimitedError | ErrorCode.BackupValidation'.
+	//     //
+	//     // ...that means `MissingCode extends never` was false, i.e. there were codes missing from the
+	//     // LibSignalError union. Fortunately, the error message also tells you what they are.
+	//     // (We ought to have been able to write this as `const missing: never = someMissingCodesValue`
+	//     // or similar, but TypeScript 5.3 doesn't show the missing cases in the diagnostic that way.)
+	//     return hasMissingCode;
+	//   }
+	// });
+	// let's transform the above tests into our own api
+	test('includes all error codes in LibSignalError', () => {
+		// This is a compilation test only.
+		type MissingCodes = Exclude<
+			ReactNativeLibsignalClient.ErrorCode,
+			ReactNativeLibsignalClient.LibSignalError['code']
+		>;
+		function _check(
+			hasMissingCode: MissingCodes extends never ? never : unknown
+		): MissingCodes {
+			// If the following line errors with something like...
+			//
+			//     Type 'unknown' is not assignable to type 'ErrorCode.RateLimitedError | ErrorCode.BackupValidation'.
+			//
+			// ...that means `MissingCode extends never` was false, i.e. there were codes missing from the
+			// LibSignalError union. Fortunately, the error message also tells you what they are.
+			// (We ought to have been able to write this as `const missing: never = someMissingCodesValue`
+			// or similar, but TypeScript 5.3 doesn't show the missing cases in the diagnostic that way.)
+			return hasMissingCode;
+		}
+	});
+};
+
+// it('DecryptionMessageError', async () => {
+//     const aKeys = new InMemoryIdentityKeyStore();
+//     const bKeys = new InMemoryIdentityKeyStore();
+
+//     const aSess = new InMemorySessionStore();
+//     const bSess = new InMemorySessionStore();
+
+//     const bPreK = new InMemoryPreKeyStore();
+//     const bSPreK = new InMemorySignedPreKeyStore();
+//     const kyberStore = new InMemoryKyberPreKeyStore();
+
+//     const bPreKey = SignalClient.PrivateKey.generate();
+//     const bSPreKey = SignalClient.PrivateKey.generate();
+
+//     const aIdentityKey = await aKeys.getIdentityKey();
+//     const bIdentityKey = await bKeys.getIdentityKey();
+
+//     const aE164 = '+14151111111';
+
+//     const aDeviceId = 1;
+//     const bDeviceId = 3;
+
+//     const aUuid = '9d0652a3-dcc3-4d11-975f-74d61598733f';
+//     const bUuid = '796abedb-ca4e-4f18-8803-1fde5b921f9f';
+
+//     const trustRoot = SignalClient.PrivateKey.generate();
+//     const serverKey = SignalClient.PrivateKey.generate();
+
+//     const serverCert = SignalClient.ServerCertificate.new(
+//       1,
+//       serverKey.getPublicKey(),
+//       trustRoot
+//     );
+
+//     const expires = 1605722925;
+//     const senderCert = SignalClient.SenderCertificate.new(
+//       aUuid,
+//       aE164,
+//       aDeviceId,
+//       aIdentityKey.getPublicKey(),
+//       expires,
+//       serverCert,
+//       serverKey
+//     );
+
+//     const bRegistrationId = await bKeys.getLocalRegistrationId();
+//     const bPreKeyId = 31337;
+//     const bSignedPreKeyId = 22;
+
+//     const bSignedPreKeySig = bIdentityKey.sign(
+//       bSPreKey.getPublicKey().serialize()
+//     );
+
+//     const bPreKeyBundle = SignalClient.PreKeyBundle.new(
+//       bRegistrationId,
+//       bDeviceId,
+//       bPreKeyId,
+//       bPreKey.getPublicKey(),
+//       bSignedPreKeyId,
+//       bSPreKey.getPublicKey(),
+//       bSignedPreKeySig,
+//       bIdentityKey.getPublicKey()
+//     );
+
+//     const bPreKeyRecord = SignalClient.PreKeyRecord.new(
+//       bPreKeyId,
+//       bPreKey.getPublicKey(),
+//       bPreKey
+//     );
+//     await bPreK.savePreKey(bPreKeyId, bPreKeyRecord);
+
+//     const bSPreKeyRecord = SignalClient.SignedPreKeyRecord.new(
+//       bSignedPreKeyId,
+//       42, // timestamp
+//       bSPreKey.getPublicKey(),
+//       bSPreKey,
+//       bSignedPreKeySig
+//     );
+//     await bSPreK.saveSignedPreKey(bSignedPreKeyId, bSPreKeyRecord);
+
+//     // Set up the session with a message from A to B.
+
+//     const bAddress = SignalClient.ProtocolAddress.new(bUuid, bDeviceId);
+//     await SignalClient.processPreKeyBundle(
+//       bPreKeyBundle,
+//       bAddress,
+//       aSess,
+//       aKeys
+//     );
+
+//     const aPlaintext = Buffer.from('hi there', 'utf8');
+
+//     const aCiphertext = await SignalClient.sealedSenderEncryptMessage(
+//       aPlaintext,
+//       bAddress,
+//       senderCert,
+//       aSess,
+//       aKeys
+//     );
+
+//     await SignalClient.sealedSenderDecryptMessage(
+//       aCiphertext,
+//       trustRoot.getPublicKey(),
+//       43, // timestamp,
+//       null,
+//       bUuid,
+//       bDeviceId,
+//       bSess,
+//       bKeys,
+//       bPreK,
+//       bSPreK,
+//       kyberStore
+//     );
+
+//     // Pretend to send a message from B back to A that "fails".
+//     const aAddress = SignalClient.ProtocolAddress.new(aUuid, aDeviceId);
+//     const bCiphertext = await SignalClient.signalEncrypt(
+//       Buffer.from('reply', 'utf8'),
+//       aAddress,
+//       bSess,
+//       bKeys
+//     );
+
+//     const errorMessage = SignalClient.DecryptionErrorMessage.forOriginal(
+//       bCiphertext.serialize(),
+//       bCiphertext.type(),
+//       45, // timestamp
+//       bAddress.deviceId()
+//     );
+//     const errorContent = SignalClient.PlaintextContent.from(errorMessage);
+//     const errorUSMC = SignalClient.UnidentifiedSenderMessageContent.new(
+//       SignalClient.CiphertextMessage.from(errorContent),
+//       senderCert,
+//       SignalClient.ContentHint.Implicit,
+//       null // group ID
+//     );
+//     const errorSealedSenderMessage = await SignalClient.sealedSenderEncrypt(
+//       errorUSMC,
+//       bAddress,
+//       aKeys
+//     );
+
+//     const bErrorUSMC = await SignalClient.sealedSenderDecryptToUsmc(
+//       errorSealedSenderMessage,
+//       bKeys
+//     );
+//     assert.equal(
+//       bErrorUSMC.msgType(),
+//       SignalClient.CiphertextMessageType.Plaintext
+//     );
+//     const bErrorContent = SignalClient.PlaintextContent.deserialize(
+//       bErrorUSMC.contents()
+//     );
+//     const bErrorMessage =
+//       SignalClient.DecryptionErrorMessage.extractFromSerializedBody(
+//         bErrorContent.body()
+//       );
+//     assert.equal(bErrorMessage.timestamp(), 45);
+//     assert.equal(bErrorMessage.deviceId(), bAddress.deviceId());
+
+//     const bSessionWithA = await bSess.getSession(aAddress);
+//     assert(
+//       bSessionWithA?.currentRatchetKeyMatches(
+//         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+//         bErrorMessage.ratchetKey()!
+//       )
+//     );
+//   });
+// turn the above commented code-block from the current typical format to our own API based on other non-commented code here
+export const testDecryptionMessageError = () =>
+	test('DecryptionMessageError', async () => {
+		const aStores = new TestStores();
+		const bStores = new TestStores();
+
+		const aSess = aStores.session;
+		const bSess = bStores.session;
+		const aKeys = aStores.identity;
+		const bKeys = bStores.identity;
+		const bPreK = bStores.prekey;
+		const bSPreK = bStores.signed;
+		const kyberStore = bStores.kyber;
+
+		const bPreKey = ReactNativeLibsignalClient.PrivateKey.generate();
+		const bSPreKey = ReactNativeLibsignalClient.PrivateKey.generate();
+
+		const aIdentityKey = await aKeys.getIdentityKey();
+		const bIdentityKey = await bKeys.getIdentityKey();
+
+		const aE164 = '+14151111111';
+
+		const aDeviceId = 1;
+		const bDeviceId = 3;
+
+		const aUuid = '9d0652a3-dcc3-4d11-975f-74d61598733f';
+		const bUuid = '796abedb-ca4e-4f18-8803-1fde5b921f9f';
+
+		const trustRoot = ReactNativeLibsignalClient.PrivateKey.generate();
+		const serverKey = ReactNativeLibsignalClient.PrivateKey.generate();
+
+		const serverCert = ReactNativeLibsignalClient.ServerCertificate.new(
+			1,
+			serverKey.getPublicKey(),
+			trustRoot
+		);
+
+		const expires = 1605722925;
+		const senderCert = ReactNativeLibsignalClient.SenderCertificate.new(
+			aUuid,
+			aE164,
+			aDeviceId,
+			aIdentityKey.getPublicKey(),
+			expires,
+			serverCert,
+			serverKey
+		);
+
+		const bRegistrationId = await bKeys.getLocalRegistrationId();
+		const bPreKeyId = 31337;
+		const bSignedPreKeyId = 22;
+
+		const bSignedPreKeySig = bIdentityKey.sign(
+			bSPreKey.getPublicKey().serialized
+		);
+
+		const bPreKeyRecord = ReactNativeLibsignalClient.PreKeyRecord.new(
+			bPreKeyId,
+			bPreKey.getPublicKey(),
+			bPreKey
+		);
+		await bPreK.savePreKey(bPreKeyId, bPreKeyRecord);
+
+		const bSPreKeyRecord = ReactNativeLibsignalClient.SignedPreKeyRecord.new(
+			bSignedPreKeyId,
+			42, // timestamp
+			bSPreKey.getPublicKey(),
+			bSPreKey,
+			bSignedPreKeySig
+		);
+		await bSPreK.saveSignedPreKey(bSignedPreKeyId, bSPreKeyRecord);
+
+		// Set up the session with a message from A to B.
+		const bAddress = new ProtocolAddress(bUuid, bDeviceId);
+		await ReactNativeLibsignalClient.createAndProcessPreKeyBundle(
+			bRegistrationId,
+			bAddress,
+			bPreKeyId,
+			bPreKey.getPublicKey(),
+			bSignedPreKeyId,
+			bSPreKey.getPublicKey(),
+			bSignedPreKeySig,
+			bIdentityKey.getPublicKey(),
+			aSess,
+			aKeys,
+			null
+		);
+
+		const aPlaintext = Buffer.from('hi there', 'utf8');
+
+		const aCiphertext =
+			await ReactNativeLibsignalClient.sealedSenderEncryptMessage(
+				aPlaintext,
+				bAddress,
+				senderCert,
+				aSess,
+				aKeys
+			);
+
+		const kyberKeyIds = kyberStore._getAllKyberKeyIds();
+
+		await ReactNativeLibsignalClient.sealedSenderDecryptMessage(
+			aCiphertext,
+			trustRoot.getPublicKey(),
+			43, // timestamp,
+			null,
+			bUuid,
+			bDeviceId,
+			bSess,
+			bKeys,
+			bPreK,
+			bSPreK,
+			kyberStore,
+			kyberKeyIds
+		);
+
+		// Pretend to send a message from B back to A that "fails".
+		const aAddress = new ProtocolAddress(aUuid, aDeviceId);
+		const bCiphertext = await ReactNativeLibsignalClient.signalEncrypt(
+			Buffer.from('reply', 'utf8'),
+			aAddress,
+			bSess,
+			bKeys
+		);
+
+		const errorMessage =
+			ReactNativeLibsignalClient.DecryptionErrorMessage.forOriginal(
+				bCiphertext.serialized,
+				bCiphertext.type(),
+				45, // timestamp
+				bDeviceId
+			);
+		const errorContent =
+			ReactNativeLibsignalClient.PlaintextContent.from(errorMessage);
+		const errorUSMC =
+			ReactNativeLibsignalClient.UnidentifiedSenderMessageContent.new(
+				errorContent,
+				senderCert,
+				ReactNativeLibsignalClient.ContentHint.Implicit,
+				null // group ID
+			);
+		const errorSealedSenderMessage =
+			await ReactNativeLibsignalClient.sealedSenderEncrypt(
+				errorUSMC,
+				bAddress,
+				aKeys
+			);
+
+		const bErrorUSMC =
+			await ReactNativeLibsignalClient.sealedSenderDecryptToUsmc(
+				errorSealedSenderMessage,
+				bKeys
+			);
+		assert(
+			deepEql(
+				bErrorUSMC.msgType(),
+				ReactNativeLibsignalClient.CiphertextMessageType.Plaintext
+			)
+		);
+		const bErrorContent =
+			ReactNativeLibsignalClient.PlaintextContent._fromSerialized(
+				bErrorUSMC.contents()
+			);
+		const bErrorMessage =
+			ReactNativeLibsignalClient.DecryptionErrorMessage.extractFromSerializedBody(
+				bErrorContent.body()
+			);
+		assert(deepEql(bErrorMessage.timestamp(), 45));
+		assert(deepEql(bErrorMessage.deviceId(), bDeviceId));
+
+		const bSessionWithA = await bSess.getSession(aAddress);
+		assert(
+			!!bSessionWithA?.currentRatchetKeyMatches(
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+				bErrorMessage.ratchetKey()!
+			)
+		);
+	});

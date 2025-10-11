@@ -43,7 +43,7 @@ export default class GroupSecretParams {
 		return new GroupMasterKey(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSecretParamsGetMasterKey(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);
@@ -53,7 +53,7 @@ export default class GroupSecretParams {
 		return new GroupPublicParams(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSecretParamsGetPublicParams(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);

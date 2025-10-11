@@ -11,9 +11,9 @@ export default class ServerPublicParams {
 	verifySignature(message: Uint8Array, notarySignature: NotarySignature): void {
 		if (
 			!ReactNativeLibsignalClientModule.serverPublicParamsVerifySignature(
-				this.serialized,
-				message,
-				notarySignature.serialized
+				new Uint8Array(this.serialized),
+				new Uint8Array(message),
+				new Uint8Array(notarySignature.serialized)
 			)
 		) {
 			throw new Error('ServerPublicParams.verifySignature failed');

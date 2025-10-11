@@ -24,7 +24,7 @@ export default class GroupSendFullToken {
 		return new Date(
 			1000 *
 				ReactNativeLibsignalClientModule.groupSendFullTokenGetExpiration(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 		);
 	}
@@ -42,10 +42,10 @@ export default class GroupSendFullToken {
 		now: Date = new Date()
 	): void {
 		ReactNativeLibsignalClientModule.groupSendFullTokenVerify(
-			this.serialized,
+			new Uint8Array(this.serialized),
 			ServiceId.toConcatenatedFixedWidthBinary(userIds),
 			Math.floor(now.getTime() / 1000),
-			keyPair.serialized
+			new Uint8Array(keyPair.serialized)
 		);
 	}
 }

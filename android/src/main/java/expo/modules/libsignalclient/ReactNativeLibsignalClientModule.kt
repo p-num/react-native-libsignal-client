@@ -194,8 +194,9 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("publicKeyGetPublicKeyBytes", this@ReactNativeLibsignalClientModule::publicKeyGetPublicKeyBytes)
     Function("publicKeyVerify", this@ReactNativeLibsignalClientModule::publicKeyVerify)
     Function("identityKeyPairSerialize", this@ReactNativeLibsignalClientModule::identityKeyPairSerialize)
+    Function("identityKeyPairDeserialize", this@ReactNativeLibsignalClientModule::identityKeyPairDeserialize)
+    Function("identityKeyPairSignAlternateIdentity", this@ReactNativeLibsignalClientModule::identityKeyPairSignAlternateIdentity)
     Function("identityKeyVerifyAlternateIdentity", this@ReactNativeLibsignalClientModule::identityKeyVerifyAlternateIdentity)
-    Function("generateIdentityKeyPair", this@ReactNativeLibsignalClientModule::generateIdentityKeyPair)
     Function("generateKyberKeyPair", this@ReactNativeLibsignalClientModule::generateKyberKeyPair)
     Function("generateKyberRecord", this@ReactNativeLibsignalClientModule::generateKyberRecord)
     Function("kyberPreKeyRecordGetId", this@ReactNativeLibsignalClientModule::kyberPreKeyRecordGetId)
@@ -307,6 +308,8 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("Aes256GcmDecrypt", this@ReactNativeLibsignalClientModule::Aes256GcmDecrypt)
     Function("Aes256CbcEncrypt", this@ReactNativeLibsignalClientModule::Aes256CbcEncrypt)
     Function("Aes256CbcDecrypt", this@ReactNativeLibsignalClientModule::Aes256CbcDecrypt)
+    Function("Aes256CtrEncrypt", this@ReactNativeLibsignalClientModule::Aes256CtrEncrypt)
+    Function("Aes256CtrDecrypt", this@ReactNativeLibsignalClientModule::Aes256CtrDecrypt)
     Function("HmacSHA256", this@ReactNativeLibsignalClientModule::HmacSHA256)
     Function("ConstantTimeEqual", this@ReactNativeLibsignalClientModule::ConstantTimeEqual)
     Function("groupSendFullTokenGetExpiration", this@ReactNativeLibsignalClientModule::groupSendFullTokenGetExpiration)
@@ -393,18 +396,25 @@ class ReactNativeLibsignalClientModule : Module() {
     val otherIdentityKey = IdentityKey(otherPublicKey)
     return identityKey.verifyAlternateIdentity(otherIdentityKey, message)
   }
+  private fun identityKeyPairSignAlternateIdentity(serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray, otherPublicKey: ByteArray) : ByteArray {
+    val identityKey = IdentityKey(serializedPublicKey)
+    val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
+    val identityKeyPair = IdentityKeyPair(identityKey, privateKey)
+    val otherIdentityKey = IdentityKey(otherPublicKey)
+    return identityKeyPair.signAlternateIdentity(otherIdentityKey)
+  }
   private fun privateKeySign(serializedPrivateKey: ByteArray, message: ByteArray) : ByteArray {
     val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
     return privateKey.calculateSignature(message)
-  }
-  private fun generateIdentityKeyPair() : Pair<ByteArray, ByteArray>  {
-    val keypair = Curve.generateKeyPair()
-    return Pair(keypair.publicKey.serialize(), keypair.privateKey.serialize())
   }
   private fun identityKeyPairSerialize(serializedPublicKey: ByteArray, serializedPrivateKey: ByteArray) : ByteArray {
     val pubKey = IdentityKey(serializedPublicKey)
     val privateKey = Curve.decodePrivatePoint(serializedPrivateKey)
     return IdentityKeyPair(pubKey, privateKey).serialize()
+  }
+  private fun identityKeyPairDeserialize(serializedIdentityKeyPair: ByteArray) : Pair<ByteArray, ByteArray> {
+    val identityKeyPair = IdentityKeyPair(serializedIdentityKeyPair)
+    return Pair(identityKeyPair.privateKey.serialize(), identityKeyPair.publicKey.serialize())
   }
   private fun generateKyberKeyPair() : Pair<ByteArray, ByteArray>   {
     val keypair = KEMKeyPair.generate(KEMKeyType.KYBER_1024)
@@ -1359,6 +1369,26 @@ class ReactNativeLibsignalClientModule : Module() {
 
     private fun Aes256CbcDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(ciphertext)
+    }
+
+    private fun Aes256CtrEncrypt(key: ByteArray, iv: ByteArray, plaintext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CTR/NoPadding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(key, "AES"),
+            IvParameterSpec(iv)
+        )
+        return cipher.doFinal(plaintext)
+    }
+
+    private fun Aes256CtrDecrypt(key: ByteArray, iv: ByteArray, ciphertext: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance("AES/CTR/NoPadding")
         cipher.init(
             Cipher.DECRYPT_MODE,
             SecretKeySpec(key, "AES"),

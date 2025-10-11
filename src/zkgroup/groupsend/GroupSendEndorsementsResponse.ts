@@ -71,10 +71,12 @@ export default class GroupSendEndorsementsResponse {
 		random: Uint8Array
 	): GroupSendEndorsementsResponse {
 		return new GroupSendEndorsementsResponse(
-			ReactNativeLibsignalClientModule.groupSendEndorsementsResponseIssueDeterministic(
-				UuidCiphertext.serializeAndConcatenate(groupMembers),
-				keyPair.serialized,
-				random
+			new Uint8Array(
+				ReactNativeLibsignalClientModule.groupSendEndorsementsResponseIssueDeterministic(
+					UuidCiphertext.serializeAndConcatenate(groupMembers),
+					new Uint8Array(keyPair.serialized),
+					random
+				)
 			)
 		);
 	}
@@ -84,7 +86,7 @@ export default class GroupSendEndorsementsResponse {
 		return new Date(
 			1000 *
 				ReactNativeLibsignalClientModule.groupSendEndorsementsResponseGetExpiration(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 		);
 	}
@@ -110,12 +112,12 @@ export default class GroupSendEndorsementsResponse {
 	): ReceivedEndorsements {
 		const endorsementContents =
 			ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(
-				this.serialized,
+				new Uint8Array(this.serialized),
 				ServiceId.toConcatenatedFixedWidthBinary(groupMembers),
 				localUser.getServiceIdFixedWidthBinary(),
 				Math.floor(now.getTime() / 1000),
-				groupParams.serialized,
-				serverParams.serialized
+				new Uint8Array(groupParams.serialized),
+				new Uint8Array(serverParams.serialized)
 			);
 		const endorsements = endorsementContents.map((next) => {
 			// Normally we don't notice the cost of validating just-created zkgroup objects,
@@ -151,11 +153,11 @@ export default class GroupSendEndorsementsResponse {
 	): ReceivedEndorsements {
 		const endorsementContents =
 			ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(
-				this.serialized,
+				new Uint8Array(this.serialized),
 				UuidCiphertext.serializeAndConcatenate(groupMembers),
-				localUser.serialized,
+				new Uint8Array(localUser.serialized),
 				Math.floor(now.getTime() / 1000),
-				serverParams.serialized
+				new Uint8Array(serverParams.serialized)
 			);
 		const endorsements = endorsementContents.map((next) => {
 			// Normally we don't notice the cost of validating just-created zkgroup objects,

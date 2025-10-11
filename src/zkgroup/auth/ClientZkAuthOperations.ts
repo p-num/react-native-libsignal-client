@@ -30,11 +30,11 @@ export default class ClientZkAuthOperations {
 		return new AuthCredentialWithPni(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverPublicParamsReceiveAuthCredentialWithPniAsServiceId(
-					this.serverPublicParams.serialized,
+					new Uint8Array(this.serverPublicParams.serialized),
 					aci.getServiceIdFixedWidthBinary(),
 					pni.getServiceIdFixedWidthBinary(),
 					redemptionTime,
-					authCredentialResponse.serialized
+					new Uint8Array(authCredentialResponse.serialized)
 				)
 			)
 		);
@@ -61,10 +61,10 @@ export default class ClientZkAuthOperations {
 		return new AuthCredentialPresentation(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverPublicParamsCreateAuthCredentialWithPniPresentationDeterministic(
-					this.serverPublicParams.serialized,
-					random,
-					groupSecretParams.serialized,
-					authCredential.serialized
+					new Uint8Array(this.serverPublicParams.serialized),
+					new Uint8Array(random),
+					new Uint8Array(groupSecretParams.serialized),
+					new Uint8Array(authCredential.serialized)
 				)
 			)
 		);

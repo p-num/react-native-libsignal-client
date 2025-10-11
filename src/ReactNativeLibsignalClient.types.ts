@@ -22,6 +22,7 @@ export type Uuid = string;
 export enum CipherType {
 	AES256CBC = 'AES/CBC/PKCS5Padding',
 	AES256GCM = 'AES/GCM/NoPadding',
+	AES256CTR = 'AES/CTR/NoPadding',
 }
 
 export type EncryptionOptions = {

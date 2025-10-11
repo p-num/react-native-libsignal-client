@@ -1,6 +1,6 @@
 {
 	"name": "react-native-libsignal-client",
-	"version": "0.1.30",
+	"version": "0.1.39",
 	"description": "My new module",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
@@ -11,8 +11,8 @@
 		"type-check": "tsc",
 		"compile-plugin": "tsc --project plugin/tsconfig.json",
 		"test": "expo-module test",
-		"prepare": "expo-module prepare && git restore -- plugin/build/Podfile",
-		"prepublishOnly": "expo-module prepublishOnly && git restore -- plugin/build/Podfile",
+		"prepare": "expo-module prepare",
+		"prepublishOnly": "expo-module prepublishOnly",
 		"expo-module": "expo-module",
 		"open:ios": "xed example/ios",
 		"open:android": "open -a \"Android Studio\" example/android"
@@ -28,13 +28,14 @@
 		"url": "https://github.com/ehsunahmadi/react-native-libsignal-client/issues"
 	},
 	"author": "ehsun <ehsun.ahmadi@gmail.com> (https://github.com/ehsunahmadi)",
-	"license": "MIT",
+	"license": "AGPL-3.0",
 	"homepage": "https://github.com/ehsunahmadi/react-native-libsignal-client#readme",
 	"dependencies": {
-		"@craftzdog/react-native-buffer": "^6.0.5",
+		"@craftzdog/react-native-buffer": "^6.1.0",
 		"react-native-get-random-values": "^1.11.0",
-		"react-native-quick-base64": "^2.1.2",
-		"uuid": "^10.0.0"
+		"react-native-quick-base64": "^2.0.5",
+		"uuid": "^10.0.0",
+		"expo-build-properties": "~0.12.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",

@@ -12,7 +12,7 @@ export default class AuthCredentialPresentation {
 		return new UuidCiphertext(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.authCredentialPresentationGetUuidCiphertext(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);
@@ -21,7 +21,7 @@ export default class AuthCredentialPresentation {
 	getPniCiphertext(): UuidCiphertext | null {
 		const ciphertextBytes = new Uint8Array(
 			ReactNativeLibsignalClientModule.authCredentialPresentationGetPniCiphertext(
-				this.serialized
+				new Uint8Array(this.serialized)
 			)
 		);
 		if (ciphertextBytes === null) {
@@ -34,7 +34,7 @@ export default class AuthCredentialPresentation {
 		return new Date(
 			1000 *
 				ReactNativeLibsignalClientModule.authCredentialPresentationGetRedemptionTime(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 		);
 	}

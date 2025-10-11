@@ -22,7 +22,7 @@ export default class ServerSecretParams {
 		return new ServerSecretParams(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsGenerateDeterministic(
-					random
+					new Uint8Array(random)
 				)
 			)
 		);
@@ -40,7 +40,7 @@ export default class ServerSecretParams {
 		return new ServerPublicParams(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsGetPublicParams(
-					this.serialized
+					new Uint8Array(this.serialized)
 				)
 			)
 		);
@@ -56,9 +56,9 @@ export default class ServerSecretParams {
 		return new NotarySignature(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.serverSecretParamsSignDeterministic(
-					this.serialized,
-					random,
-					message
+					new Uint8Array(this.serialized),
+					new Uint8Array(random),
+					new Uint8Array(message)
 				)
 			)
 		);

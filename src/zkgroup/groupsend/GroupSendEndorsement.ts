@@ -70,8 +70,8 @@ export default class GroupSendEndorsement {
 		return new GroupSendEndorsement(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSendEndorsementRemove(
-					this.serialized,
-					toRemove.serialized
+					new Uint8Array(this.serialized),
+					new Uint8Array(toRemove.serialized)
 				)
 			)
 		);
@@ -90,8 +90,8 @@ export default class GroupSendEndorsement {
 		return new GroupSendToken(
 			new Uint8Array(
 				ReactNativeLibsignalClientModule.groupSendEndorsementToToken(
-					this.serialized,
-					groupParams.serialized
+					new Uint8Array(this.serialized),
+					new Uint8Array(groupParams.serialized)
 				)
 			)
 		);

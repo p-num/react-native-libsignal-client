@@ -42,8 +42,10 @@ export abstract class ServiceId extends Object {
 	}
 
 	getServiceIdBinary(): Uint8Array {
-		return ReactNativeLibsignalClientModule.serviceIdServiceIdBinary(
-			new Uint8Array(this.serviceIdFixedWidthBinary)
+		return new Uint8Array(
+			ReactNativeLibsignalClientModule.serviceIdServiceIdBinary(
+				new Uint8Array(this.serviceIdFixedWidthBinary)
+			)
 		);
 	}
 
