@@ -3,6 +3,8 @@ package expo.modules.libsignalclient
 import android.util.Base64
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.types.toJSValue
+import org.signal.libsignal.messagebackup.BackupKey
 import org.signal.libsignal.metadata.SealedSessionCipher
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.signal.libsignal.metadata.certificate.InvalidCertificateException
@@ -45,6 +47,8 @@ import org.signal.libsignal.protocol.state.SessionRecord
 import org.signal.libsignal.protocol.state.SignedPreKeyRecord
 import org.signal.libsignal.protocol.state.impl.InMemorySignalProtocolStore
 import org.signal.libsignal.protocol.util.KeyHelper
+import org.signal.libsignal.zkgroup.GenericServerPublicParams
+import org.signal.libsignal.zkgroup.GenericServerSecretParams
 import org.signal.libsignal.zkgroup.NotarySignature
 import org.signal.libsignal.zkgroup.ServerPublicParams
 import org.signal.libsignal.zkgroup.ServerSecretParams
@@ -54,6 +58,13 @@ import org.signal.libsignal.zkgroup.auth.AuthCredentialWithPni
 import org.signal.libsignal.zkgroup.auth.AuthCredentialWithPniResponse
 import org.signal.libsignal.zkgroup.auth.ClientZkAuthOperations
 import org.signal.libsignal.zkgroup.auth.ServerZkAuthOperations
+import org.signal.libsignal.zkgroup.backups.BackupAuthCredential
+import org.signal.libsignal.zkgroup.backups.BackupAuthCredentialPresentation
+import org.signal.libsignal.zkgroup.backups.BackupAuthCredentialRequest
+import org.signal.libsignal.zkgroup.backups.BackupAuthCredentialRequestContext
+import org.signal.libsignal.zkgroup.backups.BackupAuthCredentialResponse
+import org.signal.libsignal.zkgroup.backups.BackupCredentialType
+import org.signal.libsignal.zkgroup.backups.BackupLevel
 import org.signal.libsignal.zkgroup.groups.ClientZkGroupCipher
 import org.signal.libsignal.zkgroup.groups.GroupMasterKey
 import org.signal.libsignal.zkgroup.groups.GroupPublicParams
@@ -318,6 +329,20 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("senderCertificateNew", this@ReactNativeLibsignalClientModule::senderCertificateNew)
     Function("sealedSenderMultiRecipientMessageForSingleRecipient", this@ReactNativeLibsignalClientModule::sealedSenderMultiRecipientMessageForSingleRecipient)
     Function("sealedSenderEncrypt", this@ReactNativeLibsignalClientModule::sealedSenderEncrypt)
+    Function("backupAuthCredentialRequestContextNew", this@ReactNativeLibsignalClientModule::backupAuthCredentialRequestContextNew)
+    Function("backupAuthCredentialRequestContextGetRequest", this@ReactNativeLibsignalClientModule::backupAuthCredentialRequestContextGetRequest)
+    Function("backupAuthCredentialRequestContextReceiveResponse", this@ReactNativeLibsignalClientModule::backupAuthCredentialRequestContextReceiveResponse)
+    Function("backupAuthCredentialRequestIssueDeterministic", this@ReactNativeLibsignalClientModule::backupAuthCredentialRequestIssueDeterministic)
+    Function("backupAuthCredentialPresentationVerify", this@ReactNativeLibsignalClientModule::backupAuthCredentialPresentationVerify)
+    Function("backupAuthCredentialPresentationGetBackupId", this@ReactNativeLibsignalClientModule::backupAuthCredentialPresentationGetBackupId)
+    Function("backupAuthCredentialPresentationGetBackupLevel", this@ReactNativeLibsignalClientModule::backupAuthCredentialPresentationGetBackupLevel)
+    Function("backupAuthCredentialPresentationGetType", this@ReactNativeLibsignalClientModule::backupAuthCredentialPresentationGetType)
+    Function("backupAuthCredentialPresentDeterministic", this@ReactNativeLibsignalClientModule::backupAuthCredentialPresentDeterministic)
+    Function("backupAuthCredentialGetBackupId", this@ReactNativeLibsignalClientModule::backupAuthCredentialGetBackupId)
+    Function("backupAuthCredentialGetBackupLevel", this@ReactNativeLibsignalClientModule::backupAuthCredentialGetBackupLevel)
+    Function("backupAuthCredentialGetType", this@ReactNativeLibsignalClientModule::backupAuthCredentialGetType)
+    Function("genericServerSecretParamsGenerateDeterministic", this@ReactNativeLibsignalClientModule::genericServerSecretParamsGenerateDeterministic  )
+    Function("genericServerSecretParamsGetPublicParams", this@ReactNativeLibsignalClientModule::genericServerSecretParamsGetPublicParams)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1583,6 +1608,94 @@ class ReactNativeLibsignalClientModule : Module() {
     private fun sealedSenderMultiRecipientMessageForSingleRecipient(msg: ByteArray): ByteArray {
         return org.signal.libsignal.internal.Native.SealedSessionCipher_MultiRecipientMessageForSingleRecipient(msg)
     }
+
+            private fun backupAuthCredentialRequestContextNew(backupKeyr: ByteArray, acir: String): ByteArray {
+                val aci = UUID.fromString(acir)
+
+                return BackupAuthCredentialRequestContext.create(backupKeyr, aci).serialize()
+            }
+
+            private fun backupAuthCredentialRequestContextGetRequest(backupReqCtxRaw: ByteArray): ByteArray {
+                return BackupAuthCredentialRequestContext(backupReqCtxRaw).request.serialize()
+            }
+
+            private fun backupAuthCredentialRequestContextReceiveResponse(backupReqCtxRaw: ByteArray, backupResRaw: ByteArray, redemptionTime: Long, genericServerPubParamsRaw: ByteArray): ByteArray {
+                return BackupAuthCredentialRequestContext(backupReqCtxRaw).receiveResponse(
+                    BackupAuthCredentialResponse(backupResRaw),
+                    Instant.ofEpochSecond(redemptionTime),
+                    GenericServerPublicParams(genericServerPubParamsRaw)
+                ).serialize()
+            }
+
+            private fun backupAuthCredentialRequestIssueDeterministic(backupReqRaw: ByteArray, timestamp: Long, backuplevel: Int, credentialType: Int   , genericServerSecParamsRaw: ByteArray, randomness: ByteArray): ByteArray {
+                val req = BackupAuthCredentialRequest(backupReqRaw)
+
+                return req.issueCredential(
+                    Instant.ofEpochSecond(timestamp),
+                    BackupLevel.fromValue(backuplevel),
+                    BackupCredentialType.fromValue(credentialType),
+                    GenericServerSecretParams((genericServerSecParamsRaw)),
+                    SecureRandom(randomness)
+                ).serialize()
+            }
+
+            private fun backupAuthCredentialPresentationVerify(bckCredPresRaw: ByteArray, timestamp: Long, genericServerSecParamsRaw: ByteArray) {
+                val credPres = BackupAuthCredentialPresentation(bckCredPresRaw)
+
+                credPres.verify(Instant.ofEpochSecond(timestamp),  GenericServerSecretParams(genericServerSecParamsRaw))
+            }
+
+            private fun backupAuthCredentialPresentationGetBackupId(bckCredPresRaw: ByteArray): ByteArray {
+                val credPres = BackupAuthCredentialPresentation(bckCredPresRaw)
+
+                return credPres.backupId
+            }
+
+            private fun backupAuthCredentialPresentationGetBackupLevel(bckCredPresRaw: ByteArray): Int {
+                val credPres = BackupAuthCredentialPresentation(bckCredPresRaw)
+
+                return credPres.backupLevel.toNumber()
+            }
+
+            private fun backupAuthCredentialPresentationGetType(bckCredPresRaw: ByteArray): Int {
+                val credPres = BackupAuthCredentialPresentation(bckCredPresRaw)
+
+                return credPres.type.toNumber()
+            }
+
+            private fun backupAuthCredentialPresentDeterministic(bckAuthCredRaw: ByteArray, genericServerPubParamsRaw: ByteArray, randomness: ByteArray): ByteArray {
+                val backAuthCred = BackupAuthCredential(bckAuthCredRaw)
+
+                return backAuthCred.present(GenericServerPublicParams(genericServerPubParamsRaw), SecureRandom(randomness)).serialize()
+            }
+
+            private fun backupAuthCredentialGetBackupId(bckAuthCredRaw: ByteArray): ByteArray {
+                val backAuthCred = BackupAuthCredential(bckAuthCredRaw)
+
+                return backAuthCred.backupId
+            }
+
+            private fun backupAuthCredentialGetBackupLevel(bckAuthCredRaw: ByteArray): Int {
+                val backAuthCred = BackupAuthCredential(bckAuthCredRaw)
+
+                return backAuthCred.backupLevel.toNumber()
+            }
+
+            private fun backupAuthCredentialGetType(bckAuthCredRaw: ByteArray): Int {
+                val backAuthCred = BackupAuthCredential(bckAuthCredRaw)
+
+                return backAuthCred.type.toNumber()
+            }
+
+          private fun genericServerSecretParamsGenerateDeterministic(randomness: ByteArray): ByteArray {
+            return GenericServerSecretParams.generate(SecureRandom(randomness)).serialize()
+          }
+
+          private fun genericServerSecretParamsGetPublicParams(genericServerSecParamsRaw: ByteArray): ByteArray {
+            val genericSecParams = GenericServerSecretParams(genericServerSecParamsRaw)
+
+            return genericSecParams.publicParams.serialize()
+          }
 }
 
 fun parseCiphertext(msg: ByteArray, msgType: Int): CiphertextMessage {
@@ -1623,4 +1736,18 @@ fun parseFixedWidthServiceIds(raw: ByteArray): MutableList<ServiceId> {
     }
 
     return clc
+}
+
+fun BackupCredentialType.toNumber(): Int {
+    return when (this) {
+        BackupCredentialType.MEDIA -> 2
+        BackupCredentialType.MESSAGES -> 1
+    }
+}
+
+fun BackupLevel.toNumber(): Int {
+    return when (this) {
+        BackupLevel.PAID -> 201
+        BackupLevel.FREE -> 200
+    }
 }

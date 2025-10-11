@@ -1479,6 +1479,123 @@ public class ReactNativeLibsignalClientModule: Module {
             }
         }
 
+        Function("genericServerSecretParamsGetPublicParams") { (genericServerSecParamsRaw: Data) -> [UInt8] in
+            return try! genericServerSecretParamsGetPublicParamsHelper(genericServerSecParamsRaw: genericServerSecParamsRaw)
+        }
+
+        Function("backupAuthCredentialRequestContextNew") { (backupKeyr: Data, acir: String) -> Data in
+            guard let aci = UUID(uuidString: acir) else {
+                throw NSError(domain: "InvalidUUIDError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid UUID format for acir"])
+            }
+            return Data(try BackupAuthCredentialRequestContext.create(backupKey: [UInt8](backupKeyr), aci: aci).serialize())
+        }
+
+        Function("backupAuthCredentialRequestContextGetRequest") { (backupReqCtxRaw: Data) -> Data in
+            let requestContext = try BackupAuthCredentialRequestContext(contents: [UInt8](backupReqCtxRaw))
+            return Data(try requestContext.getRequest().serialize())
+        }
+
+        Function("backupAuthCredentialRequestContextReceiveResponse") { (backupReqCtxRaw: Data, backupResRaw: Data, redemptionTime: UInt64, genericServerPubParamsRaw: Data) -> Data in
+            let requestContext = try BackupAuthCredentialRequestContext(contents: [UInt8](backupReqCtxRaw))
+            let response = try BackupAuthCredentialResponse(contents: [UInt8](backupResRaw))
+            let genericServerParams = try GenericServerPublicParams(contents: [UInt8](genericServerPubParamsRaw))
+            
+            return Data(try requestContext.receiveResponse(
+                response: response,
+                timestamp: redemptionTime,
+                params: genericServerParams
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialRequestIssueDeterministic") { (backupReqRaw: Data, timestamp: UInt64, backuplevel: Int, credentialType: Int, genericServerSecParamsRaw: Data, randomness: Data) -> Data in
+            let request = try BackupAuthCredentialRequest(contents: [UInt8](backupReqRaw))
+            let genericServerParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+            
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            
+            return Data(try request.issueCredential(
+                timestamp: timestamp,
+                backupLevel: BackupLevel.fromValue(backuplevel),
+                credentialType: BackupCredentialType.fromValue(credentialType),
+                params: genericServerParams,
+                randomness: Randomness(randomnessBytes)
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialPresentationVerify") { (bckCredPresRaw: Data, timestamp: UInt64, genericServerSecParamsRaw: Data) in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            let genericServerParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+            
+            try presentation.verify(timestamp: timestamp, params: genericServerParams)
+        }
+
+        Function("backupAuthCredentialPresentationGetBackupId") { (bckCredPresRaw: Data) -> Data in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return Data(presentation.backupId)
+        }
+
+        Function("backupAuthCredentialPresentationGetBackupLevel") { (bckCredPresRaw: Data) -> Int in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return presentation.backupLevel.toNumber()
+        }
+
+        Function("backupAuthCredentialPresentationGetType") { (bckCredPresRaw: Data) -> Int in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return presentation.credentialType.toNumber()
+        }
+
+        Function("backupAuthCredentialPresentDeterministic") { (bckAuthCredRaw: Data, genericServerPubParamsRaw: Data, randomness: Data) -> Data in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            let genericServerParams = try GenericServerPublicParams(contents: [UInt8](genericServerPubParamsRaw))
+            
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            
+            return Data(try credential.present(
+                params: genericServerParams,
+                randomness: Randomness(randomnessBytes)
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialGetBackupId") { (bckAuthCredRaw: Data) -> Data in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return Data(credential.backupId)
+        }
+
+        Function("backupAuthCredentialGetBackupLevel") { (bckAuthCredRaw: Data) -> Int in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return credential.backupLevel.toNumber()
+        }
+
+        Function("backupAuthCredentialGetType") { (bckAuthCredRaw: Data) -> Int in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return credential.credentialType.toNumber()
+        }
+
+        Function("genericServerSecretParamsGenerateDeterministic") { (randomness: Data) -> Data in
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            return Data(try GenericServerSecretParams.generate(randomness: Randomness(randomnessBytes)).serialize())
+        }
+
+        Function("genericServerSecretParamsGetPublicParams") { (genericServerSecParamsRaw: Data) -> Data in
+            let secretParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+            return Data(try secretParams.getPublicParams().serialize())
+        }
+
         /*END          bridge functions definitions              END*/
     }
 
@@ -2984,4 +3101,59 @@ public class ReactNativeLibsignalClientModule: Module {
         /*END          bridge functions implementation              END*/
     }
 
+    private func genericServerSecretParamsGetPublicParamsHelper(genericServerSecParamsRaw: Data) throws -> [UInt8] {
+        let secretParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+        return try secretParams.getPublicParams().serialize()
+    }
+    
+    /*END          bridge functions implementation              END*/
+}
+
+// Add extension for BackupLevel and BackupCredentialType conversion
+extension BackupLevel {
+    func toNumber() -> Int {
+        switch self {
+        case .free:
+            return 200
+        case .paid:
+            return 201
+        default:
+            return 0
+        }
+    }
+    
+    static func fromValue(_ value: Int) -> BackupLevel {
+        switch value {
+        case 200:
+            return .free
+        case 201:
+            return .paid
+        default:
+            return .free
+        }
+    }
+}
+
+extension BackupCredentialType {
+    func toNumber() -> Int {
+        switch self {
+        case .messages:
+            return 1
+        case .media:
+            return 2
+        default:
+            return 0
+        }
+    }
+    
+    static func fromValue(_ value: Int) -> BackupCredentialType {
+        switch value {
+        case 1:
+            return .messages
+        case 2:
+            return .media
+        default:
+            return .messages
+        }
+    }
 }

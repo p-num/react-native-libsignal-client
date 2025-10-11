@@ -63,12 +63,12 @@ export { default as ExpiringProfileKeyCredentialResponse } from './profiles/Expi
 // export { default as CreateCallLinkCredentialResponse } from "./calllinks/CreateCallLinkCredentialResponse";
 
 // Backup Auth
-// export { default as BackupAuthCredential } from "./backups/BackupAuthCredential";
-// export { default as BackupAuthCredentialPresentation } from "./backups/BackupAuthCredentialPresentation";
-// export { default as BackupAuthCredentialRequest } from "./backups/BackupAuthCredentialRequest";
-// export { default as BackupAuthCredentialRequestContext } from "./backups/BackupAuthCredentialRequestContext";
-// export { default as BackupAuthCredentialResponse } from "./backups/BackupAuthCredentialResponse";
-// export { default as BackupLevel } from "./backups/BackupLevel";
+export { default as BackupAuthCredential } from './backups/BackupAuthCredential';
+export { default as BackupAuthCredentialPresentation } from './backups/BackupAuthCredentialPresentation';
+export { default as BackupAuthCredentialRequest } from './backups/BackupAuthCredentialRequest';
+export { default as BackupAuthCredentialRequestContext } from './backups/BackupAuthCredentialRequestContext';
+export { default as BackupAuthCredentialResponse } from './backups/BackupAuthCredentialResponse';
+export { default as BackupLevel } from './backups/BackupLevel';
 
 // Group Send
 
