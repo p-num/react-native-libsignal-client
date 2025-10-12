@@ -23,6 +23,11 @@
 			},
 			"package": "expo.modules.libsignalclient.example"
 		},
+		"extra": {
+			"key": "",
+			"userDataPath": "userData",
+			"supportsRTL": true
+		},
 		"web": {
 			"favicon": "./assets/favicon.png"
 		},
@@ -40,6 +45,17 @@
 					"ios": {
 						"staticPods": ["RNCMaskedView", "EXDocumentPicker"]
 					}
+				}
+			],
+			[
+				"expo-asset",
+				{
+					"assets": [
+						"./assets/canonical-backup.binproto.riv",
+						"./assets/canonical-backup.expected.json",
+						"./assets/emptyfile",
+						"./assets/new-account.binproto.encrypted"
+					]
 				}
 			]
 		]

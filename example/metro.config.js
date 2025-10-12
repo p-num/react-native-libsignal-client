@@ -18,6 +18,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(__dirname, '../node_modules'),
 ];
 
+config.resolver.assetExts.push("binproto", "encrypted")
+
 config.resolver.extraNodeModules = {
   'react-native-libsignal-client': '..',
 };
