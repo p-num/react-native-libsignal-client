@@ -31,6 +31,8 @@ export * from './Address';
 export * from './crypto';
 export * from './Errors';
 export * from './zkgroup';
+export * from './randomBytes';
+export { ElasticCipher } from './elasticCipher';
 
 export class HKDF {
 	/**

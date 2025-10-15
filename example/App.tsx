@@ -27,6 +27,7 @@ import {
 	testSignHmacSha256,
 	testSignedPreKeyRecord,
 } from './tests/api-test';
+import { testElasticCipher } from './tests/elasticCipher';
 import { testGroup } from './tests/group';
 import { testMessageBackup } from './tests/messageBackup';
 import { runTests, sleep } from './tests/utils';
@@ -71,6 +72,7 @@ export default function App() {
 					testECC,
 					testDecryptionMessageError,
 					testMessageBackup,
+					testElasticCipher,
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {
