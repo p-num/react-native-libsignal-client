@@ -376,7 +376,9 @@ class ReactNativeLibsignalClientModule : Module() {
     Function("onlineBackupValidatorFinalize", this@ReactNativeLibsignalClientModule::onlineBackupValidatorFinalize)
     Function("comparableBackupReadUnencrypted", this@ReactNativeLibsignalClientModule::comparableBackupReadUnencrypted)
     Function("comparableBackupGetInfo", this@ReactNativeLibsignalClientModule::comparableBackupGetInfo)
-
+    Function("initiateElasticCipher", this@ReactNativeLibsignalClientModule::initiateElasticCipher)
+    Function("updateElasticCipher", this@ReactNativeLibsignalClientModule::updateElasticCipher)
+    Function("finalizeElasticCipher", this@ReactNativeLibsignalClientModule::finalizeElasticCipher)
   }
 
     private fun serviceIdServiceIdBinary(fixedWidthServiceId: ByteArray) : ByteArray {
@@ -1892,6 +1894,31 @@ class ReactNativeLibsignalClientModule : Module() {
 
     return Pair(cmpBck.comparableString, cmpBck.unknownFieldMessages)
   }
+
+  private fun initiateElasticCipher(type: String, key: ByteArray, iv: ByteArray): String {
+    val cipher = initiateCipherFromType(type, key, iv)
+
+    val id = generateShortId()
+    this.handles[id] = cipher
+
+    return id
+  }
+
+  private fun updateElasticCipher(handle: String, data: ByteArray): ByteArray {
+    val cipher = this.handles[handle] as Cipher
+    return cipher.update(data)
+  }
+
+  private fun finalizeElasticCipher(handle: String, data: Optional<ByteArray>): ByteArray {
+    val cipher = this.handles[handle] as Cipher
+    this.handles.remove(handle)
+
+    if (data.isPresent) {
+      return cipher.doFinal(data.get())
+    } else {
+      return cipher.doFinal()
+    }
+  }
 }
 
 fun parseCiphertext(msg: ByteArray, msgType: Int): CiphertextMessage {
@@ -1976,4 +2003,31 @@ fun generateShortId(length: Int = 8): String {
   return (1..length)
     .map { charPool.random() }
     .joinToString("")
+}
+
+fun initiateCipherFromType(type: String, key: ByteArray, iv: ByteArray): Cipher {
+  when (type) {
+    "AES/GCM/NoPadding" -> {
+      val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+      val gcmSpec = GCMParameterSpec(128, iv)
+      cipher.init(
+        Cipher.ENCRYPT_MODE,
+        SecretKeySpec(key, "AES"),
+        gcmSpec
+      )
+
+      return cipher
+    }
+    "AES/CBC/PKCS5Padding" -> {
+      val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+      cipher.init(
+        Cipher.ENCRYPT_MODE,
+        SecretKeySpec(key, "AES"),
+        IvParameterSpec(iv)
+      )
+
+      return cipher
+    }
+    else -> throw Error("invalid cipher type")
+  }
 }

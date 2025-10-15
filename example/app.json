@@ -51,9 +51,8 @@
 				"expo-asset",
 				{
 					"assets": [
-						"./assets/canonical-backup.binproto.riv",
 						"./assets/canonical-backup.expected.json",
-						"./assets/emptyfile",
+						"./assets/emptyfile.binproto",
 						"./assets/new-account.binproto.encrypted"
 					]
 				}

@@ -7,8 +7,8 @@ export class ElasticCipher {
 	constructor(type: CipherType, iv: Uint8Array, key: Uint8Array) {
 		this.bridgeHandle = ReactNativeLibsignalClient.initiateElasticCipher(
 			type as string,
-			iv,
-			key
+			key,
+			iv
 		);
 	}
 
