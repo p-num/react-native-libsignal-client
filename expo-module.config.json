@@ -4,6 +4,9 @@
 		"modules": ["ReactNativeLibsignalClientModule"]
 	},
 	"android": {
-		"modules": ["expo.modules.libsignalclient.ReactNativeLibsignalClientModule"]
+		"modules": [
+			"expo.modules.libsignalclient.ReactNativeLibsignalClientModule",
+			"expo.modules.libsignalclient.ElasticCipher"
+		]
 	}
 }

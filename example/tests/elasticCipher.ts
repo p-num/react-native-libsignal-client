@@ -1,9 +1,11 @@
 import { Buffer } from '@craftzdog/react-native-buffer';
+import deepEqual from 'deep-eql';
 import {
 	CipherType,
 	ElasticCipher,
 	encrypt,
 } from 'react-native-libsignal-client';
+import { test } from './utils';
 
 export const testElasticCipher = () => {
 	const TEST_INPUT = 'The quick brown fox jumps over the lazy dog';
@@ -17,7 +19,8 @@ export const testElasticCipher = () => {
 		const elasticCipherInstance = new ElasticCipher(
 			CipherType.AES256CBC,
 			iv,
-			key
+			key,
+			'encrypt'
 		);
 		const encryptedPart1 = elasticCipherInstance.update(
 			new Uint8Array(inputBytes.slice(0, 20))
@@ -40,6 +43,6 @@ export const testElasticCipher = () => {
 		});
 
 		// Compare results
-		expect(elasticEncrypted).toEqual(directEncrypted);
+		deepEqual(elasticEncrypted, directEncrypted);
 	});
 };

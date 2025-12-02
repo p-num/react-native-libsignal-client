@@ -1,3 +1,4 @@
+import ElasticCipher from '../ElasticCipherModule';
 import {
 	CipherType,
 	EncryptionOptions,
@@ -165,4 +166,174 @@ class Aes256Ctr {
 	}
 }
 
+export enum HashType {
+	SHA256 = 'sha256',
+	SHA512 = 'sha512',
+}
+
+export class CalculatingMac {
+	private readonly bridgeHandle: string;
+	private readonly _type: HashType;
+
+	private constructor(type: HashType, key: Uint8Array) {
+		this._type = type;
+		switch (type) {
+			case HashType.SHA256:
+				this.bridgeHandle = ElasticCipher.IncrementalHmacInit(
+					type as string,
+					new Uint8Array(key)
+				);
+				break;
+			case HashType.SHA512:
+				this.bridgeHandle = ElasticCipher.IncrementalHmacInit(
+					type as string,
+					new Uint8Array(key)
+				);
+				break;
+		}
+	}
+
+	static new(type: HashType, key: Uint8Array): CalculatingMac {
+		return new CalculatingMac(type, key);
+	}
+
+	update(data: Uint8Array): void {
+		switch (this._type) {
+			case HashType.SHA256:
+				ElasticCipher.HmacSha256Update(this.bridgeHandle, new Uint8Array(data));
+				break;
+			case HashType.SHA512:
+				ElasticCipher.HmacSha512Update(this.bridgeHandle, new Uint8Array(data));
+				break;
+		}
+	}
+
+	digest(): Uint8Array {
+		switch (this._type) {
+			case HashType.SHA256:
+				return new Uint8Array(
+					ElasticCipher.HmacSha256Digest(this.bridgeHandle)
+				);
+			case HashType.SHA512:
+				return new Uint8Array(
+					ElasticCipher.HmacSha512Digest(this.bridgeHandle)
+				);
+		}
+	}
+}
+
+export class IncrementalHash {
+	private readonly bridgeHandle: string;
+	private readonly _type: HashType;
+
+	private constructor(type: HashType) {
+		this._type = type;
+		this.bridgeHandle = ElasticCipher.IncrementalHashInit(type as string);
+	}
+
+	static new(type: HashType): IncrementalHash {
+		return new IncrementalHash(type);
+	}
+
+	update(data: Uint8Array): void {
+		switch (this._type) {
+			case HashType.SHA256:
+				ElasticCipher.HashSha256Update(this.bridgeHandle, new Uint8Array(data));
+				break;
+			case HashType.SHA512:
+				ElasticCipher.HashSha512Update(this.bridgeHandle, new Uint8Array(data));
+				break;
+		}
+	}
+
+	digest(): Uint8Array {
+		switch (this._type) {
+			case HashType.SHA256:
+				return new Uint8Array(
+					ElasticCipher.HashSha256Digest(this.bridgeHandle)
+				);
+			case HashType.SHA512:
+				return new Uint8Array(
+					ElasticCipher.HashSha512Digest(this.bridgeHandle)
+				);
+		}
+	}
+}
+
+export function createHmac(type: HashType, key: Uint8Array): CalculatingMac {
+	return CalculatingMac.new(type, key);
+}
+
+export function createHash(type: HashType): IncrementalHash {
+	return IncrementalHash.new(type);
+}
+
+export class ValidatingMac {
+	private readonly bridgeHandle: string;
+
+	constructor(
+		key: Uint8Array,
+		sizeChoice: ChunkSizeChoice,
+		digest: Uint8Array
+	) {
+		this.bridgeHandle = ElasticCipher.ValidatingMacInit(
+			new Uint8Array(key),
+			chunkSizeInBytes(sizeChoice),
+			new Uint8Array(digest)
+		);
+	}
+
+	update(data: Uint8Array): number {
+		return ElasticCipher.ValidatingMacUpdate(
+			this.bridgeHandle,
+			new Uint8Array(data)
+		);
+	}
+
+	finalize(): number {
+		return ElasticCipher.ValidatingMacFinalize(this.bridgeHandle);
+	}
+}
+
+export class IncrementalMac {
+	private readonly bridgeHandle: string;
+
+	constructor(key: Uint8Array, sizeChoice: ChunkSizeChoice) {
+		this.bridgeHandle = ElasticCipher.IncrementalMacInit(
+			new Uint8Array(key),
+			chunkSizeInBytes(sizeChoice)
+		);
+	}
+
+	update(data: Uint8Array): Uint8Array {
+		return new Uint8Array(
+			ElasticCipher.IncrementalMacUpdate(
+				this.bridgeHandle,
+				new Uint8Array(data)
+			)
+		);
+	}
+
+	finalize(): Uint8Array {
+		return new Uint8Array(
+			ElasticCipher.IncrementalMacFinalize(this.bridgeHandle)
+		);
+	}
+}
+
+export type ChunkSizeChoice =
+	| { kind: 'everyN'; n: number }
+	| { kind: 'chunksOf'; dataSize: number };
+
 export { Aes256Ctr as Aes256CCtr, CipherType, EncryptionOptions };
+
+export function chunkSizeInBytes(sizeChoice: ChunkSizeChoice): number {
+	switch (sizeChoice.kind) {
+		case 'everyN':
+			return sizeChoice.n;
+		case 'chunksOf':
+			return ElasticCipher.IncrementalMacCalculateChunkSize(
+				sizeChoice.dataSize
+			);
+	}
+}
