@@ -1,5 +1,10 @@
 type Uuid = Uint8Array;
 
+type MessageBackupValidationOutcome = {
+  errorMessage: string | null;
+  unknownFieldMessages: Array<string>;
+};
+
 export abstract class IdentityKeyStore {
 	_getIdentityKey(): Promise<PrivateKey>;
 	_getLocalRegistrationId(): Promise<number>;

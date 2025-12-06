@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TestFeedback } from './TestFeedback';
 import { log } from './logger';
+import { testAccount } from './tests/account';
 import {
 	testAesCbcWithLongInput,
 	testAesCbcWithShortInput,
@@ -26,7 +27,9 @@ import {
 	testSignHmacSha256,
 	testSignedPreKeyRecord,
 } from './tests/api-test';
+import { testElasticCipher } from './tests/elasticCipher';
 import { testGroup } from './tests/group';
+import { testMessageBackup } from './tests/messageBackup';
 import { runTests, sleep } from './tests/utils';
 import { testZkGroup } from './tests/zkgroup-test';
 export type TestStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'ERROR';
@@ -65,8 +68,11 @@ export default function App() {
 					testSignHmacSha256,
 					testConstantTimeEqual,
 					testGroup,
+					testAccount,
 					testECC,
 					testDecryptionMessageError,
+					testMessageBackup,
+					testElasticCipher,
 				]);
 
 				if (failedTests === 0 && passedTests === ranTests) {

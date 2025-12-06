@@ -295,6 +295,7 @@ class Native {
 
 public class ReactNativeLibsignalClientModule: Module {
     private var logListener: ((ReactNativeLibsignalClientLogType) -> String)?
+    private var handles: [String: Any] = [:]
 
 
     public func definition() -> ModuleDefinition {
@@ -1597,6 +1598,261 @@ public class ReactNativeLibsignalClientModule: Module {
             }
         }
 
+        Function("genericServerSecretParamsGetPublicParams") { (genericServerSecParamsRaw: Data) -> [UInt8] in
+            return try! genericServerSecretParamsGetPublicParamsHelper(genericServerSecParamsRaw: genericServerSecParamsRaw)
+        }
+
+        Function("backupAuthCredentialRequestContextNew") { (backupKeyr: Data, acir: String) -> Data in
+            guard let aci = UUID(uuidString: acir) else {
+                throw NSError(domain: "InvalidUUIDError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid UUID format for acir"])
+            }
+            return Data(BackupAuthCredentialRequestContext.create(backupKey: [UInt8](backupKeyr), aci: aci).serialize())
+        }
+
+        Function("backupAuthCredentialRequestContextGetRequest") { (backupReqCtxRaw: Data) -> Data in
+            let requestContext = try BackupAuthCredentialRequestContext(contents: [UInt8](backupReqCtxRaw))
+            return Data(requestContext.getRequest().serialize())
+        }
+
+        Function("backupAuthCredentialRequestContextReceiveResponse") { (backupReqCtxRaw: Data, backupResRaw: Data, redemptionTime: UInt64, genericServerPubParamsRaw: Data) -> Data in
+            let requestContext = try BackupAuthCredentialRequestContext(contents: [UInt8](backupReqCtxRaw))
+            let response = try BackupAuthCredentialResponse(contents: [UInt8](backupResRaw))
+            let genericServerParams = try GenericServerPublicParams(contents: [UInt8](genericServerPubParamsRaw))
+            let redemptionDate = Date(timeIntervalSince1970: TimeInterval(redemptionTime))
+            
+            return Data(try requestContext.receive(
+                response,
+                timestamp: redemptionDate,
+                params: genericServerParams
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialRequestIssueDeterministic") { (backupReqRaw: Data, timestamp: UInt64, backuplevel: Int, credentialType: Int, genericServerSecParamsRaw: Data, randomness: Data) -> Data in
+            let request = try BackupAuthCredentialRequest(contents: [UInt8](backupReqRaw))
+            let genericServerParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+            
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            
+            return Data(request.issueCredential(
+                timestamp: date,
+                backupLevel: BackupLevel.fromValue(backuplevel),
+                type: BackupCredentialType.fromValue(credentialType),
+                params: genericServerParams,
+                randomness: Randomness(randomnessBytes)
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialPresentationVerify") { (bckCredPresRaw: Data, timestamp: UInt64, genericServerSecParamsRaw: Data) in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            let genericServerParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+            let redemptionDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            
+            try presentation.verify(now: redemptionDate, serverParams: genericServerParams)
+        }
+
+        Function("backupAuthCredentialPresentationGetBackupId") { (bckCredPresRaw: Data) -> Data in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return try presentation.extractedBackupId()
+        }
+
+        Function("backupAuthCredentialPresentationGetBackupLevel") { (bckCredPresRaw: Data) -> Int in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return try presentation.extractedBackupLevel().toNumber()
+        }
+
+        Function("backupAuthCredentialPresentationGetType") { (bckCredPresRaw: Data) -> Int in
+            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
+            return try presentation.extractedCredentialType().toNumber()
+        }
+
+        Function("backupAuthCredentialPresentDeterministic") { (bckAuthCredRaw: Data, genericServerPubParamsRaw: Data, randomness: Data) -> Data in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            let genericServerParams = try GenericServerPublicParams(contents: [UInt8](genericServerPubParamsRaw))
+            
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            
+            return Data(credential.present(
+                serverParams: genericServerParams,
+                randomness: Randomness(randomnessBytes)
+            ).serialize())
+        }
+
+        Function("backupAuthCredentialGetBackupId") { (bckAuthCredRaw: Data) -> Data in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return Data(credential.backupID)
+        }
+
+        Function("backupAuthCredentialGetBackupLevel") { (bckAuthCredRaw: Data) -> Int in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return credential.backupLevel.toNumber()
+        }
+
+        Function("backupAuthCredentialGetType") { (bckAuthCredRaw: Data) -> Int in
+            let credential = try BackupAuthCredential(contents: [UInt8](bckAuthCredRaw))
+            return credential.type.toNumber()
+        }
+
+        Function("genericServerSecretParamsGenerateDeterministic") { (randomness: Data) -> Data in
+            guard randomness.count == 32 else {
+                throw NSError(domain: "Invalid input size", code: 1, userInfo: nil)
+            }
+            let randomnessBytes = randomness.withUnsafeBytes { pointer in
+                pointer.load(as: SignalRandomnessBytes.self)
+            }
+            return Data(GenericServerSecretParams.generate(randomness: Randomness(randomnessBytes)).serialize())
+        }
+
+
+
+        // BackupKey functions
+        Function("backupKeyDeriveBackupId") { (bckKeyRaw: Data, serviceIdBinary: Data) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            let serviceId = try parseAciFromFixedWidth([UInt8](serviceIdBinary))
+            return Data(backupKey.deriveBackupId(aci: serviceId))
+        }
+
+        Function("backupKeyDeriveEcKey") { (bckKeyRaw: Data, serviceIdBinary: Data) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            let serviceId = try parseAciFromFixedWidth([UInt8](serviceIdBinary))
+            return Data(backupKey.deriveEcKey(aci: serviceId).serialize())
+        }
+
+        Function("backupKeyDeriveLocalBackupMetadataKey") { (bckKeyRaw: Data) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            return Data(backupKey.deriveLocalBackupMetadataKey())
+        }
+
+        Function("backupKeyDeriveMediaId") { (bckKeyRaw: Data, mediaName: String) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            return Data(try backupKey.deriveMediaId(mediaName))
+        }
+
+        Function("backupKeyDeriveMediaEncryptionKey") { (bckKeyRaw: Data, mediaId: Data) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            return Data(try backupKey.deriveMediaEncryptionKey([UInt8](mediaId)))
+        }
+
+        Function("backupKeyDeriveThumbnailTransitEncryptionKey") { (bckKeyRaw: Data, mediaId: Data) -> Data in
+            let backupKey = try BackupKey(contents: [UInt8](bckKeyRaw))
+            return Data(try backupKey.deriveThumbnailTransitEncryptionKey([UInt8](mediaId)))
+        }
+
+        // AccountEntropyPool functions
+        Function("accountEntropyPoolGenerate") { () -> String in
+            return AccountEntropyPool.generate()
+        }
+
+        Function("accountEntropyPoolIsValid") { (entPool: String) -> Bool in
+            return AccountEntropyPool.isValid(entPool)
+        }
+
+        Function("accountEntropyPoolDeriveSvrKey") { (entPool: String) -> Data in
+            return Data(try AccountEntropyPool.deriveSvrKey(entPool))
+        }
+
+        Function("accountEntropyPoolDeriveBackupKey") { (entPool: String) -> Data in
+            return Data(try AccountEntropyPool.deriveBackupKey(entPool).serialize())
+        }
+
+        // MessageBackupKey functions
+        Function("messageBackupKeyFromAccountEntropyPool") { (entPool: String, aciBinary: Data) -> Data in
+            let aci = try parseAciFromFixedWidth([UInt8](aciBinary))
+            
+            let backupKey = try AccountEntropyPool.deriveBackupKey(entPool)
+            let backupId = backupKey.deriveBackupId(aci: aci)
+            
+            return Data(backupKey.serialize() + backupId)
+        }
+
+        Function("messageBackupKeyFromBackupKeyAndBackupId") { (bckKeyRaw: Data, bckIdRaw: Data) -> Data in
+            return bckKeyRaw + bckIdRaw
+        }
+
+        Function("messageBackupKeyGetHmacKey") { (msgBckKey: Data) -> Data in
+            let messageBackupKey = try deserializeMessageBackupKey([UInt8](msgBckKey))
+            return Data(messageBackupKey.hmacKey)
+        }
+
+        Function("messageBackupKeyGetAesKey") { (msgBckKey: Data) -> Data in
+            let messageBackupKey = try deserializeMessageBackupKey([UInt8](msgBckKey))
+            return Data(messageBackupKey.aesKey)
+        }
+
+        // MessageBackup validation functions
+        Function("messageBackupValidatorValidate") { (msgBckKey: Data, path: String, len: Int64, purpose: Int) -> [String] in
+            let messageBackupKey = try deserializeMessageBackupKey([UInt8](msgBckKey))
+            let purposeEnum = try purposeFromInt(purpose)
+            let fileURL = URL(fileURLWithPath: path.replacingOccurrences(of: "file:/", with: ""))
+            
+            let result = try validateMessageBackup(
+                key: messageBackupKey,
+                purpose: purposeEnum,
+                length: UInt64(len),
+                makeStream: { try FileHandle(forReadingFrom: fileURL) }
+            )
+            
+            return result.fields
+        }
+
+        Function("onlineBackupValidatorNew") { (bckInfo: Data, purpose: Int) -> String in
+            let purposeEnum = try purposeFromInt(purpose)
+            let validator = try OnlineBackupValidator(backupInfo: [UInt8](bckInfo), purpose: purposeEnum)
+            
+            let shortId = generateShortId()
+            self.handles[shortId] = validator
+            return shortId
+        }
+
+        Function("onlineBackupValidatorAddFrame") { (handle: String, frame: Data) in
+            guard let validator = self.handles[handle] as? OnlineBackupValidator else {
+                throw NSError(domain: "Invalid handle", code: 1, userInfo: nil)
+            }
+            try validator.addFrame([UInt8](frame))
+        }
+
+        Function("onlineBackupValidatorFinalize") { (handle: String) in
+            guard let validator = self.handles[handle] as? OnlineBackupValidator else {
+                throw NSError(domain: "Invalid handle", code: 1, userInfo: nil)
+            }
+            try validator.finalize()
+            self.handles.removeValue(forKey: handle)
+        }
+
+        Function("comparableBackupReadUnencrypted") { (filePath: String, len: Int64, purpose: Int) -> String in
+            let purposeEnum = try purposeFromInt(purpose)
+            let fileURL = URL(fileURLWithPath: filePath.replacingOccurrences(of: "file:/", with: ""))
+            
+            let comparableBackup = try ComparableBackup(
+                purpose: purposeEnum,
+                length: UInt64(len),
+                stream: try FileHandle(forReadingFrom: fileURL)
+            )
+            
+            let shortId = generateShortId()
+            self.handles[shortId] = comparableBackup
+            return shortId
+        }
+
+        Function("comparableBackupGetInfo") { (handle: String) -> [Any] in
+            guard let comparableBackup = self.handles[handle] as? ComparableBackup else {
+                throw NSError(domain: "Invalid handle", code: 1, userInfo: nil)
+            }
+            self.handles.removeValue(forKey: handle)
+            
+            return [comparableBackup.comparableString(), comparableBackup.unknownFields.fields]
+        }
+
         /*END          bridge functions definitions              END*/
     }
 
@@ -2566,7 +2822,7 @@ public class ReactNativeLibsignalClientModule: Module {
         message: Data)
     throws -> PlaintextContent {
         let errorMessage = try DecryptionErrorMessage(bytes: message)
-        return try PlaintextContent(errorMessage)
+        return PlaintextContent(errorMessage)
     }
 
     private func plaintextContentGetBodyHelper(
@@ -3112,4 +3368,164 @@ public class ReactNativeLibsignalClientModule: Module {
         /*END          bridge functions implementation              END*/
     }
 
+    private func genericServerSecretParamsGetPublicParamsHelper(genericServerSecParamsRaw: Data) throws -> [UInt8] {
+        let secretParams = try GenericServerSecretParams(contents: [UInt8](genericServerSecParamsRaw))
+        return secretParams.getPublicParams().serialize()
+    }
+    
+    /*END          bridge functions implementation              END*/
 }
+
+// Add extension for BackupLevel and BackupCredentialType conversion
+extension BackupLevel {
+    func toNumber() -> Int {
+        switch self {
+        case .free:
+            return 200
+        case .paid:
+            return 201
+        default:
+            return 0
+        }
+    }
+    
+    static func fromValue(_ value: Int) -> BackupLevel {
+        switch value {
+        case 200:
+            return .free
+        case 201:
+            return .paid
+        default:
+            return .free
+        }
+    }
+}
+
+extension BackupCredentialType {
+    func toNumber() -> Int {
+        switch self {
+        case .messages:
+            return 1
+        case .media:
+            return 2
+        default:
+            return 0
+        }
+    }
+    
+    static func fromValue(_ value: Int) -> BackupCredentialType {
+        switch value {
+        case 1:
+            return .messages
+        case 2:
+            return .media
+        default:
+            return .messages
+        }
+    }
+}
+
+enum BackupAuthCredentialPresentationDecodingError: Error {
+    case truncatedHeader
+    case missingBackupId
+    case invalidBackupLevel(UInt8)
+    case invalidCredentialType(UInt8)
+}
+
+private struct BackupAuthCredentialPresentationDecoder {
+    static let headerLength = 3
+    static let backupIdLength = 16
+
+    static func backupLevel(from bytes: [UInt8]) throws -> BackupLevel {
+        guard bytes.count >= headerLength else {
+            throw BackupAuthCredentialPresentationDecodingError.truncatedHeader
+        }
+        let rawValue = bytes[1]
+        let level = BackupLevel.fromValue(Int(rawValue))
+        guard level.toNumber() == Int(rawValue) else {
+            throw BackupAuthCredentialPresentationDecodingError.invalidBackupLevel(rawValue)
+        }
+        return level
+    }
+
+    static func credentialType(from bytes: [UInt8]) throws -> BackupCredentialType {
+        guard bytes.count >= headerLength else {
+            throw BackupAuthCredentialPresentationDecodingError.truncatedHeader
+        }
+        let rawValue = bytes[2]
+        let type = BackupCredentialType.fromValue(Int(rawValue))
+        guard type.toNumber() == Int(rawValue) else {
+            throw BackupAuthCredentialPresentationDecodingError.invalidCredentialType(rawValue)
+        }
+        return type
+    }
+
+    static func backupId(from bytes: [UInt8]) throws -> Data {
+        guard bytes.count >= headerLength + backupIdLength else {
+            throw BackupAuthCredentialPresentationDecodingError.missingBackupId
+        }
+        return Data(bytes.suffix(backupIdLength))
+    }
+}
+
+private extension BackupAuthCredentialPresentation {
+    func extractedBackupLevel() throws -> BackupLevel {
+        try BackupAuthCredentialPresentationDecoder.backupLevel(from: serialize())
+    }
+
+    func extractedCredentialType() throws -> BackupCredentialType {
+        try BackupAuthCredentialPresentationDecoder.credentialType(from: serialize())
+    }
+
+    func extractedBackupId() throws -> Data {
+        try BackupAuthCredentialPresentationDecoder.backupId(from: serialize())
+    }
+}
+
+func deserializeMessageBackupKey(_ ser: [UInt8]) throws -> MessageBackupKey {
+    guard ser.count == 48 else {
+        throw NSError(domain: "Invalid message backup key", code: 1, userInfo: nil)
+    }
+    
+    let backupKeyBytes = Array(ser[0..<32])
+    let backupIdBytes = Array(ser[32..<48])
+    
+    let backupKey = try BackupKey(contents: backupKeyBytes)
+    return try MessageBackupKey(backupKey: backupKey, backupId: backupIdBytes)
+}
+
+func purposeFromInt(_ purpose: Int) throws -> MessageBackupPurpose {
+    switch purpose {
+    case 0:
+        return .deviceTransfer
+    case 1:
+        return .remoteBackup
+    default:
+        throw NSError(domain: "Invalid purpose", code: 1, userInfo: nil)
+    }
+}
+
+func generateShortId(length: Int = 8) -> String {
+    let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return String((0..<length).map { _ in letters.randomElement()! })
+}
+
+func parseAciFromFixedWidth(_ bytes: [UInt8]) throws -> Aci {
+    guard bytes.count == 17 else {
+        throw NSError(domain: "Invalid ACI length", code: 1, userInfo: nil)
+    }
+    guard bytes[0] == 0 else {
+        throw NSError(domain: "Not an ACI", code: 1, userInfo: nil)
+    }
+    
+    let uuidTuple = (
+        bytes[1], bytes[2], bytes[3], bytes[4],
+        bytes[5], bytes[6], bytes[7], bytes[8],
+        bytes[9], bytes[10], bytes[11], bytes[12],
+        bytes[13], bytes[14], bytes[15], bytes[16]
+    )
+    let uuid = UUID(uuid: uuidTuple)
+    return Aci(fromUUID: uuid)
+}
+
+
