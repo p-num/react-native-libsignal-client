@@ -292,6 +292,12 @@ Issues and PRs are welcome. Please:
 
 ---
 
+## Publishing
+
+For maintainers: see [PUBLISHING.md](PUBLISHING.md) for details on the release process.
+
+---
+
 ## Roadmap (Planned)
 
 - Optional plugin params for `tag` / `checksum`
