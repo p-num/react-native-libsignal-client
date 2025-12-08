@@ -1,0 +1,54 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'            # e.g. v0.1.40, v1.0.0
+
+jobs:
+  lint-and-publish:
+    name: Lint and publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # full history so we can check ancestry against origin/master
+          fetch-depth: 0
+
+      - name: Ensure tag commit is on master
+        run: |
+          # Fetch the current master from origin
+          git fetch origin master --depth=1
+
+          echo "Tag commit:    $GITHUB_SHA"
+          echo "origin/master: $(git rev-parse origin/master)"
+
+          # Check that the tag commit is contained in master’s history
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "✅ Tag commit is on master. Continuing to publish."
+          else
+            echo "❌ Tag commit is NOT on master. Refusing to publish."
+            exit 1
+          fi
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint (if present)
+        run: npm run wipe --if-present
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
