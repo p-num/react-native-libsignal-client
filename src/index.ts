@@ -32,7 +32,8 @@ export * from './crypto';
 export * from './Errors';
 export * from './zkgroup';
 export * from './randomBytes';
-export { ElasticCipher } from './elasticCipher';
+export * from './AccountKeys';
+export { ElasticCipher, ElasticCipherMode } from './elasticCipher';
 
 export class HKDF {
 	/**
