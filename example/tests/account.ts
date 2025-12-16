@@ -14,7 +14,7 @@ export const testAccount = () => {
 		test('can be derived or randomly generated', () => {
 			const pool = AccountKeys.AccountEntropyPool.generate();
 			const backupKey = AccountKeys.AccountEntropyPool.deriveBackupKey(pool);
-			deepEqual(32, backupKey.serialized.length);
+			assert(deepEqual(32, backupKey.serialized.length));
 
 			const randomKey = AccountKeys.BackupKey.generateRandom();
 			assert(
@@ -31,10 +31,11 @@ export const testAccount = () => {
 			const otherAci = Aci.fromUuid(generateUuid());
 
 			const backupId = Buffer.from(backupKey.deriveBackupId(aci));
-			deepEqual(16, backupId.length);
-			deepEqual(
-				backupId.toString('hex'),
-				Buffer.from(randomKey.deriveBackupId(aci)).toString('hex')
+			assert(deepEqual(16, backupId.length));
+			assert(
+				backupId.toString('hex') !==
+					Buffer.from(randomKey.deriveBackupId(aci)).toString('hex'),
+				'Backup ID should differ for different backup keys'
 			);
 			assert(
 				backupId.toString('hex') !==
@@ -57,20 +58,20 @@ export const testAccount = () => {
 			);
 
 			const localMetadataKey = backupKey.deriveLocalBackupMetadataKey();
-			deepEqual(32, localMetadataKey.length);
+			assert(deepEqual(32, localMetadataKey.length));
 
 			const mediaId = backupKey.deriveMediaId('example.jpg');
-			deepEqual(15, mediaId.length);
+			assert(deepEqual(15, mediaId.length));
 
 			const mediaKey = backupKey.deriveMediaEncryptionKey(mediaId);
-			deepEqual(32 + 32, mediaKey.length);
+			assert(deepEqual(32 + 32, mediaKey.length));
 
 			assertThrows(() => backupKey.deriveMediaEncryptionKey(Buffer.of(0)));
 
 			// This media ID wasn't for a thumbnail, but the API doesn't (can't) check that.
 			const thumbnailKey =
 				backupKey.deriveThumbnailTransitEncryptionKey(mediaId);
-			deepEqual(32 + 32, mediaKey.length);
+			assert(deepEqual(32 + 32, mediaKey.length));
 			assert(
 				Buffer.from(mediaKey).toString('hex') !==
 					Buffer.from(thumbnailKey).toString('hex'),
