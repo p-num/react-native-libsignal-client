@@ -36,9 +36,9 @@ export { default as ProfileKeyCredentialRequest } from './profiles/ProfileKeyCre
 export { default as ProfileKeyCredentialRequestContext } from './profiles/ProfileKeyCredentialRequestContext';
 export { default as ProfileKeyVersion } from './profiles/ProfileKeyVersion';
 
+export * from './backups/BackupCredentialType';
 export { default as ExpiringProfileKeyCredential } from './profiles/ExpiringProfileKeyCredential';
 export { default as ExpiringProfileKeyCredentialResponse } from './profiles/ExpiringProfileKeyCredentialResponse';
-
 // Receipts
 // export { default as ClientZkReceiptOperations } from "./receipts/ClientZkReceiptOperations";
 // export { default as ServerZkReceiptOperations } from "./receipts/ServerZkReceiptOperations";

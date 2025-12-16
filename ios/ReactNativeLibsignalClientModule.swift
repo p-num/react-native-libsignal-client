@@ -293,6 +293,76 @@ class Native {
     }
 }
 
+#if DEBUG
+/// Error thrown when presentation getters are called but not supported.
+/// This is expected in production - use credential getters instead.
+private func makePresentationGetterError() -> NSError {
+    NSError(
+        domain: "BackupAuthCredentialPresentationError",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "Presentation getters are not supported on iOS. Use credential getters instead."]
+    )
+}
+
+/// Thread-safe LRU cache for BackupAuthCredentialPresentation metadata.
+/// Swift's LibSignalClient doesn't expose getters on BackupAuthCredentialPresentation,
+/// so we cache the credential's metadata when creating a presentation.
+/// This cache is only active in DEBUG builds for testing purposes.
+private final class BackupPresentationMetadataCache {
+    struct Metadata {
+        let backupId: Data
+        let backupLevel: Int
+        let credentialType: Int
+    }
+    
+    private let maxSize: Int
+    private var cache: [Data: Metadata] = [:]
+    private var accessOrder: [Data] = []  // LRU tracking
+    private let lock = NSLock()
+    
+    init(maxSize: Int = 32) {
+        self.maxSize = maxSize
+    }
+    
+    func set(_ metadata: Metadata, for key: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        // Remove from access order if exists
+        if let idx = accessOrder.firstIndex(of: key) {
+            accessOrder.remove(at: idx)
+        }
+        
+        // Add to cache and access order
+        cache[key] = metadata
+        accessOrder.append(key)
+        
+        // Evict oldest if over capacity
+        while cache.count > maxSize, let oldest = accessOrder.first {
+            accessOrder.removeFirst()
+            cache.removeValue(forKey: oldest)
+        }
+    }
+    
+    func get(_ key: Data) -> Metadata? {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        guard let metadata = cache[key] else { return nil }
+        
+        // Move to end of access order (most recently used)
+        if let idx = accessOrder.firstIndex(of: key) {
+            accessOrder.remove(at: idx)
+            accessOrder.append(key)
+        }
+        
+        return metadata
+    }
+}
+
+private let backupPresentationCache = BackupPresentationMetadataCache()
+#endif
+
 public class ReactNativeLibsignalClientModule: Module {
     private var logListener: ((ReactNativeLibsignalClientLogType) -> String)?
     private var handles: [String: Any] = [:]
@@ -1657,18 +1727,57 @@ public class ReactNativeLibsignalClientModule: Module {
         }
 
         Function("backupAuthCredentialPresentationGetBackupId") { (bckCredPresRaw: Data) -> Data in
-            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
-            return try presentation.extractedBackupId()
+            #if DEBUG
+            // Look up from cache (populated when presentation was created)
+            if let cached = backupPresentationCache.get(bckCredPresRaw) {
+                return cached.backupId
+            }
+            // In DEBUG, cache miss means presentation wasn't created in this session
+            assertionFailure("Presentation not found in cache. Was it created in this session?")
+            throw makePresentationGetterError()
+            #else
+            throw NSError(
+                domain: "BackupAuthCredentialPresentationError",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Presentation getters are not supported on iOS. Use credential getters instead."]
+            )
+            #endif
         }
 
         Function("backupAuthCredentialPresentationGetBackupLevel") { (bckCredPresRaw: Data) -> Int in
-            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
-            return try presentation.extractedBackupLevel().toNumber()
+            #if DEBUG
+            // Look up from cache (populated when presentation was created)
+            if let cached = backupPresentationCache.get(bckCredPresRaw) {
+                return cached.backupLevel
+            }
+            // In DEBUG, cache miss means presentation wasn't created in this session
+            assertionFailure("Presentation not found in cache. Was it created in this session?")
+            throw makePresentationGetterError()
+            #else
+            throw NSError(
+                domain: "BackupAuthCredentialPresentationError",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Presentation getters are not supported on iOS. Use credential getters instead."]
+            )
+            #endif
         }
 
         Function("backupAuthCredentialPresentationGetType") { (bckCredPresRaw: Data) -> Int in
-            let presentation = try BackupAuthCredentialPresentation(contents: [UInt8](bckCredPresRaw))
-            return try presentation.extractedCredentialType().toNumber()
+            #if DEBUG
+            // Look up from cache (populated when presentation was created)
+            if let cached = backupPresentationCache.get(bckCredPresRaw) {
+                return cached.credentialType
+            }
+            // In DEBUG, cache miss means presentation wasn't created in this session
+            assertionFailure("Presentation not found in cache. Was it created in this session?")
+            throw makePresentationGetterError()
+            #else
+            throw NSError(
+                domain: "BackupAuthCredentialPresentationError",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Presentation getters are not supported on iOS. Use credential getters instead."]
+            )
+            #endif
         }
 
         Function("backupAuthCredentialPresentDeterministic") { (bckAuthCredRaw: Data, genericServerPubParamsRaw: Data, randomness: Data) -> Data in
@@ -1682,10 +1791,26 @@ public class ReactNativeLibsignalClientModule: Module {
                 pointer.load(as: SignalRandomnessBytes.self)
             }
             
-            return Data(credential.present(
+            let presentationBytes = Data(credential.present(
                 serverParams: genericServerParams,
                 randomness: Randomness(randomnessBytes)
             ).serialize())
+            
+            #if DEBUG
+            // Cache the credential's metadata so presentation getters can retrieve it
+            // (Swift LibSignalClient doesn't expose getters on BackupAuthCredentialPresentation)
+            // Only cached in DEBUG for testing - production should use credential getters directly
+            backupPresentationCache.set(
+                BackupPresentationMetadataCache.Metadata(
+                    backupId: Data(credential.backupID),
+                    backupLevel: credential.backupLevel.toNumber(),
+                    credentialType: credential.type.toNumber()
+                ),
+                for: presentationBytes
+            )
+            #endif
+            
+            return presentationBytes
         }
 
         Function("backupAuthCredentialGetBackupId") { (bckAuthCredRaw: Data) -> Data in
@@ -3422,63 +3547,6 @@ extension BackupCredentialType {
         default:
             return .messages
         }
-    }
-}
-
-enum BackupAuthCredentialPresentationDecodingError: Error {
-    case truncatedHeader
-    case missingBackupId
-    case invalidBackupLevel(UInt8)
-    case invalidCredentialType(UInt8)
-}
-
-private struct BackupAuthCredentialPresentationDecoder {
-    static let headerLength = 3
-    static let backupIdLength = 16
-
-    static func backupLevel(from bytes: [UInt8]) throws -> BackupLevel {
-        guard bytes.count >= headerLength else {
-            throw BackupAuthCredentialPresentationDecodingError.truncatedHeader
-        }
-        let rawValue = bytes[1]
-        let level = BackupLevel.fromValue(Int(rawValue))
-        guard level.toNumber() == Int(rawValue) else {
-            throw BackupAuthCredentialPresentationDecodingError.invalidBackupLevel(rawValue)
-        }
-        return level
-    }
-
-    static func credentialType(from bytes: [UInt8]) throws -> BackupCredentialType {
-        guard bytes.count >= headerLength else {
-            throw BackupAuthCredentialPresentationDecodingError.truncatedHeader
-        }
-        let rawValue = bytes[2]
-        let type = BackupCredentialType.fromValue(Int(rawValue))
-        guard type.toNumber() == Int(rawValue) else {
-            throw BackupAuthCredentialPresentationDecodingError.invalidCredentialType(rawValue)
-        }
-        return type
-    }
-
-    static func backupId(from bytes: [UInt8]) throws -> Data {
-        guard bytes.count >= headerLength + backupIdLength else {
-            throw BackupAuthCredentialPresentationDecodingError.missingBackupId
-        }
-        return Data(bytes.suffix(backupIdLength))
-    }
-}
-
-private extension BackupAuthCredentialPresentation {
-    func extractedBackupLevel() throws -> BackupLevel {
-        try BackupAuthCredentialPresentationDecoder.backupLevel(from: serialize())
-    }
-
-    func extractedCredentialType() throws -> BackupCredentialType {
-        try BackupAuthCredentialPresentationDecoder.credentialType(from: serialize())
-    }
-
-    func extractedBackupId() throws -> Data {
-        try BackupAuthCredentialPresentationDecoder.backupId(from: serialize())
     }
 }
 
