@@ -27,12 +27,14 @@ import {
 	updateSignedPrekeyStoreFromObject,
 	updatedPrekeyStoreFromObject,
 } from './stores';
+export * from './AccountKeys';
 export * from './Address';
 export * from './crypto';
 export * from './Errors';
-export * from './zkgroup';
+export * from './MessageBackup';
 export * from './randomBytes';
-export * from './AccountKeys';
+export * from './zkgroup';
+
 export { ElasticCipher, ElasticCipherMode } from './elasticCipher';
 
 export class HKDF {

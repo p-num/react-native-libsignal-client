@@ -110,7 +110,7 @@ export default class GroupSendEndorsementsResponse {
 		serverParams: ServerPublicParams,
 		now: Date = new Date()
 	): ReceivedEndorsements {
-		const endorsementContents =
+		const endorsementContents: Uint8Array[] =
 			ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithServiceIds(
 				new Uint8Array(this.serialized),
 				ServiceId.toConcatenatedFixedWidthBinary(groupMembers),
@@ -119,7 +119,7 @@ export default class GroupSendEndorsementsResponse {
 				new Uint8Array(groupParams.serialized),
 				new Uint8Array(serverParams.serialized)
 			);
-		const endorsements = endorsementContents.map((next) => {
+		const endorsements = endorsementContents.map((next: Uint8Array) => {
 			// Normally we don't notice the cost of validating just-created zkgroup objects,
 			// but in this case we may have up to 1000 of these. Let's assume they're created correctly.
 			return new GroupSendEndorsement(next);
@@ -151,7 +151,7 @@ export default class GroupSendEndorsementsResponse {
 		serverParams: ServerPublicParams,
 		now: Date = new Date()
 	): ReceivedEndorsements {
-		const endorsementContents =
+		const endorsementContents: Uint8Array[] =
 			ReactNativeLibsignalClientModule.groupSendEndorsementsResponseReceiveAndCombineWithCiphertexts(
 				new Uint8Array(this.serialized),
 				UuidCiphertext.serializeAndConcatenate(groupMembers),
@@ -159,7 +159,7 @@ export default class GroupSendEndorsementsResponse {
 				Math.floor(now.getTime() / 1000),
 				new Uint8Array(serverParams.serialized)
 			);
-		const endorsements = endorsementContents.map((next) => {
+		const endorsements = endorsementContents.map((next: Uint8Array) => {
 			// Normally we don't notice the cost of validating just-created zkgroup objects,
 			// but in this case we may have up to 1000 of these. Let's assume they're created correctly.
 			return new GroupSendEndorsement(next);
