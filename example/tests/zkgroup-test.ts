@@ -1,9 +1,11 @@
 import { Buffer } from '@craftzdog/react-native-buffer';
-import { default as deepEql, default as deepEqual } from 'deep-eql';
+import deepEqual from 'deep-eql';
 import { Platform } from 'react-native';
 import { assert } from 'typed-assert';
 import { Aci, Pni } from '../../src';
 import {
+	BackupAuthCredentialRequestContext,
+	BackupLevel,
 	ClientZkAuthOperations,
 	ClientZkGroupCipher,
 	ClientZkProfileOperations,
@@ -17,7 +19,9 @@ import {
 	ServerZkAuthOperations,
 	ServerZkProfileOperations,
 } from '../../src/zkgroup';
-import { throwsSync } from './extentions';
+import GenericServerSecretParams from '../../src/zkgroup/GenericServerSecretParams';
+import BackupCredentialType from '../../src/zkgroup/backups/BackupCredentialType';
+import { assertThrows, throwsSync } from './extentions';
 import { test } from './utils';
 
 const SECONDS_PER_DAY = 86400;
@@ -644,6 +648,142 @@ export const testZkGroup = () => {
 	//   assert(throwsSync(() => new GroupSecretParams(ckp)),
 	//   "wrong sized serialized group secret params did not throw an error");
 	// })
+
+	test('BackupAuthCredential deterministic', () => {
+		// Chosen randomly
+		const SERVER_SECRET_RANDOM = hexToBuffer(
+			'6987b92bdea075d3f8b42b39d780a5be0bc264874a18e11cac694e4fe28f6cca'
+		);
+		const BACKUP_KEY = hexToBuffer(
+			'f9abbbffa7d424929765aecc84b604633c55ac1bce82e1ee06b79bc9a5629338'
+		);
+		const TEST_USER_ID = 'e74beed0-e70f-4cfd-abbb-7e3eb333bbac';
+
+		// These are expectations; if the contents of a credential or derivation of a backup ID changes,
+		// they will need to be updated.
+		const SERIALIZED_BACKUP_ID = hexToBuffer(
+			'a28962c7f9ac910f66e4bcb33f2cef06'
+		);
+		const SERIALIZED_REQUEST_CREDENTIAL = new Uint8Array(
+			Buffer.from(
+				'AISCxQa8OsFqphsQPxqtzJk5+jndpE3SJG6bfazQB399rN6N8Dv5DAwvY4N36Uj0qGf0cV5a/8rf5nkxLeVNnF3ojRSO8xaZOpKJOvWSDJIGn6EeMl2jOjx+IQg8d8M0AQ==',
+				'base64'
+			)
+		);
+
+		const backupLevel = BackupLevel.Free;
+		const credentialType = BackupCredentialType.Messages;
+		const context = BackupAuthCredentialRequestContext.create(
+			BACKUP_KEY,
+			TEST_USER_ID
+		);
+		const request = context.getRequest();
+		assert(deepEqual(request.serialized, SERIALIZED_REQUEST_CREDENTIAL));
+
+		const serverSecretParams =
+			GenericServerSecretParams.generateWithRandom(SERVER_SECRET_RANDOM);
+
+		const now = Math.floor(Date.now() / 1000);
+		const startOfDay = now - (now % SECONDS_PER_DAY);
+		const response = request.issueCredential(
+			startOfDay,
+			backupLevel,
+			credentialType,
+			serverSecretParams
+		);
+		const credential = context.receive(
+			response,
+			startOfDay,
+			serverSecretParams.getPublicParams()
+		);
+		assert(credential.getBackupLevel() === backupLevel);
+		assert(credential.getType() === credentialType);
+		assert(deepEqual(SERIALIZED_BACKUP_ID, credential.getBackupId()));
+
+		const presentation = credential.present(
+			serverSecretParams.getPublicParams()
+		);
+		assert(presentation.getBackupLevel() === backupLevel);
+		assert(presentation.getType() === credentialType);
+		assert(deepEqual(SERIALIZED_BACKUP_ID, presentation.getBackupId()));
+	});
+
+	test('BackupAuthCredential integration', () => {
+		// Chosen randomly
+		const SERVER_SECRET_RANDOM = hexToBuffer(
+			'6987b92bdea075d3f8b42b39d780a5be0bc264874a18e11cac694e4fe28f6cca'
+		);
+		const BACKUP_KEY = hexToBuffer(
+			'f9abbbffa7d424929765aecc84b604633c55ac1bce82e1ee06b79bc9a5629338'
+		);
+		const TEST_USER_ID = 'e74beed0-e70f-4cfd-abbb-7e3eb333bbac';
+
+		const backupLevel = BackupLevel.Free;
+		const credentialType = BackupCredentialType.Messages;
+
+		const serverSecretParams =
+			GenericServerSecretParams.generateWithRandom(SERVER_SECRET_RANDOM);
+		const serverPublicParams = serverSecretParams.getPublicParams();
+
+		// client
+		const context = BackupAuthCredentialRequestContext.create(
+			BACKUP_KEY,
+			TEST_USER_ID
+		);
+		const request = context.getRequest();
+
+		// issuance server
+		const now = Math.floor(Date.now() / 1000);
+		const startOfDay = now - (now % SECONDS_PER_DAY);
+		const response = request.issueCredentialWithRandom(
+			startOfDay,
+			backupLevel,
+			credentialType,
+			serverSecretParams,
+			TEST_ARRAY_32_1
+		);
+
+		// client
+		const credential = context.receive(
+			response,
+			startOfDay,
+			serverPublicParams
+		);
+		assert(credential.getBackupLevel() === backupLevel);
+		assert(credential.getType() === credentialType);
+		const presentation = credential.presentWithRandom(
+			serverPublicParams,
+			TEST_ARRAY_32_2
+		);
+
+		// redemption server
+		presentation.verify(serverSecretParams);
+		presentation.verify(
+			serverSecretParams,
+			new Date(1000 * (startOfDay + SECONDS_PER_DAY))
+		);
+
+		// credential should be expired after 2 days
+		assertThrows(
+			() =>
+				presentation.verify(
+					serverSecretParams,
+					new Date(1000 * (startOfDay + 1 + SECONDS_PER_DAY * 2))
+				),
+			'should be expired after 2 days'
+		);
+
+		// future credential should be invalid
+		assertThrows(
+			() =>
+				presentation.verify(
+					serverSecretParams,
+					new Date(1000 * (startOfDay - 1 - SECONDS_PER_DAY))
+				),
+			"should be invalid if it's from the future"
+		);
+	});
+
 	test('Test Blob Encryption', () => {
 		const groupSecretParams = GroupSecretParams.generate();
 		const clientZkGroupCipher = new ClientZkGroupCipher(groupSecretParams);
@@ -758,7 +898,7 @@ export const testZkGroup = () => {
 				serverPublicParams
 			);
 			assert(
-				deepEql(
+				deepEqual(
 					receivedEndorsements.combinedEndorsement.serialized,
 					receivedEndorsementsAlternate.combinedEndorsement.serialized
 				)
