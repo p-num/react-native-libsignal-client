@@ -217,7 +217,7 @@ export const testMessageBackup = () => {
 
 				const canonExpected = require('../assets/canonical-backup.expected.json');
 				const output = comparable.comparableString();
-				deepEqual(output, new String(canonExpected));
+				assert(deepEqual(JSON.parse(output), canonExpected));
 			});
 		});
 	});
@@ -265,7 +265,7 @@ export const testMessageBackup = () => {
 					frameLength |= secondByte << 7;
 				}
 				const frame = input.read(frameLength);
-				deepEqual(frame.length, frameLength);
+				assert(deepEqual(frame.length, frameLength));
 				backup.addFrame(new Uint8Array(frame));
 			}
 
