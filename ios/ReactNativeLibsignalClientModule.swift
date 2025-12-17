@@ -1954,6 +1954,9 @@ public class ReactNativeLibsignalClientModule: Module {
             self.handles.removeValue(forKey: handle)
         }
 
+        // ComparableBackup is only available in simulator builds (not device/archive builds)
+        // See: https://github.com/signalapp/libsignal ComparableBackup.swift
+        #if !os(iOS) || targetEnvironment(simulator)
         Function("comparableBackupReadUnencrypted") { (filePath: String, len: Int64, purpose: Int) -> String in
             let purposeEnum = try purposeFromInt(purpose)
             let fileURL = URL(fileURLWithPath: filePath.replacingOccurrences(of: "file:/", with: ""))
@@ -1977,6 +1980,16 @@ public class ReactNativeLibsignalClientModule: Module {
             
             return [comparableBackup.comparableString(), comparableBackup.unknownFields.fields]
         }
+        #else
+        // Provide stub functions that throw on device builds
+        Function("comparableBackupReadUnencrypted") { (_: String, _: Int64, _: Int) -> String in
+            throw NSError(domain: "ComparableBackup", code: 1, userInfo: [NSLocalizedDescriptionKey: "ComparableBackup is only available in the simulator, not device builds."])
+        }
+
+        Function("comparableBackupGetInfo") { (_: String) -> [Any] in
+            throw NSError(domain: "ComparableBackup", code: 1, userInfo: [NSLocalizedDescriptionKey: "ComparableBackup is only available in the simulator, not device builds."])
+        }
+        #endif
 
         /*END          bridge functions definitions              END*/
     }
